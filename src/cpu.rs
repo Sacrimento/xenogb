@@ -1,18 +1,21 @@
-use super::instructions::{Instruction, CPURegister, INSTRUCTIONS};
-use std::time::Instant;
-use std::{thread, time};
-
-
+use crate::instructions::{Instruction, CPURegister, INSTRUCTIONS, stack::{_push, _pop}};
 use crate::dbg::print_state;
 use crate::Bus;
 use crate::utils::*;
 
-#[repr(u8)]
 pub enum CPUFlags {
-    Z = 7u8,
-    N = 6u8,
-    H = 5u8,
-    C = 4u8,
+    Z = 7,
+    N = 6,
+    H = 5,
+    C = 4,
+}
+
+enum InterruptFlags {
+    VBlank = 0,
+    LCD = 1,
+    Timer = 2,
+    Serial = 3,
+    Joypad = 4,
 }
 
 struct CPURegisters {
@@ -52,37 +55,41 @@ pub struct LR35902CPU {
 
     pub bus: Bus,
 
-    elapsed_cycles: u8,
     pub current_instruction: &'static Instruction,
     pub halt: bool,
-    pub interrupt_master_enabled: bool,
+    pub int_master: bool,
+    pub enabling_ints: bool,
 }
 
 impl LR35902CPU {
     pub fn new(bus: Bus) -> Self {
         Self {
             bus: bus,
-            elapsed_cycles: 0,
             current_instruction: &INSTRUCTIONS[&0],
             halt: false,
             registers: CPURegisters::new(),
-            interrupt_master_enabled: false,
+            int_master: false,
+            enabling_ints: false,
         }
     }
 
     pub fn run(&mut self) {
-        loop {
-            // let dl = Instant::now() + time::Duration::from_secs_f32(0.0002384185791015625);
-            
-            // self.elapsed_cycles = 0;
-            self.set_instruction();
-            print_state(self);
-            
-            (self.current_instruction.func)(self);
+        loop {            
+            if !self.halt {
+                self.set_instruction();
+                print_state(self);
+                
+                (self.current_instruction.func)(self);
+            }
 
-            // println!("0x{:04X} 0x{:02X}", self.pc(), self.bus.read(self.pc()));
+            if self.int_master {
+                self.handle_ints();
+            }
 
-            // thread::sleep(dl - Instant::now());
+            if self.enabling_ints {
+                self.enabling_ints = false;
+                self.int_master = true;
+            }
         }
     }
 
@@ -192,5 +199,31 @@ impl LR35902CPU {
         }
 
         self.current_instruction = &INSTRUCTIONS[&opcode];
+    }
+
+    fn handle_ints(&mut self) {
+        let mut int_flags = self.bus.read(0xff0f);
+        let int_enable = self.bus.read(0xffff);
+
+        let mut handle_int = |int: u8, addr: u16| -> bool {
+            if get_bit(int_flags, int) == 1 && get_bit(int_enable, int) == 1 {
+                _push(self, (self.registers.pc & 0xff) as u8);
+                _push(self, (self.registers.pc >> 8) as u8);
+                int_flags = flip_bit(int_flags, int);
+                self.bus.write(0xff0f, int_flags);
+                self.halt = false;
+                self.int_master = false;
+                self.registers.pc = addr;
+                return true
+            }
+            false
+        };
+
+        for (int, addr) in [
+            (InterruptFlags::VBlank, 0x48),
+            (InterruptFlags::Timer, 0x50),
+            (InterruptFlags::Serial, 0x58),
+            (InterruptFlags::Joypad, 0x60),
+        ] { if handle_int(int as u8, addr) { return; } }
     }
 }

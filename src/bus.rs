@@ -1,6 +1,7 @@
 use crate::cartridge::Cartridge;
 use crate::instructions::{Instruction, INSTRUCTIONS};
 use crate::ram::RAM;
+use crate::io::IO;
 use crate::between;
 
 // 0x0000	0x3FFF	16 KiB ROM bank 00
@@ -19,13 +20,15 @@ use crate::between;
 pub struct Bus {
     cartridge: Cartridge,
     ram: RAM,
+    io: IO,
 }
 
 impl Bus {
     pub fn new(cartridge: Cartridge) -> Self {
         Self {
             cartridge,
-            ram: RAM::new()
+            ram: RAM::new(),
+            io: IO::new(),
         }
     }
 
@@ -34,11 +37,12 @@ impl Bus {
             return self.cartridge.read(addr)
         } else if between!(addr, 0xc000, 0xdfff) {
             return self.ram.read(addr)
-        } else if between!(addr, 0xff80, 0xfffe) {
+        } else if between!(addr, 0xff00, 0xff7f) {
+            return self.io.read(addr)
+        } else if addr >= 0xff80 {
             return self.ram.read(addr)
         }
-        println!("{:x}", addr);
-        todo!();
+        println!("Unhandled bus.read at 0x{:04X}", addr);
         0xff
     }
 
@@ -53,11 +57,13 @@ impl Bus {
             todo!()
         } else if between!(addr, 0xc000, 0xdfff) {
             self.ram.write(addr, value);
-        } else if between!(addr, 0xff80, 0xfffe) {
+        } else if between!(addr, 0xff00, 0xff7f) {
+            self.io.write(addr, value);
+        } else if addr >= 0xff80 {
             self.ram.write(addr, value);
         } else {
-            println!("0x{:x}, 0x{:x}", addr, value);
-            todo!();
+            println!("Unhandled bus.write at 0x{:04X}", addr);
+            // todo!();
         }
     }
 

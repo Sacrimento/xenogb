@@ -26,10 +26,8 @@ pub fn jr(cpu: &mut LR35902CPU) -> () {
     let mut pc = cpu.pc();
 
     let offset = cpu.bus.read(pc) as i8;
-    println!("offset: 0x{:04x}", offset);
     pc = u16::try_from((pc as i32) + (offset as i32) + 1).expect("Could not convert for jr");
 
-    println!("pc: 0x{:04x}", pc);
     cpu.set_register(&CPURegister::PC, pc);
 }
 

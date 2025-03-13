@@ -60,6 +60,9 @@ pub fn print_state(cpu: &LR35902CPU) {
         },
         AddrMode::IMMADDR_R16 => {
             &format!("[{}], {}", cpu.bus.read16(cpu.pc()), cpu.current_instruction.reg2.as_ref().unwrap())
+        },
+        AddrMode::SIMM => {
+            &format!("$0x{:02X}", cpu.bus.read(cpu.pc()) as i8)
         }
     };
 

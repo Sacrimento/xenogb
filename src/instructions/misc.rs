@@ -52,9 +52,9 @@ pub fn stop(cpu: &mut LR35902CPU) -> () {
 }
 
 pub fn ei(cpu: &mut LR35902CPU) -> () {
-    todo!();
+    cpu.enabling_ints = true;
 }
 
 pub fn di(cpu: &mut LR35902CPU) -> () {
-    cpu.interrupt_master_enabled = false;
+    cpu.int_master = false;
 }

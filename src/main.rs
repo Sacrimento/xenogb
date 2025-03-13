@@ -5,6 +5,7 @@ mod instructions;
 mod utils;
 mod ram;
 mod dbg;
+mod io;
 
 use cpu::LR35902CPU;
 use bus::Bus;
@@ -29,7 +30,7 @@ fn main() -> Result<(), XenoGBError> {
     let args = Args::parse();
     let cartridge = parse_cartridge(args.cartridge).expect("Could not load the cartrdige");
     
-    let mut bus = Bus::new(cartridge);
+    let bus = Bus::new(cartridge);
 
     let mut cpu = LR35902CPU::new(bus);
 
