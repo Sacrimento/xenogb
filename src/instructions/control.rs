@@ -82,8 +82,10 @@ pub fn ret(cpu: &mut LR35902CPU) -> () {
 }
 
 pub fn reti(cpu: &mut LR35902CPU) -> () {
-    todo!();
-    // ret(cpu);
+    cpu.enabling_ints = true;
+
+    let pc: u16 = ((_pop(cpu) as u16) << 8) | (_pop(cpu) as u16);
+    cpu.set_register(&CPURegister::PC, pc);
 }
 
 pub fn rst(cpu: &mut LR35902CPU, addr: u8) -> () {
