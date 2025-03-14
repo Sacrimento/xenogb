@@ -42,7 +42,7 @@ impl Bus {
         } else if addr >= 0xff80 {
             return self.ram.read(addr);
         }
-        println!("Unhandled bus.read at 0x{:04X}", addr);
+        // println!("Unhandled bus.read at 0x{:04X}", addr);
         0xff
     }
 

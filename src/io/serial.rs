@@ -17,7 +17,7 @@ impl Serial {
         match addr {
             0xff01 => self.transfer_data = value,
             0xff02 => self.transfer_control = value,
-            _ => panic!("Invalid addr for serial.write")
+            _ => panic!("Invalid addr for serial.write"),
         }
     }
 
@@ -25,13 +25,21 @@ impl Serial {
         match addr {
             0xff01 => self.transfer_data,
             0xff02 => self.transfer_control,
-            _ => panic!("Invalid addr for serial.read")
+            _ => panic!("Invalid addr for serial.read"),
         }
     }
 
     pub fn get_char(&mut self) -> u8 {
-        if get_bit(self.transfer_control, SerialTransferControlFlags::TRANSFER_ENABLE as u8) == 1 {
-            self.transfer_control = set_bit(self.transfer_control, SerialTransferControlFlags::TRANSFER_ENABLE as u8, 0);
+        if get_bit(
+            self.transfer_control,
+            SerialTransferControlFlags::TRANSFER_ENABLE as u8,
+        ) == 1
+        {
+            self.transfer_control = set_bit(
+                self.transfer_control,
+                SerialTransferControlFlags::TRANSFER_ENABLE as u8,
+                0,
+            );
             return self.transfer_data;
         }
         0

@@ -70,30 +70,28 @@ pub fn add(cpu: &mut LR35902CPU) -> () {
 
 pub fn adc(cpu: &mut LR35902CPU) -> () {
     let instr = cpu.current_instruction;
-    let old_carry = cpu.get_flag(CPUFlags::C as u8);
+    let c = cpu.get_flag(CPUFlags::C as u8);
+    let op1: u32;
+    let op2: u32;
     let result: u32;
-    let new_c: bool;
 
     match instr.addr_mode {
         AddrMode::R_IMM => {
-            result = cpu.get_register(instr.reg1.as_ref().unwrap()) as u32
-                + cpu.bus.read(cpu.pc()) as u32
-                + old_carry as u32;
+            op1 = cpu.get_register(instr.reg1.as_ref().unwrap()) as u32;
+            op2 = cpu.bus.read(cpu.pc()) as u32;
+            result = op1 + op2 + c as u32;
             cpu.inc_pc(1);
-            new_c = result > 0xff;
         }
         AddrMode::R_RADDR => {
             let addr = cpu.get_register16(instr.reg2.as_ref().unwrap());
-            result = cpu.get_register(instr.reg1.as_ref().unwrap()) as u32
-                + cpu.bus.read(addr) as u32
-                + old_carry as u32;
-            new_c = result > 0xff;
+            op1 = cpu.get_register(instr.reg1.as_ref().unwrap()) as u32;
+            op2 = cpu.bus.read(addr) as u32;
+            result = op1 + op2 + c as u32;
         }
         AddrMode::R_R => {
-            result = cpu.get_register(instr.reg1.as_ref().unwrap()) as u32
-                + cpu.get_register(instr.reg2.as_ref().unwrap()) as u32
-                + old_carry as u32;
-            new_c = result > 0xff;
+            op1 = cpu.get_register(instr.reg1.as_ref().unwrap()) as u32;
+            op2 = cpu.get_register(instr.reg2.as_ref().unwrap()) as u32;
+            result = op1 + op2 + c as u32;
         }
         _ => panic!("Unhandled addr mode for adc"),
     }
@@ -102,8 +100,8 @@ pub fn adc(cpu: &mut LR35902CPU) -> () {
     cpu.set_flags(
         ((result as u8) == 0) as i8,
         0,
-        ((result & 0xf) == 0) as i8,
-        new_c as i8,
+        (((op1 & 0xf) + (op2 & 0xf) + c as u32) > 0xf) as i8,
+        (result > 0xff) as i8,
     );
 }
 
