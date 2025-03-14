@@ -1,7 +1,10 @@
-use crate::instructions::{Instruction, CPURegister, INSTRUCTIONS, stack::{_push, _pop}};
-use crate::dbg::print_state;
-use crate::Bus;
+use crate::dbg::{print_serial, print_state, print_state_doctor};
+use crate::instructions::{
+    stack::{_pop, _push},
+    CPURegister, Instruction, INSTRUCTIONS,
+};
 use crate::utils::*;
+use crate::Bus;
 
 pub enum CPUFlags {
     Z = 7,
@@ -35,17 +38,28 @@ struct CPURegisters {
 impl CPURegisters {
     pub fn new() -> Self {
         Self {
-            a: 0xb0,
-            f: 0x01,
-            b: 0x13,
-            c: 0x00,
-            d: 0xd8,
-            e: 0x00,
-            h: 0x4d,
-            l: 0x01,
+            // a: 0xb0,
+            // f: 0x01,
+            // b: 0x13,
+            // c: 0x00,
+            // d: 0xd8,
+            // e: 0x00,
+            // h: 0x4d,
+            // l: 0x01,
 
-            pc: 0x0100,
+            // pc: 0x0100,
+            // sp: 0xfffe,
+            a: 0x01,
+            f: 0xb0,
+            b: 0x00,
+            c: 0x13,
+            d: 0x00,
+            e: 0xd8,
+            h: 0x01,
+            l: 0x4d,
+
             sp: 0xfffe,
+            pc: 0x0100,
         }
     }
 }
@@ -74,12 +88,16 @@ impl LR35902CPU {
     }
 
     pub fn run(&mut self) {
-        loop {            
+        // print_state_doctor(self);
+        loop {
             if !self.halt {
                 self.set_instruction();
-                print_state(self);
-                
+
+                // print_state(self);
+                print_serial(self);
+
                 (self.current_instruction.func)(self);
+                // print_state_doctor(self);
             }
 
             if self.int_master {
@@ -95,29 +113,52 @@ impl LR35902CPU {
 
     pub fn set_register(&mut self, register: &CPURegister, value: u16) {
         match register {
-            CPURegister::A => {self.registers.a = (value & 0xff) as u8;},
-            CPURegister::F => {panic!("use cpu.set_flags dummy");},
-            CPURegister::B => {self.registers.b = (value & 0xff) as u8;},
-            CPURegister::C => {self.registers.c = (value & 0xff) as u8;},
-            CPURegister::D => {self.registers.d = (value & 0xff) as u8;},
-            CPURegister::E => {self.registers.e = (value & 0xff) as u8;},
-            CPURegister::H => {self.registers.h = (value & 0xff) as u8;},
-            CPURegister::L => {self.registers.l = (value & 0xff) as u8;},
-            CPURegister::AF => {self.registers.a = (value >> 8) as u8;},
+            CPURegister::A => {
+                self.registers.a = value as u8;
+            }
+            CPURegister::F => {
+                self.registers.f = value as u8;
+            }
+            CPURegister::B => {
+                self.registers.b = value as u8;
+            }
+            CPURegister::C => {
+                self.registers.c = value as u8;
+            }
+            CPURegister::D => {
+                self.registers.d = value as u8;
+            }
+            CPURegister::E => {
+                self.registers.e = value as u8;
+            }
+            CPURegister::H => {
+                self.registers.h = value as u8;
+            }
+            CPURegister::L => {
+                self.registers.l = value as u8;
+            }
+            CPURegister::AF => {
+                self.registers.a = (value >> 8) as u8;
+                self.registers.f = (value & 0xff) as u8;
+            }
             CPURegister::BC => {
                 self.registers.b = (value >> 8) as u8;
                 self.registers.c = (value & 0xff) as u8;
-            },
+            }
             CPURegister::DE => {
                 self.registers.d = (value >> 8) as u8;
                 self.registers.e = (value & 0xff) as u8;
-            },
+            }
             CPURegister::HL => {
                 self.registers.h = (value >> 8) as u8;
                 self.registers.l = (value & 0xff) as u8;
-            },
-            CPURegister::PC => {self.registers.pc = value;},
-            CPURegister::SP => {self.registers.sp = value;},
+            }
+            CPURegister::PC => {
+                self.registers.pc = value;
+            }
+            CPURegister::SP => {
+                self.registers.sp = value;
+            }
         }
     }
 
@@ -186,7 +227,7 @@ impl LR35902CPU {
 
         if c != -1 {
             self.registers.f = set_bit(self.registers.f, CPUFlags::C as u8, c as u8);
-        } 
+        }
     }
 
     pub fn set_instruction(&mut self) {
@@ -214,16 +255,21 @@ impl LR35902CPU {
                 self.halt = false;
                 self.int_master = false;
                 self.registers.pc = addr;
-                return true
+                return true;
             }
             false
         };
 
         for (int, addr) in [
-            (InterruptFlags::VBlank, 0x48),
+            (InterruptFlags::VBlank, 0x40),
+            (InterruptFlags::LCD, 0x48),
             (InterruptFlags::Timer, 0x50),
             (InterruptFlags::Serial, 0x58),
             (InterruptFlags::Joypad, 0x60),
-        ] { if handle_int(int as u8, addr) { return; } }
+        ] {
+            if handle_int(int as u8, addr) {
+                return;
+            }
+        }
     }
 }

@@ -20,6 +20,7 @@ pub fn jr(cpu: &mut LR35902CPU) -> () {
     let instr = cpu.current_instruction;
     
     if !check_cond(cpu, instr.condition.as_ref()) {
+        cpu.inc_pc(1);
         return
     }
 
@@ -60,8 +61,8 @@ pub fn call(cpu: &mut LR35902CPU) -> () {
     }
 
     let v = cpu.pc() + 2;
-    _push(cpu, (v & 0xff) as u8);
     _push(cpu, (v >> 8) as u8);
+    _push(cpu, (v & 0xff) as u8);
 
     let pc = cpu.bus.read16(cpu.pc());
 
@@ -77,7 +78,7 @@ pub fn ret(cpu: &mut LR35902CPU) -> () {
         return
     }
 
-    pc = ((_pop(cpu) as u16) << 8) | (_pop(cpu) as u16);
+    pc = (_pop(cpu) as u16) | ((_pop(cpu) as u16) << 8);
     cpu.set_register(&CPURegister::PC, pc);
 }
 

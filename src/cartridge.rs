@@ -19,8 +19,7 @@ pub struct CartridgeHeader {
     //014C — Mask ROM version number
     //014D — Header checksum
     //014E-014F — Global checksum
-
-    title: String, // 11-16 bytes
+    title: String,             // 11-16 bytes
     manufacturer_code: String, // 4 bytes
     cgb_flag: u8,
     new_licensee_code: String, // 2 bytes
@@ -38,10 +37,16 @@ pub struct CartridgeHeader {
 impl CartridgeHeader {
     pub fn parse(header: &[u8]) -> CartridgeHeader {
         CartridgeHeader {
-            title: std::str::from_utf8(&header[0..11]).expect("Invalid cartridge title").into(),
-            manufacturer_code: std::str::from_utf8(&header[11..15]).expect("Invalid cartridge title").into(),
+            title: std::str::from_utf8(&header[0..11])
+                .expect("Invalid cartridge title")
+                .into(),
+            manufacturer_code: std::str::from_utf8(&header[11..15])
+                .expect("Invalid cartridge title")
+                .into(),
             cgb_flag: header[15],
-            new_licensee_code:  std::str::from_utf8(&header[16..18]).expect("Invalid licensee code").into(),
+            new_licensee_code: std::str::from_utf8(&header[16..18])
+                .expect("Invalid licensee code")
+                .into(),
             sgb_flag: header[18],
             cartridge_type: header[19],
             rom_size: header[20],
@@ -71,16 +76,15 @@ pub fn parse_cartridge(cartridge: PathBuf) -> Result<Cartridge, CartridgeError> 
 
     let header = CartridgeHeader::parse(&contents[0x134..=0x14f]);
 
-    println!("ROM loaded!");
-    println!("\tTitle: {}", header.title);
-    println!("\tLicensee code: 0x{}", header.new_licensee_code);
-    println!("\tType: 0x{:2x}", header.cartridge_type);
-    println!("\tROM size: {} kb ({} banks)", 32 * (1 << header.rom_size), 32 * (1 << header.rom_size) / 16);
-    println!("\tRAM type: {}", header.ram_size);
+    // println!("ROM loaded!");
+    // println!("\tTitle: {}", header.title);
+    // println!("\tLicensee code: 0x{}", header.new_licensee_code);
+    // println!("\tType: 0x{:2x}", header.cartridge_type);
+    // println!("\tROM size: {} kb ({} banks)", 32 * (1 << header.rom_size), 32 * (1 << header.rom_size) / 16);
+    // println!("\tRAM type: {}", header.ram_size);
 
     Ok(Cartridge {
         header,
         content: contents,
     })
-
 }

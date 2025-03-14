@@ -1,26 +1,26 @@
+use crate::between;
 use crate::cartridge::Cartridge;
 use crate::instructions::{Instruction, INSTRUCTIONS};
+use crate::io::IOMMU;
 use crate::ram::RAM;
-use crate::io::IO;
-use crate::between;
 
 // 0x0000	0x3FFF	16 KiB ROM bank 00
 // 0x4000	0x7FFF	16 KiB ROM Bank 01–NN
 // 0x8000	0x9FFF	8 KiB Video RAM (VRAM)
 // 0xA000	0xBFFF	8 KiB External RAM
-// 0xC000	0xCFFF	4 KiB Work RAM (WRAM)	
+// 0xC000	0xCFFF	4 KiB Work RAM (WRAM)
 // 0xD000	0xDFFF	4 KiB Work RAM (WRAM)
 // 0xE000	0xFDFF	Echo RAM (mirror of C000–DDFF)
-// 0xFE00	0xFE9F	Object attribute memory (OAM)	
+// 0xFE00	0xFE9F	Object attribute memory (OAM)
 // 0xFEA0	0xFEFF	Not Usable
-// 0xFF00	0xFF7F	I/O Registers	
-// 0xFF80	0xFFFE	High RAM (HRAM)	
-// 0xFFFF	0xFFFF	Interrupt Enable register (IE)	
+// 0xFF00	0xFF7F	I/O Registers
+// 0xFF80	0xFFFE	High RAM (HRAM)
+// 0xFFFF	0xFFFF	Interrupt Enable register (IE)
 
 pub struct Bus {
     cartridge: Cartridge,
     ram: RAM,
-    io: IO,
+    pub io: IOMMU,
 }
 
 impl Bus {
@@ -28,19 +28,19 @@ impl Bus {
         Self {
             cartridge,
             ram: RAM::new(),
-            io: IO::new(),
+            io: IOMMU::new(),
         }
     }
 
     pub fn read(&self, addr: u16) -> u8 {
         if addr < 0x7fff {
-            return self.cartridge.read(addr)
+            return self.cartridge.read(addr);
         } else if between!(addr, 0xc000, 0xdfff) {
-            return self.ram.read(addr)
+            return self.ram.read(addr);
         } else if between!(addr, 0xff00, 0xff7f) {
-            return self.io.read(addr)
+            return self.io.read(addr);
         } else if addr >= 0xff80 {
-            return self.ram.read(addr)
+            return self.ram.read(addr);
         }
         println!("Unhandled bus.read at 0x{:04X}", addr);
         0xff
@@ -62,9 +62,8 @@ impl Bus {
         } else if addr >= 0xff80 {
             self.ram.write(addr, value);
         } else {
-            println!("Unhandled bus.write at 0x{:04X}", addr);
+            // println!("Unhandled bus.write at 0x{:04X}", addr);
             // todo!();
         }
     }
-
 }
