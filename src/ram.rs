@@ -25,9 +25,9 @@ impl RAM {
 
     pub fn read(&self, addr: u16) -> u8 {
         if between!(addr, 0xc000, 0xdfff) {
-            return self.wram[(addr - 0xc000) as usize]
+            return self.wram[(addr - 0xc000) as usize];
         } else if addr >= 0xff80 {
-            return self.hram[(addr - 0xff80) as usize]
+            return self.hram[(addr - 0xff80) as usize];
         }
 
         panic!("Invalid addr 0x{:02x} for ram.read", addr);
