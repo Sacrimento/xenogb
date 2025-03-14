@@ -6,9 +6,6 @@ TEST_DIR=$(dirname $(realpath -s $0))
 ROOT=$TEST_DIR/../..
 EXEC=$ROOT/target/debug/$PROJECT
 
-echo "# Compiling $PROJECT"
-cargo build
-
 failed=0
 
 echo "# Run blargg's tests"
