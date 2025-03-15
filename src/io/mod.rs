@@ -1,19 +1,20 @@
 use crate::between;
 mod serial;
+mod timer;
 
 use serial::Serial;
+use timer::Timer;
 
 pub struct IOMMU {
     pub serial: Serial,
-
-    pub int_flags: u8,
+    pub timer: Timer,
 }
 
 impl IOMMU {
     pub fn new() -> Self {
         Self {
             serial: Serial::default(),
-            int_flags: 0,
+            timer: Timer::new(),
         }
     }
 
@@ -26,9 +27,7 @@ impl IOMMU {
             self.serial.write(addr, value);
         } else if between!(addr, 0xff04, 0xff07) {
             // Timer and divider
-            // println!("Unhandled io.write at 0x{:04X}", addr);
-        } else if addr == 0xff0f {
-            self.int_flags = value;
+            self.timer.write(addr, value);
         } else if between!(addr, 0xff10, 0xff26) {
             // Audio
             // println!("Unhandled io.write at 0x{:04X}", addr);
@@ -65,13 +64,10 @@ impl IOMMU {
             0xff
         } else if between!(addr, 0xff01, 0xff02) {
             // Serial Transfer
-            return self.serial.read(addr);
+            self.serial.read(addr)
         } else if between!(addr, 0xff04, 0xff07) {
             // Timer and divider
-            println!("Unhandled io.read at 0x{:04X}", addr);
-            0xff
-        } else if addr == 0xff0f {
-            self.int_flags
+            self.timer.read(addr)
         } else if between!(addr, 0xff10, 0xff26) {
             // Audio
             println!("Unhandled io.read at 0x{:04X}", addr);

@@ -1,6 +1,6 @@
 use crate::between;
 use crate::cartridge::Cartridge;
-use crate::instructions::{Instruction, INSTRUCTIONS};
+use crate::interrupts::{INTERRUPT_ENABLE, INTERRUPT_FLAGS};
 use crate::io::IOMMU;
 use crate::ram::RAM;
 
@@ -37,10 +37,14 @@ impl Bus {
             return self.cartridge.read(addr);
         } else if between!(addr, 0xc000, 0xdfff) {
             return self.ram.read(addr);
+        } else if addr == 0xff0f {
+            return INTERRUPT_FLAGS.get();
         } else if between!(addr, 0xff00, 0xff7f) {
             return self.io.read(addr);
-        } else if addr >= 0xff80 {
+        } else if between!(addr, 0xff80, 0xfffe) {
             return self.ram.read(addr);
+        } else if addr == 0xfff {
+            return INTERRUPT_ENABLE.get();
         }
         // println!("Unhandled bus.read at 0x{:04X}", addr);
         0xff
@@ -57,10 +61,14 @@ impl Bus {
             todo!()
         } else if between!(addr, 0xc000, 0xdfff) {
             self.ram.write(addr, value);
+        } else if addr == 0xff0f {
+            INTERRUPT_FLAGS.set(value);
         } else if between!(addr, 0xff00, 0xff7f) {
             self.io.write(addr, value);
-        } else if addr >= 0xff80 {
+        } else if between!(addr, 0xff80, 0xfffe) {
             self.ram.write(addr, value);
+        } else if addr == 0xfff {
+            INTERRUPT_ENABLE.set(value);
         } else {
             // println!("Unhandled bus.write at 0x{:04X}", addr);
             // todo!();

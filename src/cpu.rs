@@ -1,8 +1,6 @@
 use crate::dbg::{print_serial, print_state, print_state_doctor};
-use crate::instructions::{
-    stack::{_pop, _push},
-    CPURegister, Instruction, INSTRUCTIONS,
-};
+use crate::instructions::{stack::_push, CPURegister, Instruction, INSTRUCTIONS};
+use crate::interrupts::{InterruptFlags, INTERRUPT_ENABLE, INTERRUPT_FLAGS};
 use crate::utils::*;
 use crate::Bus;
 
@@ -11,14 +9,6 @@ pub enum CPUFlags {
     N = 6,
     H = 5,
     C = 4,
-}
-
-enum InterruptFlags {
-    VBlank = 0,
-    LCD = 1,
-    Timer = 2,
-    Serial = 3,
-    Joypad = 4,
 }
 
 struct CPURegisters {
@@ -243,15 +233,11 @@ impl LR35902CPU {
     }
 
     fn handle_ints(&mut self) {
-        let mut int_flags = self.bus.read(0xff0f);
-        let int_enable = self.bus.read(0xffff);
-
         let mut handle_int = |int: u8, addr: u16| -> bool {
-            if get_bit(int_flags, int) == 1 && get_bit(int_enable, int) == 1 {
+            if INTERRUPT_FLAGS.get() & int == 1 && INTERRUPT_ENABLE.get() & int == 1 {
                 _push(self, (self.registers.pc & 0xff) as u8);
                 _push(self, (self.registers.pc >> 8) as u8);
-                int_flags = flip_bit(int_flags, int);
-                self.bus.write(0xff0f, int_flags);
+                INTERRUPT_FLAGS.set(INTERRUPT_FLAGS.get() ^ int);
                 self.halt = false;
                 self.int_master = false;
                 self.registers.pc = addr;
@@ -261,11 +247,11 @@ impl LR35902CPU {
         };
 
         for (int, addr) in [
-            (InterruptFlags::VBlank, 0x40),
+            (InterruptFlags::VBLANK, 0x40),
             (InterruptFlags::LCD, 0x48),
-            (InterruptFlags::Timer, 0x50),
-            (InterruptFlags::Serial, 0x58),
-            (InterruptFlags::Joypad, 0x60),
+            (InterruptFlags::TIMER, 0x50),
+            (InterruptFlags::SERIAL, 0x58),
+            (InterruptFlags::JOYPAD, 0x60),
         ] {
             if handle_int(int as u8, addr) {
                 return;

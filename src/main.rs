@@ -3,6 +3,7 @@ mod cartridge;
 mod cpu;
 mod dbg;
 mod instructions;
+mod interrupts;
 mod io;
 mod ram;
 mod utils;
