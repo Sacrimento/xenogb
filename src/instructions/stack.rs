@@ -7,7 +7,7 @@ pub fn _pop(cpu: &mut LR35902CPU) -> u8 {
     v
 }
 
-pub fn pop(cpu: &mut LR35902CPU) -> () {
+pub fn pop(cpu: &mut LR35902CPU) -> u8 {
     let instr = cpu.current_instruction;
     let regs: [&CPURegister; 2];
 
@@ -26,6 +26,7 @@ pub fn pop(cpu: &mut LR35902CPU) -> () {
         }
         cpu.set_register(reg, v as u16);
     }
+    3
 }
 
 pub fn _push(cpu: &mut LR35902CPU, value: u8) -> () {
@@ -33,7 +34,7 @@ pub fn _push(cpu: &mut LR35902CPU, value: u8) -> () {
     cpu.bus.write(cpu.sp(), value);
 }
 
-pub fn push(cpu: &mut LR35902CPU) -> () {
+pub fn push(cpu: &mut LR35902CPU) -> u8 {
     let instr = cpu.current_instruction;
     let regs: [&CPURegister; 2];
 
@@ -52,4 +53,5 @@ pub fn push(cpu: &mut LR35902CPU) -> () {
         }
         _push(cpu, v);
     }
+    4
 }

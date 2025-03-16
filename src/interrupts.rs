@@ -6,11 +6,11 @@ thread_local! {
 }
 
 pub mod InterruptFlags {
-    pub const VBLANK: u8 = 0x0;
-    pub const LCD: u8 = 0x1;
-    pub const TIMER: u8 = 0x2;
-    pub const SERIAL: u8 = 0x4;
-    pub const JOYPAD: u8 = 0x8;
+    pub const VBLANK: u8 = 0x1;
+    pub const LCD: u8 = 0x2;
+    pub const TIMER: u8 = 0x4;
+    pub const SERIAL: u8 = 0x8;
+    pub const JOYPAD: u8 = 0x10;
 }
 
 pub fn request_interrupt(int: u8) {

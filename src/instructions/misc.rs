@@ -1,22 +1,25 @@
 use super::CPURegister;
 use crate::cpu::{CPUFlags, LR35902CPU};
 
-pub fn ccf(cpu: &mut LR35902CPU) -> () {
+pub fn ccf(cpu: &mut LR35902CPU) -> u8 {
     let c = cpu.get_flag(CPUFlags::C as u8);
     cpu.set_flags(-1, 0, 0, (c ^ 1) as i8);
+    1
 }
 
-pub fn cpl(cpu: &mut LR35902CPU) -> () {
+pub fn cpl(cpu: &mut LR35902CPU) -> u8 {
     let a = cpu.get_register(&CPURegister::A);
     cpu.set_register(&CPURegister::A, (!a) as u16);
     cpu.set_flags(-1, 1, 1, -1);
+    1
 }
 
-pub fn scf(cpu: &mut LR35902CPU) -> () {
+pub fn scf(cpu: &mut LR35902CPU) -> u8 {
     cpu.set_flags(-1, 0, 0, 1);
+    1
 }
 
-pub fn daa(cpu: &mut LR35902CPU) -> () {
+pub fn daa(cpu: &mut LR35902CPU) -> u8 {
     let c = cpu.get_flag(CPUFlags::C as u8);
     let h = cpu.get_flag(CPUFlags::H as u8);
     let n = cpu.get_flag(CPUFlags::N as u8);
@@ -45,20 +48,25 @@ pub fn daa(cpu: &mut LR35902CPU) -> () {
         ((correction << 2) & 0x100 != 0) as i8,
     );
     cpu.set_register(&CPURegister::A, a as u16);
+    1
 }
 
-pub fn halt(cpu: &mut LR35902CPU) -> () {
+pub fn halt(cpu: &mut LR35902CPU) -> u8 {
     cpu.halt = true;
+    1
 }
 
-pub fn stop(cpu: &mut LR35902CPU) -> () {
+pub fn stop(_cpu: &mut LR35902CPU) -> u8 {
     todo!();
 }
 
-pub fn ei(cpu: &mut LR35902CPU) -> () {
+pub fn ei(cpu: &mut LR35902CPU) -> u8 {
     cpu.enabling_ints = true;
+    cpu.halt = false;
+    1
 }
 
-pub fn di(cpu: &mut LR35902CPU) -> () {
+pub fn di(cpu: &mut LR35902CPU) -> u8 {
     cpu.int_master = false;
+    1
 }

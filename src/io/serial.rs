@@ -1,8 +1,8 @@
 use crate::utils::{get_bit, set_bit};
 
 enum SerialTransferControlFlags {
-    CLOCK_SELECT = 0,
-    CLOCK_SPEED = 1,
+    _CLOCK_SELECT = 0,
+    _CLOCK_SPEED = 1,
     TRANSFER_ENABLE = 7,
 }
 

@@ -1,14 +1,16 @@
 use super::{AddrMode, CPURegister};
 use crate::cpu::{CPUFlags, LR35902CPU};
 
-pub fn and(cpu: &mut LR35902CPU) -> () {
+pub fn and(cpu: &mut LR35902CPU) -> u8 {
     let instr = cpu.current_instruction;
     let a = cpu.get_register(instr.reg1.as_ref().unwrap());
     let mut value: u8;
+    let mut cycles: u8 = 2;
 
     match instr.addr_mode {
         AddrMode::R_R => {
             value = cpu.get_register(instr.reg2.as_ref().unwrap());
+            cycles = 1;
         }
         AddrMode::R_RADDR => {
             let addr = cpu.get_register16(instr.reg2.as_ref().unwrap());
@@ -24,16 +26,19 @@ pub fn and(cpu: &mut LR35902CPU) -> () {
     value &= a;
     cpu.set_register(instr.reg1.as_ref().unwrap(), value as u16);
     cpu.set_flags((value == 0) as i8, 0, 1, 0);
+    cycles
 }
 
-pub fn or(cpu: &mut LR35902CPU) -> () {
+pub fn or(cpu: &mut LR35902CPU) -> u8 {
     let instr = cpu.current_instruction;
     let a = cpu.get_register(instr.reg1.as_ref().unwrap());
     let mut value: u8;
+    let mut cycles: u8 = 2;
 
     match instr.addr_mode {
         AddrMode::R_R => {
             value = cpu.get_register(instr.reg2.as_ref().unwrap());
+            cycles = 1;
         }
         AddrMode::R_RADDR => {
             let addr = cpu.get_register16(instr.reg2.as_ref().unwrap());
@@ -49,16 +54,19 @@ pub fn or(cpu: &mut LR35902CPU) -> () {
     value |= a;
     cpu.set_register(instr.reg1.as_ref().unwrap(), value as u16);
     cpu.set_flags((value == 0) as i8, 0, 0, 0);
+    cycles
 }
 
-pub fn xor(cpu: &mut LR35902CPU) -> () {
+pub fn xor(cpu: &mut LR35902CPU) -> u8 {
     let instr = cpu.current_instruction;
     let a = cpu.get_register(instr.reg1.as_ref().unwrap());
     let mut value: u8;
+    let mut cycles: u8 = 2;
 
     match instr.addr_mode {
         AddrMode::R_R => {
             value = cpu.get_register(instr.reg2.as_ref().unwrap());
+            cycles = 1;
         }
         AddrMode::R_RADDR => {
             let addr = cpu.get_register16(instr.reg2.as_ref().unwrap());
@@ -74,11 +82,13 @@ pub fn xor(cpu: &mut LR35902CPU) -> () {
     value ^= a;
     cpu.set_register(instr.reg1.as_ref().unwrap(), value as u16);
     cpu.set_flags((value == 0) as i8, 0, 0, 0);
+    cycles
 }
 
-pub fn bit(cpu: &mut LR35902CPU, nth_bit: u8) -> () {
+pub fn bit(cpu: &mut LR35902CPU, nth_bit: u8) -> u8 {
     let instr = cpu.current_instruction;
     let value: u8;
+    let mut cycles: u8 = 2;
 
     match instr.addr_mode {
         AddrMode::IMM_R => {
@@ -87,16 +97,19 @@ pub fn bit(cpu: &mut LR35902CPU, nth_bit: u8) -> () {
         AddrMode::IMM_RADDR => {
             let addr = cpu.get_register16(instr.reg2.as_ref().unwrap());
             value = cpu.bus.read(addr);
+            cycles = 3;
         }
         _ => panic!("Unhandled addr mode for bit"),
     }
 
     cpu.set_flags((((value >> nth_bit) & 1) == 0) as i8, 0, 1, -1);
+    cycles
 }
 
-pub fn res(cpu: &mut LR35902CPU, nth_bit: u8) -> () {
+pub fn res(cpu: &mut LR35902CPU, nth_bit: u8) -> u8 {
     let instr = cpu.current_instruction;
     let mut value: u8;
+    let mut cycles: u8 = 2;
 
     match instr.addr_mode {
         AddrMode::IMM_R => {
@@ -109,14 +122,18 @@ pub fn res(cpu: &mut LR35902CPU, nth_bit: u8) -> () {
             value = cpu.bus.read(addr);
             value = value & !(1 << nth_bit);
             cpu.bus.write(addr, value);
+            cycles = 4;
         }
         _ => panic!("Unhandled addr mode for res"),
     }
+
+    cycles
 }
 
-pub fn set(cpu: &mut LR35902CPU, nth_bit: u8) -> () {
+pub fn set(cpu: &mut LR35902CPU, nth_bit: u8) -> u8 {
     let instr = cpu.current_instruction;
     let mut value: u8;
+    let mut cycles: u8 = 2;
 
     match instr.addr_mode {
         AddrMode::IMM_R => {
@@ -129,14 +146,17 @@ pub fn set(cpu: &mut LR35902CPU, nth_bit: u8) -> () {
             value = cpu.bus.read(addr);
             value = value | (1 << nth_bit);
             cpu.bus.write(addr, value);
+            cycles = 4;
         }
         _ => panic!("Unhandled addr mode for set"),
     }
+    cycles
 }
 
-pub fn swap(cpu: &mut LR35902CPU) -> () {
+pub fn swap(cpu: &mut LR35902CPU) -> u8 {
     let instr = cpu.current_instruction;
     let mut value: u8;
+    let mut cycles: u8 = 2;
 
     match instr.addr_mode {
         AddrMode::R => {
@@ -149,18 +169,21 @@ pub fn swap(cpu: &mut LR35902CPU) -> () {
             value = cpu.bus.read(addr);
             value = ((value & 0xf) << 4) | ((value & 0xf0) >> 4);
             cpu.bus.write(addr, value);
+            cycles = 4;
         }
         _ => panic!("Unhandled addr mode for set"),
     }
 
     cpu.set_flags((value == 0) as i8, 0, 0, 0);
+    cycles
 }
 
-pub fn rl(cpu: &mut LR35902CPU) -> () {
+pub fn rl(cpu: &mut LR35902CPU) -> u8 {
     let instr = cpu.current_instruction;
     let old_carry = cpu.get_flag(CPUFlags::C as u8);
     let new_carry: u8;
     let mut value: u8;
+    let mut cycles: u8 = 2;
 
     match instr.addr_mode {
         AddrMode::R => {
@@ -175,14 +198,16 @@ pub fn rl(cpu: &mut LR35902CPU) -> () {
             new_carry = value >> 7;
             value = (value << 1) | old_carry;
             cpu.bus.write(addr, value);
+            cycles = 4;
         }
         _ => panic!("Unhandled addr mode for set"),
     }
 
     cpu.set_flags((value == 0) as i8, 0, 0, new_carry as i8);
+    cycles
 }
 
-pub fn rla(cpu: &mut LR35902CPU) -> () {
+pub fn rla(cpu: &mut LR35902CPU) -> u8 {
     let mut value = cpu.get_register(&CPURegister::A);
     let new_carry = value >> 7;
 
@@ -190,12 +215,14 @@ pub fn rla(cpu: &mut LR35902CPU) -> () {
     cpu.set_register(&CPURegister::A, value as u16);
 
     cpu.set_flags(0, 0, 0, new_carry as i8);
+    1
 }
 
-pub fn rlc(cpu: &mut LR35902CPU) -> () {
+pub fn rlc(cpu: &mut LR35902CPU) -> u8 {
     let instr = cpu.current_instruction;
     let new_carry: u8;
     let mut value: u8;
+    let mut cycles: u8 = 2;
 
     match instr.addr_mode {
         AddrMode::R => {
@@ -210,27 +237,31 @@ pub fn rlc(cpu: &mut LR35902CPU) -> () {
             new_carry = value >> 7;
             value = (value << 1) | new_carry;
             cpu.bus.write(addr, value);
+            cycles = 4;
         }
         _ => panic!("Unhandled addr mode for set"),
     }
 
     cpu.set_flags((value == 0) as i8, 0, 0, new_carry as i8);
+    cycles
 }
 
-pub fn rlca(cpu: &mut LR35902CPU) -> () {
+pub fn rlca(cpu: &mut LR35902CPU) -> u8 {
     let mut value = cpu.get_register(&CPURegister::A);
     let new_carry = value >> 7;
     value = (value << 1) | new_carry;
     cpu.set_register(&CPURegister::A, value as u16);
 
     cpu.set_flags(0, 0, 0, new_carry as i8);
+    1
 }
 
-pub fn rr(cpu: &mut LR35902CPU) -> () {
+pub fn rr(cpu: &mut LR35902CPU) -> u8 {
     let instr = cpu.current_instruction;
     let old_carry = cpu.get_flag(CPUFlags::C as u8);
     let new_carry: u8;
     let mut value: u8;
+    let mut cycles: u8 = 2;
 
     match instr.addr_mode {
         AddrMode::R => {
@@ -245,14 +276,16 @@ pub fn rr(cpu: &mut LR35902CPU) -> () {
             new_carry = value & 1;
             value = (value >> 1) | (old_carry << 7);
             cpu.bus.write(addr, value);
+            cycles = 4;
         }
         _ => panic!("Unhandled addr mode for set"),
     }
 
     cpu.set_flags((value == 0) as i8, 0, 0, new_carry as i8);
+    cycles
 }
 
-pub fn rra(cpu: &mut LR35902CPU) -> () {
+pub fn rra(cpu: &mut LR35902CPU) -> u8 {
     let mut value = cpu.get_register(&CPURegister::A);
     let new_carry = value & 1;
 
@@ -260,12 +293,14 @@ pub fn rra(cpu: &mut LR35902CPU) -> () {
     cpu.set_register(&CPURegister::A, value as u16);
 
     cpu.set_flags(0, 0, 0, new_carry as i8);
+    1
 }
 
-pub fn rrc(cpu: &mut LR35902CPU) -> () {
+pub fn rrc(cpu: &mut LR35902CPU) -> u8 {
     let instr = cpu.current_instruction;
     let new_carry: u8;
     let mut value: u8;
+    let mut cycles: u8 = 2;
 
     match instr.addr_mode {
         AddrMode::R => {
@@ -280,26 +315,30 @@ pub fn rrc(cpu: &mut LR35902CPU) -> () {
             new_carry = value & 1;
             value = (value >> 1) | ((value & 1) << 7);
             cpu.bus.write(addr, value);
+            cycles = 4;
         }
         _ => panic!("Unhandled addr mode for set"),
     }
 
     cpu.set_flags((value == 0) as i8, 0, 0, new_carry as i8);
+    cycles
 }
 
-pub fn rrca(cpu: &mut LR35902CPU) -> () {
+pub fn rrca(cpu: &mut LR35902CPU) -> u8 {
     let mut value = cpu.get_register(&CPURegister::A);
     let new_carry = value & 1;
     value = (value >> 1) | ((value & 1) << 7);
     cpu.set_register(&CPURegister::A, value as u16);
 
     cpu.set_flags(0, 0, 0, new_carry as i8);
+    1
 }
 
-pub fn sla(cpu: &mut LR35902CPU) -> () {
+pub fn sla(cpu: &mut LR35902CPU) -> u8 {
     let instr = cpu.current_instruction;
     let new_carry: u8;
     let mut value: u8;
+    let mut cycles: u8 = 2;
 
     match instr.addr_mode {
         AddrMode::R => {
@@ -314,17 +353,20 @@ pub fn sla(cpu: &mut LR35902CPU) -> () {
             new_carry = (value >> 7) & 1;
             value <<= 1;
             cpu.bus.write(addr, value);
+            cycles = 4;
         }
         _ => panic!("Unhandled addr mode for set"),
     }
 
     cpu.set_flags((value == 0) as i8, 0, 0, new_carry as i8);
+    cycles
 }
 
-pub fn sra(cpu: &mut LR35902CPU) -> () {
+pub fn sra(cpu: &mut LR35902CPU) -> u8 {
     let instr = cpu.current_instruction;
     let new_carry: u8;
     let mut value: u8;
+    let mut cycles: u8 = 2;
 
     match instr.addr_mode {
         AddrMode::R => {
@@ -339,17 +381,20 @@ pub fn sra(cpu: &mut LR35902CPU) -> () {
             new_carry = value & 1;
             value = (value >> 1) | (value & 0x80);
             cpu.bus.write(addr, value);
+            cycles = 4;
         }
         _ => panic!("Unhandled addr mode for set"),
     }
 
     cpu.set_flags((value == 0) as i8, 0, 0, new_carry as i8);
+    cycles
 }
 
-pub fn srl(cpu: &mut LR35902CPU) -> () {
+pub fn srl(cpu: &mut LR35902CPU) -> u8 {
     let instr = cpu.current_instruction;
     let new_carry: u8;
     let mut value: u8;
+    let mut cycles: u8 = 2;
 
     match instr.addr_mode {
         AddrMode::R => {
@@ -364,9 +409,11 @@ pub fn srl(cpu: &mut LR35902CPU) -> () {
             new_carry = value & 1;
             value >>= 1;
             cpu.bus.write(addr, value);
+            cycles = 4;
         }
         _ => panic!("Unhandled addr mode for set"),
     }
 
     cpu.set_flags((value == 0) as i8, 0, 0, new_carry as i8);
+    cycles
 }

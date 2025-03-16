@@ -1,7 +1,7 @@
 use super::AddrMode;
 use crate::cpu::{CPUFlags, LR35902CPU};
 
-pub fn add(cpu: &mut LR35902CPU) -> () {
+pub fn add(cpu: &mut LR35902CPU) -> u8 {
     let instr = cpu.current_instruction;
     let result: u32;
     let c: bool;
@@ -9,6 +9,7 @@ pub fn add(cpu: &mut LR35902CPU) -> () {
     let op1;
     let op2;
     let mut z: i8 = -1;
+    let mut cycles: u8 = 2;
 
     match instr.addr_mode {
         AddrMode::R_RADDR => {
@@ -27,6 +28,7 @@ pub fn add(cpu: &mut LR35902CPU) -> () {
             z = if (result as u8) == 0 { 1 } else { 0 };
             c = result > 0xff;
             h = (op1 & 0xf) + (op2 & 0xf) > 0xf;
+            cycles = 1;
         }
         AddrMode::R_IMM => {
             op1 = cpu.get_register(instr.reg1.as_ref().unwrap()) as u32;
@@ -60,20 +62,23 @@ pub fn add(cpu: &mut LR35902CPU) -> () {
             z = 0;
             c = ((op1 ^ (op2 as u16) ^ ((result as u16) & 0xFFFF)) & 0x100) == 0x100; // ????
             h = ((op1 ^ (op2 as u16) ^ ((result as u16) & 0xFFFF)) & 0x10) == 0x10;
+            cycles = 4;
         }
         _ => panic!("Unhandled addr mode for add"),
     }
 
     cpu.set_register(instr.reg1.as_ref().unwrap(), result as u16);
     cpu.set_flags(z as i8, 0, h as i8, c as i8);
+    cycles
 }
 
-pub fn adc(cpu: &mut LR35902CPU) -> () {
+pub fn adc(cpu: &mut LR35902CPU) -> u8 {
     let instr = cpu.current_instruction;
     let c = cpu.get_flag(CPUFlags::C as u8);
     let op1: u32;
     let op2: u32;
     let result: u32;
+    let mut cycles: u8 = 2;
 
     match instr.addr_mode {
         AddrMode::R_IMM => {
@@ -92,6 +97,7 @@ pub fn adc(cpu: &mut LR35902CPU) -> () {
             op1 = cpu.get_register(instr.reg1.as_ref().unwrap()) as u32;
             op2 = cpu.get_register(instr.reg2.as_ref().unwrap()) as u32;
             result = op1 + op2 + c as u32;
+            cycles = 1;
         }
         _ => panic!("Unhandled addr mode for adc"),
     }
@@ -103,18 +109,21 @@ pub fn adc(cpu: &mut LR35902CPU) -> () {
         (((op1 & 0xf) + (op2 & 0xf) + c as u32) > 0xf) as i8,
         (result > 0xff) as i8,
     );
+    cycles
 }
 
-pub fn sub(cpu: &mut LR35902CPU) -> () {
+pub fn sub(cpu: &mut LR35902CPU) -> u8 {
     let instr = cpu.current_instruction;
     let a = cpu.get_register(instr.reg1.as_ref().unwrap());
     let value: u8;
     let result: i16;
+    let mut cycles: u8 = 2;
 
     match instr.addr_mode {
         AddrMode::R_R => {
             value = cpu.get_register(instr.reg2.as_ref().unwrap());
             result = a as i16 - value as i16;
+            cycles = 1;
         }
         AddrMode::R_RADDR => {
             let addr = cpu.get_register16(instr.reg2.as_ref().unwrap());
@@ -132,17 +141,20 @@ pub fn sub(cpu: &mut LR35902CPU) -> () {
     let h = ((a & 0xf) as i16 - (value & 0xf) as i16) < 0;
     cpu.set_register(instr.reg1.as_ref().unwrap(), result as u16);
     cpu.set_flags(((result as u8) == 0) as i8, 1, h as i8, (result < 0) as i8);
+    cycles
 }
 
-pub fn sbc(cpu: &mut LR35902CPU) -> () {
+pub fn sbc(cpu: &mut LR35902CPU) -> u8 {
     let instr = cpu.current_instruction;
     let a = cpu.get_register(instr.reg1.as_ref().unwrap());
     let c = cpu.get_flag(CPUFlags::C as u8);
     let value: u8;
+    let mut cycles = 2;
 
     match instr.addr_mode {
         AddrMode::R_R => {
             value = cpu.get_register(instr.reg2.as_ref().unwrap());
+            cycles = 1;
         }
         AddrMode::R_RADDR => {
             let addr = cpu.get_register16(instr.reg2.as_ref().unwrap());
@@ -159,11 +171,13 @@ pub fn sbc(cpu: &mut LR35902CPU) -> () {
     let h = ((a & 0xf) as i16 - (value & 0xf) as i16 - c as i16) < 0;
     cpu.set_register(instr.reg1.as_ref().unwrap(), result as u16);
     cpu.set_flags(((result as u8) == 0) as i8, 1, h as i8, (result < 0) as i8);
+    cycles
 }
 
-pub fn inc(cpu: &mut LR35902CPU) -> () {
+pub fn inc(cpu: &mut LR35902CPU) -> u8 {
     let instr = cpu.current_instruction;
     let result: u32;
+    let mut cycles: u8 = 1;
 
     match instr.addr_mode {
         AddrMode::R => {
@@ -174,10 +188,12 @@ pub fn inc(cpu: &mut LR35902CPU) -> () {
             let addr = cpu.get_register16(instr.reg1.as_ref().unwrap());
             result = cpu.bus.read(addr) as u32 + 1;
             cpu.bus.write(addr, result as u8);
+            cycles = 3;
         }
         AddrMode::R16 => {
             result = cpu.get_register16(instr.reg1.as_ref().unwrap()) as u32 + 1;
             cpu.set_register(instr.reg1.as_ref().unwrap(), result as u16);
+            cycles = 2;
         }
         _ => panic!("Unhandled addr mode for inc"),
     }
@@ -190,11 +206,13 @@ pub fn inc(cpu: &mut LR35902CPU) -> () {
             -1,
         );
     }
+    cycles
 }
 
-pub fn dec(cpu: &mut LR35902CPU) -> () {
+pub fn dec(cpu: &mut LR35902CPU) -> u8 {
     let instr = cpu.current_instruction;
     let result: i32;
+    let mut cycles: u8 = 1;
 
     match instr.addr_mode {
         AddrMode::R => {
@@ -205,10 +223,12 @@ pub fn dec(cpu: &mut LR35902CPU) -> () {
             let addr = cpu.get_register16(instr.reg1.as_ref().unwrap());
             result = cpu.bus.read(addr) as i32 - 1;
             cpu.bus.write(addr, result as u8);
+            cycles = 3;
         }
         AddrMode::R16 => {
             result = cpu.get_register16(instr.reg1.as_ref().unwrap()) as i32 - 1;
             cpu.set_register(instr.reg1.as_ref().unwrap(), result as u16);
+            cycles = 2;
         }
         _ => panic!("Unhandled addr mode for inc"),
     }
@@ -221,16 +241,19 @@ pub fn dec(cpu: &mut LR35902CPU) -> () {
             -1,
         );
     }
+    cycles
 }
 
-pub fn cp(cpu: &mut LR35902CPU) -> () {
+pub fn cp(cpu: &mut LR35902CPU) -> u8 {
     let instr = cpu.current_instruction;
     let a = cpu.get_register(instr.reg1.as_ref().unwrap()) as i16;
     let value: i16;
+    let mut cycles = 2;
 
     match instr.addr_mode {
         AddrMode::R_R => {
             value = cpu.get_register(instr.reg2.as_ref().unwrap()) as i16;
+            cycles = 1;
         }
         AddrMode::R_RADDR => {
             let addr = cpu.get_register16(instr.reg2.as_ref().unwrap());
@@ -246,4 +269,5 @@ pub fn cp(cpu: &mut LR35902CPU) -> () {
     let result = a - value;
     let h = ((a & 0xf) as i16 - (value & 0xf) as i16) < 0;
     cpu.set_flags(((result as u8) == 0) as i8, 1, h as i8, (result < 0) as i8);
+    cycles
 }

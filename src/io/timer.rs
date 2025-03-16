@@ -1,10 +1,14 @@
 use crate::interrupts::{request_interrupt, InterruptFlags};
 
+const CLOCK_SPEED: u32 = 4194304;
+
 pub struct Timer {
     div: u16,
     tima: u8,
     tma: u8,
     tac: u8,
+
+    ticks_since_inc: u32,
 }
 
 impl Timer {
@@ -14,32 +18,29 @@ impl Timer {
             tima: 0,
             tma: 0,
             tac: 0,
+            ticks_since_inc: 0,
         }
     }
 
-    pub fn tick(&mut self) {
-        let prev_div = self.div;
-        let mut update: bool = false;
+    pub fn tick(&mut self, cycles: u8) {
+        self.div = self.div.wrapping_add(cycles as u16);
 
-        self.div += 1;
-
-        match self.tac & 0b11 {
-            0b00 => {
-                update = (prev_div & (1 << 9) == 1) && (self.div & (1 << 9) == 0);
-            }
-            0b01 => {
-                update = (prev_div & (1 << 3) == 1) && (self.div & (1 << 3) == 0);
-            }
-            0b10 => {
-                update = (prev_div & (1 << 5) == 1) && (self.div & (1 << 5) == 0);
-            }
-            0b11 => {
-                update = (prev_div & (1 << 7) == 1) && (self.div & (1 << 7) == 0);
-            }
-            _ => panic!("Unreachable"),
+        if (self.tac & (1 << 2)) == 0 {
+            return;
         }
 
-        if update && (self.tac & (1 << 2) == 1) {
+        self.ticks_since_inc += cycles as u32 * 4;
+
+        let ticks_per_inc: u32 = match self.tac & 0b11 {
+            0b00 => CLOCK_SPEED / 4096,
+            0b01 => CLOCK_SPEED / 262144,
+            0b10 => CLOCK_SPEED / 65536,
+            0b11 => CLOCK_SPEED / 16384,
+            _ => panic!("Unreachable"),
+        };
+
+        if self.ticks_since_inc >= ticks_per_inc {
+            self.ticks_since_inc %= ticks_per_inc;
             self.tima += 1;
 
             if self.tima == 0xff {

@@ -43,7 +43,7 @@ impl Bus {
             return self.io.read(addr);
         } else if between!(addr, 0xff80, 0xfffe) {
             return self.ram.read(addr);
-        } else if addr == 0xfff {
+        } else if addr == 0xffff {
             return INTERRUPT_ENABLE.get();
         }
         // println!("Unhandled bus.read at 0x{:04X}", addr);
@@ -67,7 +67,7 @@ impl Bus {
             self.io.write(addr, value);
         } else if between!(addr, 0xff80, 0xfffe) {
             self.ram.write(addr, value);
-        } else if addr == 0xfff {
+        } else if addr == 0xffff {
             INTERRUPT_ENABLE.set(value);
         } else {
             // println!("Unhandled bus.write at 0x{:04X}", addr);

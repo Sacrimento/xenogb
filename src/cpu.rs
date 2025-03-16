@@ -68,7 +68,7 @@ pub struct LR35902CPU {
 impl LR35902CPU {
     pub fn new(bus: Bus) -> Self {
         Self {
-            bus: bus,
+            bus,
             current_instruction: &INSTRUCTIONS[&0],
             halt: false,
             registers: CPURegisters::new(),
@@ -77,27 +77,44 @@ impl LR35902CPU {
         }
     }
 
+    pub fn tick(&mut self) -> u8 {
+        let mut cycles: u8 = 1;
+
+        if !self.halt {
+            self.set_instruction();
+
+            // print_state(self);
+            print_serial(self);
+
+            cycles = (self.current_instruction.func)(self);
+            // print_state_doctor(self);
+        }
+
+        if INTERRUPT_FLAGS.get() > 0 {
+            // Interrupt pending, wake up
+            self.halt = false;
+        }
+
+        if self.int_master {
+            self.handle_ints();
+        }
+
+        if self.enabling_ints {
+            // Enable IME for next tick
+            self.enabling_ints = false;
+            self.int_master = true;
+        }
+
+        cycles
+    }
+
     pub fn run(&mut self) {
-        // print_state_doctor(self);
+        print_state_doctor(self);
+
+        let mut cycles: u8;
         loop {
-            if !self.halt {
-                self.set_instruction();
-
-                // print_state(self);
-                print_serial(self);
-
-                (self.current_instruction.func)(self);
-                // print_state_doctor(self);
-            }
-
-            if self.int_master {
-                self.handle_ints();
-            }
-
-            if self.enabling_ints {
-                self.enabling_ints = false;
-                self.int_master = true;
-            }
+            cycles = self.tick();
+            self.bus.io.timer.tick(cycles);
         }
     }
 
@@ -234,9 +251,9 @@ impl LR35902CPU {
 
     fn handle_ints(&mut self) {
         let mut handle_int = |int: u8, addr: u16| -> bool {
-            if INTERRUPT_FLAGS.get() & int == 1 && INTERRUPT_ENABLE.get() & int == 1 {
-                _push(self, (self.registers.pc & 0xff) as u8);
+            if (INTERRUPT_FLAGS.get() & int) == int && (INTERRUPT_ENABLE.get() & int) == int {
                 _push(self, (self.registers.pc >> 8) as u8);
+                _push(self, (self.registers.pc & 0xff) as u8);
                 INTERRUPT_FLAGS.set(INTERRUPT_FLAGS.get() ^ int);
                 self.halt = false;
                 self.int_master = false;
