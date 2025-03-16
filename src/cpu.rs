@@ -1,14 +1,14 @@
 use crate::dbg::{print_serial, print_state, print_state_doctor};
-use crate::instructions::{stack::_push, CPURegister, Instruction, INSTRUCTIONS};
+use crate::instructions::{stack::_push, CPURegisterId, Instruction, INSTRUCTIONS};
 use crate::interrupts::{InterruptFlags, INTERRUPT_ENABLE, INTERRUPT_FLAGS};
 use crate::utils::*;
 use crate::Bus;
 
-pub enum CPUFlags {
-    Z = 7,
-    N = 6,
-    H = 5,
-    C = 4,
+pub mod CPUFlags {
+    pub const Z: u8 = 0x80;
+    pub const N: u8 = 0x40;
+    pub const H: u8 = 0x20;
+    pub const C: u8 = 0x10;
 }
 
 struct CPURegisters {
@@ -118,79 +118,79 @@ impl LR35902CPU {
         }
     }
 
-    pub fn set_register(&mut self, register: &CPURegister, value: u16) {
+    pub fn set_register(&mut self, register: &CPURegisterId, value: u16) {
         match register {
-            CPURegister::A => {
+            CPURegisterId::A => {
                 self.registers.a = value as u8;
             }
-            CPURegister::F => {
+            CPURegisterId::F => {
                 self.registers.f = value as u8;
             }
-            CPURegister::B => {
+            CPURegisterId::B => {
                 self.registers.b = value as u8;
             }
-            CPURegister::C => {
+            CPURegisterId::C => {
                 self.registers.c = value as u8;
             }
-            CPURegister::D => {
+            CPURegisterId::D => {
                 self.registers.d = value as u8;
             }
-            CPURegister::E => {
+            CPURegisterId::E => {
                 self.registers.e = value as u8;
             }
-            CPURegister::H => {
+            CPURegisterId::H => {
                 self.registers.h = value as u8;
             }
-            CPURegister::L => {
+            CPURegisterId::L => {
                 self.registers.l = value as u8;
             }
-            CPURegister::AF => {
+            CPURegisterId::AF => {
                 self.registers.a = (value >> 8) as u8;
                 self.registers.f = (value & 0xff) as u8;
             }
-            CPURegister::BC => {
+            CPURegisterId::BC => {
                 self.registers.b = (value >> 8) as u8;
                 self.registers.c = (value & 0xff) as u8;
             }
-            CPURegister::DE => {
+            CPURegisterId::DE => {
                 self.registers.d = (value >> 8) as u8;
                 self.registers.e = (value & 0xff) as u8;
             }
-            CPURegister::HL => {
+            CPURegisterId::HL => {
                 self.registers.h = (value >> 8) as u8;
                 self.registers.l = (value & 0xff) as u8;
             }
-            CPURegister::PC => {
+            CPURegisterId::PC => {
                 self.registers.pc = value;
             }
-            CPURegister::SP => {
+            CPURegisterId::SP => {
                 self.registers.sp = value;
             }
         }
     }
 
-    pub fn get_register(&self, register: &CPURegister) -> u8 {
+    pub fn get_register(&self, register: &CPURegisterId) -> u8 {
         match register {
-            CPURegister::A => self.registers.a,
-            CPURegister::F => self.registers.f,
-            CPURegister::B => self.registers.b,
-            CPURegister::C => self.registers.c,
-            CPURegister::D => self.registers.d,
-            CPURegister::E => self.registers.e,
-            CPURegister::H => self.registers.h,
-            CPURegister::L => self.registers.l,
+            CPURegisterId::A => self.registers.a,
+            CPURegisterId::F => self.registers.f,
+            CPURegisterId::B => self.registers.b,
+            CPURegisterId::C => self.registers.c,
+            CPURegisterId::D => self.registers.d,
+            CPURegisterId::E => self.registers.e,
+            CPURegisterId::H => self.registers.h,
+            CPURegisterId::L => self.registers.l,
             _ => panic!("use cpu.get_register16 dummy"),
         }
     }
 
-    pub fn get_register16(&self, register: &CPURegister) -> u16 {
+    pub fn get_register16(&self, register: &CPURegisterId) -> u16 {
         match register {
-            CPURegister::AF => ((self.registers.a as u16) << 8) | self.registers.f as u16,
-            CPURegister::BC => ((self.registers.b as u16) << 8) | self.registers.c as u16,
-            CPURegister::DE => ((self.registers.d as u16) << 8) | self.registers.e as u16,
-            CPURegister::HL => ((self.registers.h as u16) << 8) | self.registers.l as u16,
-            CPURegister::PC => self.registers.pc,
-            CPURegister::SP => self.registers.sp,
+            CPURegisterId::AF => ((self.registers.a as u16) << 8) | self.registers.f as u16,
+            CPURegisterId::BC => ((self.registers.b as u16) << 8) | self.registers.c as u16,
+            CPURegisterId::DE => ((self.registers.d as u16) << 8) | self.registers.e as u16,
+            CPURegisterId::HL => ((self.registers.h as u16) << 8) | self.registers.l as u16,
+            CPURegisterId::PC => self.registers.pc,
+            CPURegisterId::SP => self.registers.sp,
             _ => panic!("use cpu.get_register dummy"),
         }
     }
@@ -216,24 +216,27 @@ impl LR35902CPU {
     }
 
     pub fn get_flag(&self, flag: u8) -> u8 {
-        get_bit(self.registers.f, flag)
+        if self.registers.f & flag == flag {
+            return 1;
+        }
+        0
     }
 
     pub fn set_flags(&mut self, z: i8, n: i8, h: i8, c: i8) {
         if z != -1 {
-            self.registers.f = set_bit(self.registers.f, CPUFlags::Z as u8, z as u8);
+            self.registers.f = (self.registers.f & !CPUFlags::Z) | (CPUFlags::Z * z as u8);
         }
 
         if n != -1 {
-            self.registers.f = set_bit(self.registers.f, CPUFlags::N as u8, n as u8);
+            self.registers.f = (self.registers.f & !CPUFlags::N) | (CPUFlags::N * n as u8);
         }
 
         if h != -1 {
-            self.registers.f = set_bit(self.registers.f, CPUFlags::H as u8, h as u8);
+            self.registers.f = (self.registers.f & !CPUFlags::H) | (CPUFlags::H * h as u8);
         }
 
         if c != -1 {
-            self.registers.f = set_bit(self.registers.f, CPUFlags::C as u8, c as u8);
+            self.registers.f = (self.registers.f & !CPUFlags::C) | (CPUFlags::C * c as u8);
         }
     }
 

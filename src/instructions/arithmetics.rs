@@ -74,7 +74,7 @@ pub fn add(cpu: &mut LR35902CPU) -> u8 {
 
 pub fn adc(cpu: &mut LR35902CPU) -> u8 {
     let instr = cpu.current_instruction;
-    let c = cpu.get_flag(CPUFlags::C as u8);
+    let c = cpu.get_flag(CPUFlags::C);
     let op1: u32;
     let op2: u32;
     let result: u32;
@@ -147,7 +147,7 @@ pub fn sub(cpu: &mut LR35902CPU) -> u8 {
 pub fn sbc(cpu: &mut LR35902CPU) -> u8 {
     let instr = cpu.current_instruction;
     let a = cpu.get_register(instr.reg1.as_ref().unwrap());
-    let c = cpu.get_flag(CPUFlags::C as u8);
+    let c = cpu.get_flag(CPUFlags::C);
     let value: u8;
     let mut cycles = 2;
 

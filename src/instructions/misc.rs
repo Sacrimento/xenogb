@@ -1,15 +1,15 @@
-use super::CPURegister;
+use super::CPURegisterId;
 use crate::cpu::{CPUFlags, LR35902CPU};
 
 pub fn ccf(cpu: &mut LR35902CPU) -> u8 {
-    let c = cpu.get_flag(CPUFlags::C as u8);
+    let c = cpu.get_flag(CPUFlags::C);
     cpu.set_flags(-1, 0, 0, (c ^ 1) as i8);
     1
 }
 
 pub fn cpl(cpu: &mut LR35902CPU) -> u8 {
-    let a = cpu.get_register(&CPURegister::A);
-    cpu.set_register(&CPURegister::A, (!a) as u16);
+    let a = cpu.get_register(&CPURegisterId::A);
+    cpu.set_register(&CPURegisterId::A, (!a) as u16);
     cpu.set_flags(-1, 1, 1, -1);
     1
 }
@@ -20,10 +20,10 @@ pub fn scf(cpu: &mut LR35902CPU) -> u8 {
 }
 
 pub fn daa(cpu: &mut LR35902CPU) -> u8 {
-    let c = cpu.get_flag(CPUFlags::C as u8);
-    let h = cpu.get_flag(CPUFlags::H as u8);
-    let n = cpu.get_flag(CPUFlags::N as u8);
-    let mut a = cpu.get_register(&CPURegister::A);
+    let c = cpu.get_flag(CPUFlags::C);
+    let h = cpu.get_flag(CPUFlags::H);
+    let n = cpu.get_flag(CPUFlags::N);
+    let mut a = cpu.get_register(&CPURegisterId::A);
 
     let mut correction: u16 = if c != 0 { 0x60 } else { 0x0 };
 
@@ -47,7 +47,7 @@ pub fn daa(cpu: &mut LR35902CPU) -> u8 {
         0,
         ((correction << 2) & 0x100 != 0) as i8,
     );
-    cpu.set_register(&CPURegister::A, a as u16);
+    cpu.set_register(&CPURegisterId::A, a as u16);
     1
 }
 

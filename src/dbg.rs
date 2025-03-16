@@ -1,5 +1,5 @@
 use super::cpu::{CPUFlags, LR35902CPU};
-use super::instructions::{AddrMode, CPURegister};
+use super::instructions::{AddrMode, CPURegisterId};
 
 static mut serial_buff: [u8; 0x100] = [0; 0x100];
 static mut serial_idx: usize = 0;
@@ -107,14 +107,14 @@ pub fn print_state(cpu: &LR35902CPU) {
 
     let registers = format!(
         "A:0x{:02X} B:0x{:02X} C:0x{:02X} D:0x{:02X} E:0x{:02X} H:0x{:02X} L:0x{:02X} SP:0x{:02X}",
-        cpu.get_register(&CPURegister::A),
-        cpu.get_register(&CPURegister::B),
-        cpu.get_register(&CPURegister::C),
-        cpu.get_register(&CPURegister::D),
-        cpu.get_register(&CPURegister::E),
-        cpu.get_register(&CPURegister::H),
-        cpu.get_register(&CPURegister::L),
-        cpu.get_register16(&CPURegister::SP),
+        cpu.get_register(&CPURegisterId::A),
+        cpu.get_register(&CPURegisterId::B),
+        cpu.get_register(&CPURegisterId::C),
+        cpu.get_register(&CPURegisterId::D),
+        cpu.get_register(&CPURegisterId::E),
+        cpu.get_register(&CPURegisterId::H),
+        cpu.get_register(&CPURegisterId::L),
+        cpu.get_register16(&CPURegisterId::SP),
     );
 
     let flags = format!(
@@ -138,16 +138,16 @@ pub fn print_state(cpu: &LR35902CPU) {
 pub fn print_state_doctor(cpu: &mut LR35902CPU) {
     let registers = format!(
         "A:{:02X} F:{:02X} B:{:02X} C:{:02X} D:{:02X} E:{:02X} H:{:02X} L:{:02X} SP:{:04X} PC:{:04X}",
-        cpu.get_register(&CPURegister::A),
-        cpu.get_register(&CPURegister::F),
-        cpu.get_register(&CPURegister::B),
-        cpu.get_register(&CPURegister::C),
-        cpu.get_register(&CPURegister::D),
-        cpu.get_register(&CPURegister::E),
-        cpu.get_register(&CPURegister::H),
-        cpu.get_register(&CPURegister::L),
-        cpu.get_register16(&CPURegister::SP),
-        cpu.get_register16(&CPURegister::PC),
+        cpu.get_register(&CPURegisterId::A),
+        cpu.get_register(&CPURegisterId::F),
+        cpu.get_register(&CPURegisterId::B),
+        cpu.get_register(&CPURegisterId::C),
+        cpu.get_register(&CPURegisterId::D),
+        cpu.get_register(&CPURegisterId::E),
+        cpu.get_register(&CPURegisterId::H),
+        cpu.get_register(&CPURegisterId::L),
+        cpu.get_register16(&CPURegisterId::SP),
+        cpu.get_register16(&CPURegisterId::PC),
     );
 
     let mem = format!(

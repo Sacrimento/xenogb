@@ -1,5 +1,5 @@
 use super::stack::{_pop, _push};
-use super::{AddrMode, CPURegister, CondType};
+use super::{AddrMode, CPURegisterId, CondType};
 use crate::cpu::{CPUFlags, LR35902CPU};
 
 fn check_cond(cpu: &mut LR35902CPU, cond: Option<&CondType>) -> bool {
@@ -7,8 +7,8 @@ fn check_cond(cpu: &mut LR35902CPU, cond: Option<&CondType>) -> bool {
         return true;
     }
 
-    let z = cpu.get_flag(CPUFlags::Z as u8);
-    let c = cpu.get_flag(CPUFlags::C as u8);
+    let z = cpu.get_flag(CPUFlags::Z);
+    let c = cpu.get_flag(CPUFlags::C);
 
     match cond.unwrap() {
         CondType::Nz => z == 0,
@@ -31,7 +31,7 @@ pub fn jr(cpu: &mut LR35902CPU) -> u8 {
     let offset = cpu.bus.read(pc) as i8;
     pc = u16::try_from((pc as i32) + (offset as i32) + 1).expect("Could not convert for jr");
 
-    cpu.set_register(&CPURegister::PC, pc);
+    cpu.set_register(&CPURegisterId::PC, pc);
     3
 }
 
@@ -56,7 +56,7 @@ pub fn jp(cpu: &mut LR35902CPU) -> u8 {
         _ => panic!("Unhandled addr mode for jp"),
     }
 
-    cpu.set_register(&CPURegister::PC, pc);
+    cpu.set_register(&CPURegisterId::PC, pc);
     cycles
 }
 
@@ -74,7 +74,7 @@ pub fn call(cpu: &mut LR35902CPU) -> u8 {
 
     let pc = cpu.bus.read16(cpu.pc());
 
-    cpu.set_register(&CPURegister::PC, pc);
+    cpu.set_register(&CPURegisterId::PC, pc);
     6
 }
 
@@ -91,7 +91,7 @@ pub fn ret(cpu: &mut LR35902CPU) -> u8 {
     }
 
     let pc: u16 = (_pop(cpu) as u16) | ((_pop(cpu) as u16) << 8);
-    cpu.set_register(&CPURegister::PC, pc);
+    cpu.set_register(&CPURegisterId::PC, pc);
     cycles
 }
 
@@ -100,7 +100,7 @@ pub fn reti(cpu: &mut LR35902CPU) -> u8 {
     cpu.halt = false;
 
     let pc: u16 = (_pop(cpu) as u16) | ((_pop(cpu) as u16) << 8);
-    cpu.set_register(&CPURegister::PC, pc);
+    cpu.set_register(&CPURegisterId::PC, pc);
     4
 }
 
@@ -109,6 +109,6 @@ pub fn rst(cpu: &mut LR35902CPU, addr: u8) -> u8 {
     _push(cpu, (v >> 8) as u8);
     _push(cpu, (v & 0xff) as u8);
 
-    cpu.set_register(&CPURegister::PC, addr as u16);
+    cpu.set_register(&CPURegisterId::PC, addr as u16);
     4
 }

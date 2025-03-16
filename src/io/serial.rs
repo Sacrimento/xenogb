@@ -1,9 +1,7 @@
-use crate::utils::{get_bit, set_bit};
-
-enum SerialTransferControlFlags {
-    _CLOCK_SELECT = 0,
-    _CLOCK_SPEED = 1,
-    TRANSFER_ENABLE = 7,
+mod SerialTransferControlFlags {
+    pub const _CLOCK_SELECT: u8 = 0x1;
+    pub const _CLOCK_SPEED: u8 = 0x2;
+    pub const TRANSFER_ENABLE: u8 = 0x80;
 }
 
 #[derive(Default)]
@@ -30,16 +28,11 @@ impl Serial {
     }
 
     pub fn get_char(&mut self) -> u8 {
-        if get_bit(
-            self.transfer_control,
-            SerialTransferControlFlags::TRANSFER_ENABLE as u8,
-        ) == 1
+        if self.transfer_control & SerialTransferControlFlags::TRANSFER_ENABLE
+            == SerialTransferControlFlags::TRANSFER_ENABLE
         {
-            self.transfer_control = set_bit(
-                self.transfer_control,
-                SerialTransferControlFlags::TRANSFER_ENABLE as u8,
-                0,
-            );
+            self.transfer_control =
+                self.transfer_control & !(SerialTransferControlFlags::TRANSFER_ENABLE);
             return self.transfer_data;
         }
         0

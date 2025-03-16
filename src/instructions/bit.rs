@@ -1,4 +1,4 @@
-use super::{AddrMode, CPURegister};
+use super::{AddrMode, CPURegisterId};
 use crate::cpu::{CPUFlags, LR35902CPU};
 
 pub fn and(cpu: &mut LR35902CPU) -> u8 {
@@ -180,7 +180,7 @@ pub fn swap(cpu: &mut LR35902CPU) -> u8 {
 
 pub fn rl(cpu: &mut LR35902CPU) -> u8 {
     let instr = cpu.current_instruction;
-    let old_carry = cpu.get_flag(CPUFlags::C as u8);
+    let old_carry = cpu.get_flag(CPUFlags::C);
     let new_carry: u8;
     let mut value: u8;
     let mut cycles: u8 = 2;
@@ -208,11 +208,11 @@ pub fn rl(cpu: &mut LR35902CPU) -> u8 {
 }
 
 pub fn rla(cpu: &mut LR35902CPU) -> u8 {
-    let mut value = cpu.get_register(&CPURegister::A);
+    let mut value = cpu.get_register(&CPURegisterId::A);
     let new_carry = value >> 7;
 
-    value = (value << 1) | cpu.get_flag(CPUFlags::C as u8);
-    cpu.set_register(&CPURegister::A, value as u16);
+    value = (value << 1) | cpu.get_flag(CPUFlags::C);
+    cpu.set_register(&CPURegisterId::A, value as u16);
 
     cpu.set_flags(0, 0, 0, new_carry as i8);
     1
@@ -247,10 +247,10 @@ pub fn rlc(cpu: &mut LR35902CPU) -> u8 {
 }
 
 pub fn rlca(cpu: &mut LR35902CPU) -> u8 {
-    let mut value = cpu.get_register(&CPURegister::A);
+    let mut value = cpu.get_register(&CPURegisterId::A);
     let new_carry = value >> 7;
     value = (value << 1) | new_carry;
-    cpu.set_register(&CPURegister::A, value as u16);
+    cpu.set_register(&CPURegisterId::A, value as u16);
 
     cpu.set_flags(0, 0, 0, new_carry as i8);
     1
@@ -258,7 +258,7 @@ pub fn rlca(cpu: &mut LR35902CPU) -> u8 {
 
 pub fn rr(cpu: &mut LR35902CPU) -> u8 {
     let instr = cpu.current_instruction;
-    let old_carry = cpu.get_flag(CPUFlags::C as u8);
+    let old_carry = cpu.get_flag(CPUFlags::C);
     let new_carry: u8;
     let mut value: u8;
     let mut cycles: u8 = 2;
@@ -286,11 +286,11 @@ pub fn rr(cpu: &mut LR35902CPU) -> u8 {
 }
 
 pub fn rra(cpu: &mut LR35902CPU) -> u8 {
-    let mut value = cpu.get_register(&CPURegister::A);
+    let mut value = cpu.get_register(&CPURegisterId::A);
     let new_carry = value & 1;
 
-    value = (value >> 1) | (cpu.get_flag(CPUFlags::C as u8) << 7);
-    cpu.set_register(&CPURegister::A, value as u16);
+    value = (value >> 1) | (cpu.get_flag(CPUFlags::C) << 7);
+    cpu.set_register(&CPURegisterId::A, value as u16);
 
     cpu.set_flags(0, 0, 0, new_carry as i8);
     1
@@ -325,10 +325,10 @@ pub fn rrc(cpu: &mut LR35902CPU) -> u8 {
 }
 
 pub fn rrca(cpu: &mut LR35902CPU) -> u8 {
-    let mut value = cpu.get_register(&CPURegister::A);
+    let mut value = cpu.get_register(&CPURegisterId::A);
     let new_carry = value & 1;
     value = (value >> 1) | ((value & 1) << 7);
-    cpu.set_register(&CPURegister::A, value as u16);
+    cpu.set_register(&CPURegisterId::A, value as u16);
 
     cpu.set_flags(0, 0, 0, new_carry as i8);
     1
