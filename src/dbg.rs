@@ -1,9 +1,10 @@
 use super::cpu::{CPUFlags, LR35902CPU};
 use super::instructions::{AddrMode, CPURegisterId};
 
-static mut serial_buff: [u8; 0x100] = [0; 0x100];
-static mut serial_idx: usize = 0;
+static mut SERIAL_BUFF: [u8; 0x100] = [0; 0x100];
+static mut SERIAL_IDX: usize = 0;
 
+#[allow(dead_code)]
 pub fn print_state(cpu: &LR35902CPU) {
     let header = format!("0x{:04X} {}", cpu.pc() - 1, cpu.current_instruction.name);
 
@@ -166,11 +167,11 @@ pub fn print_serial(cpu: &mut LR35902CPU) {
 
     if char != 0 {
         unsafe {
-            serial_buff[serial_idx % 0x100] = char;
-            serial_idx += 1;
+            SERIAL_BUFF[SERIAL_IDX % 0x100] = char;
+            SERIAL_IDX += 1;
             println!(
                 "SERIAL DATA: {}",
-                std::str::from_utf8(&serial_buff[..serial_idx]).expect("invalid utf-8 sequence")
+                std::str::from_utf8(&SERIAL_BUFF[..SERIAL_IDX]).expect("invalid utf-8 sequence")
             );
         }
     }

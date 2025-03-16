@@ -5,6 +5,7 @@ thread_local! {
     pub static INTERRUPT_ENABLE: Cell<u8> = Cell::new(0);
 }
 
+#[allow(nonstandard_style)]
 pub mod InterruptFlags {
     pub const VBLANK: u8 = 0x1;
     pub const LCD: u8 = 0x2;

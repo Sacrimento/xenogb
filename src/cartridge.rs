@@ -3,7 +3,7 @@ use std::{fs, path::PathBuf};
 #[derive(Debug)]
 pub struct CartridgeError;
 
-#[derive(Debug)]
+#[allow(unused)]
 pub struct CartridgeHeader {
     //0104-0133 — Nintendo logo
     //0134-0143 — Title
@@ -60,8 +60,9 @@ impl CartridgeHeader {
     }
 }
 
+#[allow(dead_code)]
 pub struct Cartridge {
-    pub header: CartridgeHeader,
+    header: CartridgeHeader,
     content: Vec<u8>,
 }
 

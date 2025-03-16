@@ -1,9 +1,10 @@
+#[allow(unused_imports)]
 use crate::dbg::{print_serial, print_state, print_state_doctor};
 use crate::instructions::{stack::_push, CPURegisterId, Instruction, INSTRUCTIONS};
 use crate::interrupts::{InterruptFlags, INTERRUPT_ENABLE, INTERRUPT_FLAGS};
-use crate::utils::*;
 use crate::Bus;
 
+#[allow(nonstandard_style)]
 pub mod CPUFlags {
     pub const Z: u8 = 0x80;
     pub const N: u8 = 0x40;

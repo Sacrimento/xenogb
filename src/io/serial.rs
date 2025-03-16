@@ -1,3 +1,4 @@
+#[allow(nonstandard_style)]
 mod SerialTransferControlFlags {
     pub const _CLOCK_SELECT: u8 = 0x1;
     pub const _CLOCK_SPEED: u8 = 0x2;

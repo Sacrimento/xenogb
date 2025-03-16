@@ -16,7 +16,7 @@ use std::fmt;
 
 use crate::cpu::LR35902CPU;
 
-#[derive(Debug)]
+#[allow(nonstandard_style)]
 pub enum AddrMode {
     R,
     R_R,
