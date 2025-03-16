@@ -105,9 +105,9 @@ pub fn reti(cpu: &mut LR35902CPU) -> u8 {
 }
 
 pub fn rst(cpu: &mut LR35902CPU, addr: u8) -> u8 {
-    let v = cpu.pc() + 1;
-    _push(cpu, (v & 0xff) as u8);
+    let v = cpu.pc();
     _push(cpu, (v >> 8) as u8);
+    _push(cpu, (v & 0xff) as u8);
 
     cpu.set_register(&CPURegister::PC, addr as u16);
     4
