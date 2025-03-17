@@ -19,6 +19,10 @@ jobs:
     outputs:
       release_built: ${{ steps.set-output.outputs.release_built }}
     steps:
+      - name: Install clang
+        run: sudo apt install -y clang
+      - name: Install mold
+        run: sudo apt install -y mold
       - uses: actions/checkout@v4
       - name: Build binaries in "${{ matrix.BUILD_TARGET }}" mode
         run: cargo build --profile ${{ matrix.BUILD_TARGET }}
@@ -31,4 +35,3 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
       - name: Run integration tests
         run: ./tests/blarggs/run.sh
-

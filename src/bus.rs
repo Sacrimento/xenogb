@@ -17,10 +17,17 @@ use crate::ram::RAM;
 // 0xFF80	0xFFFE	High RAM (HRAM)
 // 0xFFFF	0xFFFF	Interrupt Enable register (IE)
 
+#[derive(Clone)]
+struct DMA {
+    src: u16,
+    dest: u16,
+}
+
 pub struct Bus {
     cartridge: Cartridge,
     ram: RAM,
     pub io: IOMMU,
+    dma: Option<DMA>,
 }
 
 impl Bus {
@@ -29,16 +36,23 @@ impl Bus {
             cartridge,
             ram: RAM::new(),
             io: IOMMU::new(),
+            dma: None,
         }
     }
 
     pub fn read(&self, addr: u16) -> u8 {
         if addr < 0x7fff {
             return self.cartridge.read(addr);
+        } else if between!(addr, 0x8000, 0x9fff) {
+            return self.io.read(addr);
         } else if between!(addr, 0xc000, 0xdfff) {
             return self.ram.read(addr);
+        } else if between!(addr, 0xfe00, 0xfe9f) {
+            return self.io.read(addr);
         } else if addr == 0xff0f {
             return INTERRUPT_FLAGS.get();
+        } else if addr == 0xff46 {
+            println!("Invalid DMA read");
         } else if between!(addr, 0xff00, 0xff7f) {
             return self.io.read(addr);
         } else if between!(addr, 0xff80, 0xfffe) {
@@ -58,9 +72,13 @@ impl Bus {
 
     pub fn write(&mut self, addr: u16, value: u8) -> () {
         if addr < 0x7fff {
-            todo!()
+            // todo!()
+        } else if between!(addr, 0x8000, 0x9fff) {
+            return self.io.write(addr, value);
         } else if between!(addr, 0xc000, 0xdfff) {
             self.ram.write(addr, value);
+        } else if between!(addr, 0xfe00, 0xfe9f) {
+            return self.io.write(addr, value);
         } else if addr == 0xff0f {
             INTERRUPT_FLAGS.set(value);
         } else if between!(addr, 0xff00, 0xff7f) {
@@ -73,5 +91,38 @@ impl Bus {
             // println!("Unhandled bus.write at 0x{:04X}", addr);
             // todo!();
         }
+    }
+
+    fn dma_start(&mut self, addr_byte: u8) {
+        if self.dma.is_some() {
+            panic!("Double DMA?");
+        }
+
+        self.dma = Some(DMA {
+            src: addr_byte as u16 * 0x100,
+            dest: 0xfe00,
+        });
+    }
+
+    pub fn dma_tick(&mut self, cycles: u8) {
+        if self.dma.is_none() {
+            return;
+        }
+
+        let mut dma = self.dma.as_mut().unwrap().clone();
+
+        for _ in 0..cycles {
+            let value = self.read(dma.src);
+            self.write(dma.dest, value);
+            dma.src += 1;
+            dma.dest += 1;
+
+            if dma.dest > 0xfe9f {
+                self.dma = None;
+                return;
+            }
+        }
+
+        self.dma = Some(dma);
     }
 }

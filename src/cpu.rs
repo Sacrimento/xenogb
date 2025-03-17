@@ -29,17 +29,6 @@ struct CPURegisters {
 impl CPURegisters {
     pub fn new() -> Self {
         Self {
-            // a: 0xb0,
-            // f: 0x01,
-            // b: 0x13,
-            // c: 0x00,
-            // d: 0xd8,
-            // e: 0x00,
-            // h: 0x4d,
-            // l: 0x01,
-
-            // pc: 0x0100,
-            // sp: 0xfffe,
             a: 0x01,
             f: 0xb0,
             b: 0x00,
@@ -109,14 +98,10 @@ impl LR35902CPU {
         cycles
     }
 
-    pub fn run(&mut self) {
-        print_state_doctor(self);
-
-        let mut cycles: u8;
-        loop {
-            cycles = self.tick();
-            self.bus.io.timer.tick(cycles);
-        }
+    pub fn step(&mut self) {
+        let cycles = self.tick();
+        self.bus.io.timer.tick(cycles);
+        self.bus.dma_tick(cycles);
     }
 
     pub fn set_register(&mut self, register: &CPURegisterId, value: u16) {
