@@ -81,6 +81,8 @@ impl Bus {
             return self.io.write(addr, value);
         } else if addr == 0xff0f {
             INTERRUPT_FLAGS.set(value);
+        } else if addr == 0xff46 {
+            self.dma_start(value);
         } else if between!(addr, 0xff00, 0xff7f) {
             self.io.write(addr, value);
         } else if between!(addr, 0xff80, 0xfffe) {

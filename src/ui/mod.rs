@@ -1,6 +1,6 @@
 use crate::LR35902CPU;
-use eframe;
 use eframe::egui;
+use eframe::{self, egui::vec2};
 use std::sync::{Arc, Mutex};
 
 const GB_RES_X: usize = 160;
@@ -14,26 +14,28 @@ const COLORS: [u8; 4] = [0xff, 0xaa, 0x55, 0x00];
 
 pub struct XenoGBUI {
     cpu: Arc<Mutex<LR35902CPU>>,
-    vpu_buffer: Vec<u8>,
-    vpu_texture: egui::TextureHandle,
+    // vpu_buffer: Vec<u8>,
+    // vpu_texture: egui::TextureHandle,
 }
 
 impl XenoGBUI {
     pub fn new(ctx: &eframe::CreationContext<'_>, cpu: Arc<Mutex<LR35902CPU>>) -> Self {
-        let vpu_buffer = vec![0xff; GB_RES_X * GB_RES_Y * 4 * SCALE * SCALE];
-        let vpu_texture = ctx.egui_ctx.load_texture(
-            "screen",
-            egui::ColorImage::from_rgba_unmultiplied(
-                [GB_RES_X * SCALE, GB_RES_Y * SCALE],
-                &vpu_buffer,
-            ),
-            egui::TextureOptions::NEAREST,
-        );
+        // let vpu_buffer = vec![0xff; GB_RES_X * GB_RES_Y * 4 * SCALE * SCALE];
+        // let vpu_texture = ctx.egui_ctx.load_texture(
+        //     "screen",
+        //     egui::ColorImage::from_rgba_unmultiplied(
+        //         [GB_RES_X * SCALE, GB_RES_Y * SCALE],
+        //         &vpu_buffer,
+        //     ),
+        //     egui::TextureOptions::NEAREST,
+        // );
+
+        ctx.egui_ctx.set_zoom_factor(2.5);
 
         Self {
             cpu,
-            vpu_buffer,
-            vpu_texture,
+            // vpu_buffer,
+            // vpu_texture,
         }
     }
 
@@ -50,18 +52,11 @@ impl XenoGBUI {
                 let lo = (b1 >> bit) & 1;
 
                 ret_vec.push((
-                    egui::Rect {
-                        min: egui::pos2((x + (7 - bit)) as f32, (tile_y as u32 / 2 + y) as f32),
-                        max: egui::pos2(
-                            ((x + (7 - bit)) + SCALE as u32) as f32,
-                            ((tile_y as u32 / 2 + y) + SCALE as u32) as f32,
-                        ),
-                    },
-                    egui::Color32::from_rgb(
-                        COLORS[(hi | lo) as usize],
-                        COLORS[(hi | lo) as usize],
-                        COLORS[(hi | lo) as usize],
+                    egui::Rect::from_min_size(
+                        egui::pos2((x + (7 - bit)) as f32, (tile_y as u32 / 2 + y) as f32),
+                        vec2(SCALE as f32, SCALE as f32),
                     ),
+                    egui::Color32::from_gray(COLORS[(hi | lo) as usize]),
                 ));
             }
         }
@@ -92,11 +87,9 @@ impl XenoGBUI {
 
 impl eframe::App for XenoGBUI {
     fn update(&mut self, ctx: &eframe::egui::Context, _frame: &mut eframe::Frame) {
-        egui::CentralPanel::default()
-            .frame(egui::Frame::NONE)
-            .show(ctx, |ui| {
-                self.render_vram(ui);
-            });
+        egui::CentralPanel::default().show(ctx, |ui| {
+            self.render_vram(ui);
+        });
 
         ctx.request_repaint();
     }

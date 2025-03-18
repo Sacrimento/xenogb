@@ -102,6 +102,7 @@ impl LR35902CPU {
         let cycles = self.tick();
         self.bus.io.timer.tick(cycles);
         self.bus.dma_tick(cycles);
+        self.bus.io.ppu.tick(cycles);
     }
 
     pub fn set_register(&mut self, register: &CPURegisterId, value: u16) {
@@ -254,7 +255,7 @@ impl LR35902CPU {
 
         for (int, addr) in [
             (InterruptFlags::VBLANK, 0x40),
-            (InterruptFlags::LCD, 0x48),
+            (InterruptFlags::STAT, 0x48),
             (InterruptFlags::TIMER, 0x50),
             (InterruptFlags::SERIAL, 0x58),
             (InterruptFlags::JOYPAD, 0x60),
