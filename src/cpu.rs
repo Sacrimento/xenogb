@@ -46,6 +46,7 @@ impl CPURegisters {
 
 pub struct LR35902CPU {
     registers: CPURegisters,
+    serial: bool,
 
     pub bus: Bus,
 
@@ -56,9 +57,10 @@ pub struct LR35902CPU {
 }
 
 impl LR35902CPU {
-    pub fn new(bus: Bus) -> Self {
+    pub fn new(bus: Bus, serial: bool) -> Self {
         Self {
             bus,
+            serial,
             current_instruction: &INSTRUCTIONS[&0],
             halt: false,
             registers: CPURegisters::new(),
@@ -74,7 +76,9 @@ impl LR35902CPU {
             self.set_instruction();
 
             // print_state(self);
-            print_serial(self);
+            if self.serial {
+                print_serial(self);
+            }
 
             cycles = (self.current_instruction.func)(self);
             // print_state_doctor(self);

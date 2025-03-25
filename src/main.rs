@@ -30,7 +30,9 @@ struct Args {
     headless: bool,
 
     #[arg(short, long, default_value_t = false)]
-    debug: bool,
+    serial: bool,
+    // #[arg(short, long, default_value_t = false)]
+    // debug: bool,
 }
 
 fn main() -> Result<(), XenoGBError> {
@@ -39,8 +41,9 @@ fn main() -> Result<(), XenoGBError> {
 
     let bus = Bus::new(cartridge);
 
+    let mut cpu = LR35902CPU::new(bus, args.serial);
+
     if args.headless {
-        let mut cpu = LR35902CPU::new(bus);
         loop {
             cpu.step();
         }
@@ -50,7 +53,7 @@ fn main() -> Result<(), XenoGBError> {
         "xenogb",
         eframe::NativeOptions::default(),
         Box::new(move |ctx| {
-            let cpu: Arc<Mutex<LR35902CPU>> = Arc::new(Mutex::new(LR35902CPU::new(bus)));
+            let cpu: Arc<Mutex<LR35902CPU>> = Arc::new(Mutex::new(cpu));
             let mut _cpu = cpu.clone();
 
             std::thread::spawn(move || loop {
