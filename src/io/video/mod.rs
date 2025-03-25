@@ -1,2 +1,2 @@
-pub mod lcd;
+mod lcd;
 pub mod ppu;

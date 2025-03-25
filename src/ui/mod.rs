@@ -83,12 +83,31 @@ impl XenoGBUI {
             x_render = 0;
         }
     }
+
+    fn render_vbuf(&mut self, ui: &mut egui::Ui) {
+        let cpu = self.cpu.lock().unwrap();
+
+        for y in 0..GB_RES_Y {
+            for x in 0..GB_RES_X {
+                let rect = egui::Rect::from_min_size(
+                    egui::pos2(x as f32, y as f32),
+                    vec2(SCALE as f32, SCALE as f32),
+                );
+                ui.painter().rect_filled(
+                    rect,
+                    egui::CornerRadius::ZERO,
+                    egui::Color32::from_gray((cpu.bus.io.ppu.video_buffer[y * GB_RES_X + x]) as u8),
+                );
+            }
+        }
+    }
 }
 
 impl eframe::App for XenoGBUI {
     fn update(&mut self, ctx: &eframe::egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
-            self.render_vram(ui);
+            self.render_vbuf(ui);
+            // self.render_vram(ui);
         });
 
         ctx.request_repaint();

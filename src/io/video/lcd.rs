@@ -1,15 +1,15 @@
 use crate::interrupts::{request_interrupt, InterruptFlags};
 
 #[allow(nonstandard_style)]
-mod LCDC_FLAGS {
-    const LCD_PPU_ENABLE: u8 = 0x80;
-    const WINDOW_TILE_MAP: u8 = 0x40;
-    const WINDOW_ENABLE: u8 = 0x20;
-    const WINDOW_BG_ADDRESSING_MODE: u8 = 0x10;
-    const BG_TILE_MAP: u8 = 0x8;
-    const OBJ_SIZE: u8 = 0x4;
-    const OBJ_ENABLE: u8 = 0x2;
-    const WINDOW_BG_ENABLE: u8 = 0x1;
+pub mod LCDC_FLAGS {
+    pub const LCD_PPU_ENABLE: u8 = 0x80;
+    pub const WINDOW_TILE_MAP: u8 = 0x40;
+    pub const WINDOW_ENABLE: u8 = 0x20;
+    pub const WINDOW_BG_ADDRESSING_MODE: u8 = 0x10;
+    pub const BG_TILE_MAP: u8 = 0x8;
+    pub const OBJ_SIZE: u8 = 0x4;
+    pub const OBJ_ENABLE: u8 = 0x2;
+    pub const WINDOW_BG_ENABLE: u8 = 0x1;
 }
 
 #[allow(nonstandard_style)]
@@ -22,6 +22,7 @@ pub mod LCDS_FLAGS {
     pub const PPU_MODE: u8 = 0x3;
 }
 
+#[derive(Debug)]
 pub enum PPUMode {
     VBlank,
     OAMScan,
@@ -31,19 +32,19 @@ pub enum PPUMode {
 
 #[derive(Default)]
 pub struct LCD {
-    lcdc: u8,
+    pub lcdc: u8,
     pub lcds: u8,
 
-    scy: u8,
-    scx: u8,
+    pub scy: u8,
+    pub scx: u8,
     pub ly: u8,
     lyc: u8,
 
-    bg_palette: u8,
-    obj_palettes: [u8; 2],
+    pub bg_palette: u8,
+    pub obj_palettes: [u8; 2],
 
-    wy: u8,
-    wx: u8,
+    pub wy: u8,
+    pub wx: u8,
 }
 
 impl LCD {

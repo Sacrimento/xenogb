@@ -56,8 +56,9 @@ pub fn halt(cpu: &mut LR35902CPU) -> u8 {
     1
 }
 
-pub fn stop(_cpu: &mut LR35902CPU) -> u8 {
-    todo!();
+pub fn stop(cpu: &mut LR35902CPU) -> u8 {
+    cpu.halt = true;
+    1
 }
 
 pub fn ei(cpu: &mut LR35902CPU) -> u8 {
