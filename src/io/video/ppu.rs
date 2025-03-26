@@ -220,7 +220,7 @@ impl PPU {
     }
 
     pub fn tick(&mut self, cycles: u8) {
-        for tick in 0..cycles {
+        for _ in 0..cycles {
             self.line_ticks += 1;
             match self.lcd.get_ppu_mode() {
                 PPUMode::HBlank => self.hblank(),

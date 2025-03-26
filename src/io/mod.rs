@@ -1,8 +1,10 @@
 use crate::between;
+pub mod joypad;
 mod serial;
 mod timer;
 mod video;
 
+use joypad::Joypad;
 use serial::Serial;
 use timer::Timer;
 use video::ppu::PPU;
@@ -11,6 +13,7 @@ pub struct IOMMU {
     pub serial: Serial,
     pub timer: Timer,
     pub ppu: PPU,
+    pub joypad: Joypad,
 }
 
 impl IOMMU {
@@ -19,6 +22,7 @@ impl IOMMU {
             serial: Serial::default(),
             timer: Timer::new(),
             ppu: PPU::new(),
+            joypad: Joypad::new(),
         }
     }
 
@@ -29,7 +33,7 @@ impl IOMMU {
             self.ppu.oam_write(addr, value);
         } else if addr == 0xff00 {
             // Joypad input
-            // println!("Unhandled io.write at 0x{:04X}", addr);
+            self.joypad.write(value);
         } else if between!(addr, 0xff01, 0xff02) {
             // Serial Transfer
             self.serial.write(addr, value);
@@ -55,13 +59,12 @@ impl IOMMU {
             // VRAM DMA
             // println!("Unhandled io.write at 0x{:04X}", addr);
         } else if between!(addr, 0xff68, 0xff6b) {
-            // BG / OBJ Palettes
-            // println!("Unhandled io.write at 0x{:04X}", addr);
+            // BG / OBJ Palettes (CGB ONLY)
         } else if addr == 0xff70 {
             // WRAM Bank Select
             // println!("Unhandled io.write at 0x{:04X}", addr);
         } else {
-            println!("Invalid addr 0x{:02x} for io.write", addr);
+            // println!("Invalid addr 0x{:02x} for io.write", addr);
         }
     }
 
@@ -72,8 +75,7 @@ impl IOMMU {
             self.ppu.oam_read(addr)
         } else if addr == 0xff00 {
             // Joypad input
-            // println!("Unhandled io.read at 0x{:04X}", addr);
-            0xff
+            self.joypad.read()
         } else if between!(addr, 0xff01, 0xff02) {
             // Serial Transfer
             self.serial.read(addr)

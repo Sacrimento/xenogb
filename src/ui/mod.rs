@@ -1,7 +1,20 @@
+use crate::io::joypad::JOYPAD_INPUT;
 use crate::LR35902CPU;
+use cphf::{phf_ordered_map, OrderedMap};
 use eframe::egui;
 use eframe::{self, egui::vec2};
 use std::sync::{Arc, Mutex};
+
+static KEYMAP: OrderedMap<u8, egui::Key> = phf_ordered_map! {u8, egui::Key;
+    JOYPAD_INPUT::DOWN => egui::Key::ArrowDown,
+    JOYPAD_INPUT::UP => egui::Key::ArrowUp,
+    JOYPAD_INPUT::LEFT => egui::Key::ArrowLeft,
+    JOYPAD_INPUT::RIGHT => egui::Key::ArrowRight,
+    JOYPAD_INPUT::A => egui::Key::A,
+    JOYPAD_INPUT::B => egui::Key::S,
+    JOYPAD_INPUT::SELECT => egui::Key::Space,
+    JOYPAD_INPUT::START => egui::Key::Enter,
+};
 
 const GB_RES_X: usize = 160;
 const GB_RES_Y: usize = 144;
@@ -105,6 +118,18 @@ impl XenoGBUI {
 
 impl eframe::App for XenoGBUI {
     fn update(&mut self, ctx: &eframe::egui::Context, _frame: &mut eframe::Frame) {
+        ctx.input(|inp| {
+            let mut cpu = self.cpu.lock().unwrap();
+            for (emu_key, ui_key) in KEYMAP.entries() {
+                if inp.key_pressed(*ui_key) {
+                    cpu.bus.io.joypad.press(*emu_key);
+                }
+                if inp.key_released(*ui_key) {
+                    cpu.bus.io.joypad.release(*emu_key);
+                }
+            }
+        });
+
         egui::CentralPanel::default().show(ctx, |ui| {
             self.render_vbuf(ui);
             // self.render_vram(ui);
