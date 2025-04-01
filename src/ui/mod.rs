@@ -1,4 +1,5 @@
 use crate::io::joypad::JOYPAD_INPUT;
+use crate::io::video::ppu::VIDEO_BUFFER;
 use crate::LR35902CPU;
 use cphf::{phf_ordered_map, OrderedMap};
 use eframe::egui;
@@ -98,7 +99,7 @@ impl XenoGBUI {
     }
 
     fn render_vbuf(&mut self, ui: &mut egui::Ui) {
-        let cpu = self.cpu.lock().unwrap();
+        let vbuf = VIDEO_BUFFER.lock().unwrap();
 
         for y in 0..GB_RES_Y {
             for x in 0..GB_RES_X {
@@ -109,7 +110,7 @@ impl XenoGBUI {
                 ui.painter().rect_filled(
                     rect,
                     egui::CornerRadius::ZERO,
-                    egui::Color32::from_gray((cpu.bus.io.ppu.video_buffer[y * GB_RES_X + x]) as u8),
+                    egui::Color32::from_gray((vbuf[y * GB_RES_X + x]) as u8),
                 );
             }
         }

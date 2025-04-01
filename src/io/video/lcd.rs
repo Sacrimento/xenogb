@@ -1,5 +1,7 @@
 use crate::interrupts::{request_interrupt, InterruptFlags};
 
+const COLORS: [u8; 4] = [0xff, 0xaa, 0x55, 0x00];
+
 #[allow(nonstandard_style)]
 pub mod LCDC_FLAGS {
     pub const LCD_PPU_ENABLE: u8 = 0x80;
@@ -123,5 +125,9 @@ impl LCD {
         } else {
             self.lcds &= !LCDS_FLAGS::LYC_EQ_LY;
         }
+    }
+
+    pub fn get_pixel(idx: u8) -> u8 {
+        COLORS[idx as usize]
     }
 }

@@ -2,7 +2,7 @@ use crate::between;
 pub mod joypad;
 mod serial;
 mod timer;
-mod video;
+pub mod video;
 
 use joypad::Joypad;
 use serial::Serial;
