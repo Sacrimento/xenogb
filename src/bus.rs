@@ -45,6 +45,8 @@ impl Bus {
             return self.cartridge.read(addr);
         } else if between!(addr, 0x8000, 0x9fff) {
             return self.io.read(addr);
+        } else if between!(addr, 0xa000, 0xbfff) {
+            return self.cartridge.read(addr);
         } else if between!(addr, 0xc000, 0xdfff) {
             return self.ram.read(addr);
         } else if between!(addr, 0xfe00, 0xfe9f) {
@@ -72,9 +74,11 @@ impl Bus {
 
     pub fn write(&mut self, addr: u16, value: u8) -> () {
         if addr < 0x7fff {
-            // todo!()
+            self.cartridge.write(addr, value);
         } else if between!(addr, 0x8000, 0x9fff) {
             return self.io.write(addr, value);
+        } else if between!(addr, 0xa000, 0xbfff) {
+            return self.cartridge.write(addr, value);
         } else if between!(addr, 0xc000, 0xdfff) {
             self.ram.write(addr, value);
         } else if between!(addr, 0xfe00, 0xfe9f) {
@@ -91,7 +95,6 @@ impl Bus {
             INTERRUPT_ENABLE.set(value);
         } else {
             // println!("Unhandled bus.write at 0x{:04X}", addr);
-            // todo!();
         }
     }
 

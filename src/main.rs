@@ -5,6 +5,7 @@ mod dbg;
 mod instructions;
 mod interrupts;
 mod io;
+mod mbc;
 mod ram;
 mod ui;
 mod utils;

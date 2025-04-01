@@ -181,7 +181,6 @@ impl PPU {
         }
 
         let scx = (x - (self.lcd.wx as usize - 7)) % 256;
-        let scy = (y - self.lcd.wy as usize) % 256;
 
         self.window_drawn = true;
         self.render_tile(scx, self.window_line as usize, LCDC_FLAGS::WINDOW_TILE_MAP)
@@ -277,7 +276,6 @@ impl PPU {
                 sprite_y as usize,
             );
         }
-        None
     }
 
     fn oam_scan(&mut self) {
@@ -335,7 +333,7 @@ impl PPU {
             (Some(_), Some((prio, win_pxl))) => (prio, win_pxl),
         };
 
-        let mut pixel;
+        let pixel;
 
         if s_pixel.is_some() {
             let (has_prio, s_pixel) = s_pixel.unwrap();

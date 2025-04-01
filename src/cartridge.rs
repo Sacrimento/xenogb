@@ -1,3 +1,4 @@
+use crate::mbc::{mbc, MemoryBankController};
 use std::{fs, path::PathBuf};
 
 #[derive(Debug)]
@@ -63,12 +64,16 @@ impl CartridgeHeader {
 #[allow(dead_code)]
 pub struct Cartridge {
     header: CartridgeHeader,
-    content: Vec<u8>,
+    mbc: Box<dyn MemoryBankController + Send + Sync>,
 }
 
 impl Cartridge {
     pub fn read(&self, addr: u16) -> u8 {
-        self.content[addr as usize]
+        self.mbc.read(addr)
+    }
+
+    pub fn write(&mut self, addr: u16, value: u8) {
+        self.mbc.write(addr, value);
     }
 }
 
@@ -86,10 +91,8 @@ pub fn parse_cartridge(cartridge: PathBuf) -> Result<Cartridge, CartridgeError> 
         32 * (1 << header.rom_size),
         32 * (1 << header.rom_size) / 16
     );
-    println!("\tRAM type: {}", header.ram_size);
 
-    Ok(Cartridge {
-        header,
-        content: contents,
-    })
+    let mbc = mbc(header.cartridge_type, header.ram_size, contents);
+
+    Ok(Cartridge { header, mbc })
 }
