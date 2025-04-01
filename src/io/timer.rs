@@ -1,4 +1,4 @@
-use crate::interrupts::{request_interrupt, InterruptFlags};
+use crate::cpu::interrupts::{request_interrupt, InterruptFlags};
 
 const CLOCK_SPEED: u32 = 4194304;
 

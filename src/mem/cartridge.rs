@@ -1,4 +1,4 @@
-use crate::mbc::{mbc, MemoryBankController};
+use super::mbc::{mbc, MemoryBankController};
 use std::{fs, path::PathBuf};
 
 #[derive(Debug)]

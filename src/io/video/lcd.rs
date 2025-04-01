@@ -1,4 +1,4 @@
-use crate::interrupts::{request_interrupt, InterruptFlags};
+use crate::cpu::interrupts::{request_interrupt, InterruptFlags};
 
 const COLORS: [u8; 4] = [0xff, 0xaa, 0x55, 0x00];
 

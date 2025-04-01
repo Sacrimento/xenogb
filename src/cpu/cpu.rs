@@ -1,8 +1,8 @@
 #[allow(unused_imports)]
+use crate::cpu::instructions::{stack::_push, CPURegisterId, Instruction, INSTRUCTIONS};
+use crate::cpu::interrupts::{InterruptFlags, INTERRUPT_ENABLE, INTERRUPT_FLAGS};
 use crate::dbg::{print_serial, print_state, print_state_doctor};
-use crate::instructions::{stack::_push, CPURegisterId, Instruction, INSTRUCTIONS};
-use crate::interrupts::{InterruptFlags, INTERRUPT_ENABLE, INTERRUPT_FLAGS};
-use crate::Bus;
+use crate::mem::bus::Bus;
 
 #[allow(nonstandard_style)]
 pub mod CPUFlags {

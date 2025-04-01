@@ -1,8 +1,8 @@
+use super::cartridge::Cartridge;
+use super::ram::RAM;
 use crate::between;
-use crate::cartridge::Cartridge;
-use crate::interrupts::{INTERRUPT_ENABLE, INTERRUPT_FLAGS};
+use crate::cpu::interrupts::{INTERRUPT_ENABLE, INTERRUPT_FLAGS};
 use crate::io::IOMMU;
-use crate::ram::RAM;
 
 // 0x0000	0x3FFF	16 KiB ROM bank 00
 // 0x4000	0x7FFF	16 KiB ROM Bank 01–NN

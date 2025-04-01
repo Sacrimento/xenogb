@@ -1,5 +1,5 @@
 use super::CPURegisterId;
-use crate::cpu::{CPUFlags, LR35902CPU};
+use crate::cpu::cpu::{CPUFlags, LR35902CPU};
 
 pub fn ccf(cpu: &mut LR35902CPU) -> u8 {
     let c = cpu.get_flag(CPUFlags::C);

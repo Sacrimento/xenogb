@@ -1,5 +1,5 @@
 use super::CPURegisterId;
-use crate::cpu::LR35902CPU;
+use crate::cpu::cpu::LR35902CPU;
 
 pub fn _pop(cpu: &mut LR35902CPU) -> u8 {
     let v = cpu.bus.read(cpu.sp());

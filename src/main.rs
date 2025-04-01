@@ -1,19 +1,14 @@
-mod bus;
-mod cartridge;
 mod cpu;
 mod dbg;
-mod instructions;
-mod interrupts;
 mod io;
-mod mbc;
-mod ram;
+mod mem;
 mod ui;
 mod utils;
 
-use bus::Bus;
-use cartridge::parse_cartridge;
 use clap::Parser;
-use cpu::LR35902CPU;
+use cpu::cpu::LR35902CPU;
+use mem::bus::Bus;
+use mem::cartridge::parse_cartridge;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use ui::XenoGBUI;

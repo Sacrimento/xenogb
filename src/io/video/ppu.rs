@@ -1,5 +1,5 @@
 use super::lcd::{PPUMode, LCD, LCDC_FLAGS, LCDS_FLAGS};
-use crate::interrupts::{request_interrupt, InterruptFlags};
+use crate::cpu::interrupts::{request_interrupt, InterruptFlags};
 use crate::{between, flag_set};
 use std::sync::Mutex;
 
