@@ -1,4 +1,5 @@
 use crate::io::joypad::JOYPAD_INPUT;
+use crate::io::video::lcd::LCD;
 use crate::io::video::ppu::VIDEO_BUFFER;
 use crate::LR35902CPU;
 use cphf::{phf_ordered_map, OrderedMap};
@@ -23,8 +24,6 @@ const GB_RES_Y: usize = 144;
 const SCALE: usize = 4;
 
 const WINDOW_SIZE: [f32; 2] = [(GB_RES_X * SCALE) as f32, (GB_RES_Y * SCALE) as f32];
-
-const COLORS: [u8; 4] = [0xff, 0xaa, 0x55, 0x00];
 
 pub struct XenoGBUI {
     cpu: Arc<Mutex<LR35902CPU>>,
@@ -53,6 +52,7 @@ impl XenoGBUI {
         }
     }
 
+    #[allow(dead_code)]
     fn render_tile(&mut self, tile_num: u32, x: u32, y: u32) -> Vec<(egui::Rect, egui::Color32)> {
         let cpu = self.cpu.lock().unwrap();
         let mut ret_vec: Vec<(egui::Rect, egui::Color32)> = vec![];
@@ -70,13 +70,14 @@ impl XenoGBUI {
                         egui::pos2((x + (7 - bit)) as f32, (tile_y as u32 / 2 + y) as f32),
                         vec2(SCALE as f32, SCALE as f32),
                     ),
-                    egui::Color32::from_gray(COLORS[(hi | lo) as usize]),
+                    egui::Color32::from_gray(LCD::get_pixel(hi | lo)),
                 ));
             }
         }
         ret_vec
     }
 
+    #[allow(dead_code)]
     fn render_vram(&mut self, ui: &mut egui::Ui) {
         let mut tile_num = 0;
         let mut x_render = 0;

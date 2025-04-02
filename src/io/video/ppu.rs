@@ -13,7 +13,9 @@ pub static VIDEO_BUFFER: Mutex<[u8; (RESX * RESY) as usize]> =
 
 #[allow(nonstandard_style)]
 mod SpriteFlags {
+    #[allow(dead_code)]
     pub const CGB_PALETTE: u8 = 0x7;
+    #[allow(dead_code)]
     pub const BANK: u8 = 0x8;
     pub const DMG_PALETTE: u8 = 0x10;
     pub const X_FLIP: u8 = 0x20;

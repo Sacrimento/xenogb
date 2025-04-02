@@ -26,7 +26,7 @@ impl MBC1 {
 
 impl MemoryBankController for MBC1 {
     fn read(&self, addr: u16) -> u8 {
-        if between!(addr, 0x0, 0x3fff) {
+        if addr <= 0x3fff {
             return self.rom[addr as usize];
         } else if between!(addr, 0x4000, 0x7fff) {
             let offset = self.rom_bank.max(1) * 0x4000;
@@ -41,7 +41,7 @@ impl MemoryBankController for MBC1 {
     }
 
     fn write(&mut self, addr: u16, value: u8) {
-        if between!(addr, 0x0, 0x1fff) {
+        if addr <= 0x1fff {
             self.ram_enable = value & 0xf == 0xa;
         } else if between!(addr, 0x2000, 0x3fff) {
             self.rom_bank = value as usize & 0x1f;

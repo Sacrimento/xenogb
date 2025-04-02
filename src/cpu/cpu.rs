@@ -1,6 +1,6 @@
-#[allow(unused_imports)]
 use crate::cpu::instructions::{stack::_push, CPURegisterId, Instruction, INSTRUCTIONS};
 use crate::cpu::interrupts::{InterruptFlags, INTERRUPT_ENABLE, INTERRUPT_FLAGS};
+#[allow(unused_imports)]
 use crate::dbg::{print_serial, print_state, print_state_doctor};
 use crate::mem::bus::Bus;
 

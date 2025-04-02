@@ -45,7 +45,7 @@ fn main() -> Result<(), XenoGBError> {
         }
     }
 
-    eframe::run_native(
+    let _ = eframe::run_native(
         "xenogb",
         eframe::NativeOptions::default(),
         Box::new(move |ctx| {

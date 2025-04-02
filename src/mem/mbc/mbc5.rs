@@ -8,7 +8,6 @@ pub struct MBC5 {
     rom_bank: usize,
     ram_bank: usize,
     ram_enable: bool,
-    banking_mode: u8,
 }
 
 impl MBC5 {
@@ -18,7 +17,6 @@ impl MBC5 {
             rom_bank: 0,
             ram_bank: 0,
             ram_enable: false,
-            banking_mode: 0,
             sram: <MBC5 as MemoryBankController>::init_sram(ram_code),
         }
     }
@@ -26,7 +24,7 @@ impl MBC5 {
 
 impl MemoryBankController for MBC5 {
     fn read(&self, addr: u16) -> u8 {
-        if between!(addr, 0x0, 0x3fff) {
+        if addr <= 0x3fff {
             return self.rom[addr as usize];
         } else if between!(addr, 0x4000, 0x7fff) {
             let offset = self.rom_bank * 0x4000;
@@ -41,7 +39,7 @@ impl MemoryBankController for MBC5 {
     }
 
     fn write(&mut self, addr: u16, value: u8) {
-        if between!(addr, 0x0, 0x1fff) {
+        if addr <= 0x1fff {
             self.ram_enable = value & 0xf == 0xa;
         } else if between!(addr, 0x2000, 0x2fff) {
             self.rom_bank = (self.rom_bank & 0x100) | value as usize & 0xff;
