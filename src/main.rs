@@ -7,6 +7,7 @@ mod utils;
 
 use clap::Parser;
 use cpu::cpu::LR35902CPU;
+use mem::boot::BootRom;
 use mem::bus::Bus;
 use mem::cartridge::parse_cartridge;
 use std::path::PathBuf;
@@ -27,6 +28,9 @@ struct Args {
 
     #[arg(short, long, default_value_t = false)]
     serial: bool,
+
+    #[arg(short, long, value_enum, default_value_t = BootRom::NONE)]
+    boot_rom: BootRom,
     // #[arg(short, long, default_value_t = false)]
     // debug: bool,
 }
@@ -35,7 +39,7 @@ fn main() -> Result<(), XenoGBError> {
     let args = Args::parse();
     let cartridge = parse_cartridge(args.cartridge).expect("Could not load the cartrdige");
 
-    let bus = Bus::new(cartridge);
+    let bus = Bus::new(cartridge, args.boot_rom);
 
     let mut cpu = LR35902CPU::new(bus, args.serial);
 

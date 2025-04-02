@@ -39,7 +39,7 @@ impl CPURegisters {
             l: 0x4d,
 
             sp: 0xfffe,
-            pc: 0x0100,
+            pc: 0x0,
         }
     }
 }

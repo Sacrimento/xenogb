@@ -1,3 +1,4 @@
+use super::boot::{boot_rom, BootRom};
 use super::cartridge::Cartridge;
 use super::ram::RAM;
 use crate::between;
@@ -28,19 +29,28 @@ pub struct Bus {
     ram: RAM,
     pub io: IOMMU,
     dma: Option<DMA>,
+
+    booting: bool,
+    boot_rom: [u8; 0x100],
 }
 
 impl Bus {
-    pub fn new(cartridge: Cartridge) -> Self {
+    pub fn new(cartridge: Cartridge, boot_rom_name: BootRom) -> Self {
         Self {
             cartridge,
             ram: RAM::new(),
             io: IOMMU::new(),
             dma: None,
+            booting: !matches!(boot_rom_name, BootRom::NONE),
+            boot_rom: boot_rom(boot_rom_name),
         }
     }
 
     pub fn read(&self, addr: u16) -> u8 {
+        if self.booting && addr <= 0x100 {
+            return self.boot_rom[addr as usize];
+        }
+
         if addr < 0x7fff {
             return self.cartridge.read(addr);
         } else if between!(addr, 0x8000, 0x9fff) {
@@ -87,6 +97,8 @@ impl Bus {
             INTERRUPT_FLAGS.set(value);
         } else if addr == 0xff46 {
             self.dma_start(value);
+        } else if addr == 0xff50 {
+            self.booting = false;
         } else if between!(addr, 0xff00, 0xff7f) {
             self.io.write(addr, value);
         } else if between!(addr, 0xff80, 0xfffe) {
