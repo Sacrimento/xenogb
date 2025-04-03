@@ -114,20 +114,6 @@ impl PPU {
         self.vram[(addr - 0x8000) as usize]
     }
 
-    fn get_tile(&self, x: usize, y: usize, area_flag: bool) -> &[u8] {
-        let area = if area_flag { 0x9c00 } else { 0x9800 };
-        let id_offset = ((y >> 3) << 5) + (x >> 3);
-
-        let tile_id = self.vram_read((area + id_offset) as u16) as usize;
-
-        let offset = if flag_set!(self.lcd.lcdc, LCDC_FLAGS::WINDOW_BG_ADDRESSING_MODE) {
-            tile_id * 16
-        } else {
-            ((tile_id as u8).wrapping_add(128) as u16 * 16 + 0x800) as usize
-        };
-        &self.vram[offset..offset + 16]
-    }
-
     pub fn tick(&mut self, cycles: u8) {
         if !flag_set!(self.lcd.lcdc, LCDC_FLAGS::LCD_PPU_ENABLE) {
             return;
@@ -142,6 +128,20 @@ impl PPU {
                 PPUMode::Draw => self.draw(),
             }
         }
+    }
+
+    fn get_tile(&self, x: usize, y: usize, area_flag: bool) -> &[u8] {
+        let area = if area_flag { 0x9c00 } else { 0x9800 };
+        let id_offset = ((y >> 3) << 5) + (x >> 3);
+
+        let tile_id = self.vram_read((area + id_offset) as u16) as usize;
+
+        let offset = if flag_set!(self.lcd.lcdc, LCDC_FLAGS::WINDOW_BG_ADDRESSING_MODE) {
+            tile_id * 16
+        } else {
+            ((tile_id as u8).wrapping_add(128) as u16 * 16 + 0x800) as usize
+        };
+        &self.vram[offset..offset + 16]
     }
 
     fn render_tile(&self, scx: usize, scy: usize, tile_map_flag: u8) -> Option<(bool, u8)> {
@@ -379,6 +379,10 @@ impl PPU {
                 }
             } else {
                 self.lcd.set_ppu_mode(PPUMode::OAMScan);
+
+                if flag_set!(self.lcd.lcds, LCDS_FLAGS::MODE_OAM_STAT) {
+                    request_interrupt(InterruptFlags::STAT);
+                }
             }
         }
     }
@@ -390,6 +394,10 @@ impl PPU {
             if self.lcd.ly >= LINES_PER_FRAME {
                 self.lcd.ly = 0;
                 self.lcd.set_ppu_mode(PPUMode::OAMScan);
+
+                if flag_set!(self.lcd.lcds, LCDS_FLAGS::MODE_OAM_STAT) {
+                    request_interrupt(InterruptFlags::STAT);
+                }
 
                 let now = std::time::Instant::now();
                 // println!(
