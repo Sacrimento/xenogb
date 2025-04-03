@@ -7,6 +7,8 @@ mod utils;
 
 use clap::Parser;
 use cpu::cpu::LR35902CPU;
+use eframe::egui::ViewportBuilder;
+use eframe::Renderer;
 use mem::boot::BootRom;
 use mem::bus::Bus;
 use mem::cartridge::parse_cartridge;
@@ -61,9 +63,12 @@ fn main() -> Result<(), XenoGBError> {
         }
     }
 
-    let _ = eframe::run_native(
+    eframe::run_native(
         "xenogb",
-        eframe::NativeOptions::default(),
+        eframe::NativeOptions {
+            viewport: ViewportBuilder::default().with_inner_size(ui::WINDOW_SIZE),
+            ..Default::default()
+        },
         Box::new(move |ctx| {
             let cpu: Arc<Mutex<LR35902CPU>> = Arc::new(Mutex::new(cpu));
             let mut _cpu = cpu.clone();
@@ -74,7 +79,8 @@ fn main() -> Result<(), XenoGBError> {
 
             Ok(Box::new(XenoGBUI::new(ctx, cpu)))
         }),
-    );
+    )
+    .unwrap();
 
     Ok(())
 }

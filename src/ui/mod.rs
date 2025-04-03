@@ -1,6 +1,6 @@
 use crate::io::joypad::JOYPAD_INPUT;
 use crate::io::video::lcd::LCD;
-use crate::io::video::ppu::VIDEO_BUFFER;
+use crate::io::video::ppu::{RESX, RESY, VIDEO_BUFFER};
 use crate::LR35902CPU;
 use cphf::{phf_ordered_map, OrderedMap};
 use eframe::egui;
@@ -18,12 +18,9 @@ static KEYMAP: OrderedMap<u8, egui::Key> = phf_ordered_map! {u8, egui::Key;
     JOYPAD_INPUT::START => egui::Key::Enter,
 };
 
-const GB_RES_X: usize = 160;
-const GB_RES_Y: usize = 144;
-
 const SCALE: usize = 4;
 
-const WINDOW_SIZE: [f32; 2] = [(GB_RES_X * SCALE) as f32, (GB_RES_Y * SCALE) as f32];
+pub const WINDOW_SIZE: [f32; 2] = [(RESX * SCALE) as f32, (RESY * SCALE) as f32];
 
 pub struct XenoGBUI {
     cpu: Arc<Mutex<LR35902CPU>>,
@@ -33,17 +30,17 @@ pub struct XenoGBUI {
 
 impl XenoGBUI {
     pub fn new(ctx: &eframe::CreationContext<'_>, cpu: Arc<Mutex<LR35902CPU>>) -> Self {
-        // let vpu_buffer = vec![0xff; GB_RES_X * GB_RES_Y * 4 * SCALE * SCALE];
+        // let vpu_buffer = vec![0xff; RESX * RESY * 4 * SCALE * SCALE];
         // let vpu_texture = ctx.egui_ctx.load_texture(
         //     "screen",
         //     egui::ColorImage::from_rgba_unmultiplied(
-        //         [GB_RES_X * SCALE, GB_RES_Y * SCALE],
+        //         [RESX * SCALE, RESY * SCALE],
         //         &vpu_buffer,
         //     ),
         //     egui::TextureOptions::NEAREST,
         // );
 
-        ctx.egui_ctx.set_zoom_factor(2.5);
+        ctx.egui_ctx.set_zoom_factor(SCALE as f32);
 
         Self {
             cpu,
@@ -102,8 +99,8 @@ impl XenoGBUI {
     fn render_vbuf(&mut self, ui: &mut egui::Ui) {
         let vbuf = VIDEO_BUFFER.lock().unwrap();
 
-        for y in 0..GB_RES_Y {
-            for x in 0..GB_RES_X {
+        for y in 0..RESY {
+            for x in 0..RESX {
                 let rect = egui::Rect::from_min_size(
                     egui::pos2(x as f32, y as f32),
                     vec2(SCALE as f32, SCALE as f32),
@@ -111,7 +108,7 @@ impl XenoGBUI {
                 ui.painter().rect_filled(
                     rect,
                     egui::CornerRadius::ZERO,
-                    egui::Color32::from_gray((vbuf[y * GB_RES_X + x]) as u8),
+                    egui::Color32::from_gray((vbuf[y * RESX + x]) as u8),
                 );
             }
         }

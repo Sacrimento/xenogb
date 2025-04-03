@@ -5,11 +5,10 @@ use std::sync::Mutex;
 
 const LINES_PER_FRAME: u8 = 154;
 const TICKS_PER_LINE: u16 = 456;
-pub const RESX: u16 = 160;
-pub const RESY: u16 = 144;
+pub const RESX: usize = 160;
+pub const RESY: usize = 144;
 
-pub static VIDEO_BUFFER: Mutex<[u8; (RESX * RESY) as usize]> =
-    Mutex::new([0xff; (RESX * RESY) as usize]);
+pub static VIDEO_BUFFER: Mutex<[u8; RESX * RESY]> = Mutex::new([0xff; RESX * RESY]);
 
 #[allow(nonstandard_style)]
 mod SpriteFlags {
@@ -317,7 +316,7 @@ impl PPU {
     }
 
     fn draw(&mut self) {
-        if self.line_x as u16 >= RESX {
+        if self.line_x as usize >= RESX {
             self.lcd.set_ppu_mode(PPUMode::HBlank);
 
             if flag_set!(self.lcd.lcds, LCDS_FLAGS::MODE_HBLANK_STAT) {
@@ -352,7 +351,7 @@ impl PPU {
         }
 
         let mut vbuf = VIDEO_BUFFER.lock().unwrap();
-        (*vbuf)[self.lcd.ly as usize * RESX as usize + self.line_x as usize] = pixel;
+        (*vbuf)[self.lcd.ly as usize * RESX + self.line_x as usize] = pixel;
 
         self.line_x += 1;
     }
@@ -369,7 +368,7 @@ impl PPU {
             }
             self.window_drawn = false;
 
-            if self.lcd.ly as u16 >= RESY {
+            if self.lcd.ly as usize >= RESY {
                 self.lcd.set_ppu_mode(PPUMode::VBlank);
 
                 request_interrupt(InterruptFlags::VBLANK);
