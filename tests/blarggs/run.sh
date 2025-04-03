@@ -10,11 +10,11 @@ failed=0
 
 echo "# Run blargg's tests"
 for file in $TEST_DIR/roms/*; do
-    cmd="$EXEC -c $file";
+    test_case=$(basename $file)
     if timeout --foreground 5 $EXEC --headless -s -c "$file" 2>&1 | grep -q "Passed"; then
-        echo "$cmd --- OK";
+        echo "$test_case --- OK";
     else
-        echo "$cmd --- FAILED";
+        echo "$test_case --- FAILED";
         failed=1;
     fi
 done;

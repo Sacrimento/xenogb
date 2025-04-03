@@ -30,7 +30,7 @@ pub struct Bus {
     pub io: IOMMU,
     dma: Option<DMA>,
 
-    booting: bool,
+    pub booting: bool,
     boot_rom: [u8; 0x100],
 }
 

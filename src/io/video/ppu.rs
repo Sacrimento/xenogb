@@ -5,8 +5,8 @@ use std::sync::Mutex;
 
 const LINES_PER_FRAME: u8 = 154;
 const TICKS_PER_LINE: u16 = 456;
-const RESX: u16 = 160;
-const RESY: u16 = 144;
+pub const RESX: u16 = 160;
+pub const RESY: u16 = 144;
 
 pub static VIDEO_BUFFER: Mutex<[u8; (RESX * RESY) as usize]> =
     Mutex::new([0xff; (RESX * RESY) as usize]);
@@ -52,6 +52,8 @@ pub struct PPU {
     line_sprites: Option<Vec<Sprite>>,
     window_line: u8,
     window_drawn: bool,
+
+    last_frame: std::time::Instant,
 }
 
 impl PPU {
@@ -70,6 +72,7 @@ impl PPU {
             line_sprites: None,
             window_line: 0,
             window_drawn: false,
+            last_frame: std::time::Instant::now(),
         }
     }
 
@@ -387,6 +390,13 @@ impl PPU {
             if self.lcd.ly >= LINES_PER_FRAME {
                 self.lcd.ly = 0;
                 self.lcd.set_ppu_mode(PPUMode::OAMScan);
+
+                let now = std::time::Instant::now();
+                // println!(
+                //     "Avg framerate from PPU: {:#?} fps",
+                //     1000 / (now - self.last_frame).as_millis()
+                // );
+                self.last_frame = now;
             }
 
             self.line_ticks = 0;

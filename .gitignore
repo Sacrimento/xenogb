@@ -1,2 +1,4 @@
 /target
 /roms
+/**/*.pgm
+/**/vbuf_snapshot.png

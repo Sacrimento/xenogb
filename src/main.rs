@@ -10,9 +10,14 @@ use cpu::cpu::LR35902CPU;
 use mem::boot::BootRom;
 use mem::bus::Bus;
 use mem::cartridge::parse_cartridge;
+use signal_hook::consts::SIGUSR1;
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc, Mutex,
+};
 use ui::XenoGBUI;
+use utils::vbuf_snapshot;
 
 #[derive(Debug)]
 struct XenoGBError;
@@ -37,6 +42,7 @@ struct Args {
 
 fn main() -> Result<(), XenoGBError> {
     let args = Args::parse();
+
     let cartridge = parse_cartridge(args.cartridge).expect("Could not load the cartrdige");
 
     let bus = Bus::new(cartridge, args.boot_rom);
@@ -44,7 +50,13 @@ fn main() -> Result<(), XenoGBError> {
     let mut cpu = LR35902CPU::new(bus, args.serial);
 
     if args.headless {
+        let usr1 = Arc::new(AtomicBool::new(false));
+        signal_hook::flag::register(SIGUSR1, Arc::clone(&usr1)).unwrap();
         loop {
+            if usr1.load(Ordering::Relaxed) {
+                vbuf_snapshot();
+                return Ok(());
+            }
             cpu.step();
         }
     }

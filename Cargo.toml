@@ -8,3 +8,4 @@ clap = { version = "4.5.32", features = ["derive"] }
 cphf = "1.0.0"
 eframe = "0.31.1"
 phf = { version = "0.11.3", features = ["macros"] }
+signal-hook = "0.3.17"
