@@ -82,17 +82,12 @@ pub fn parse_cartridge(cartridge: PathBuf) -> Result<Cartridge, CartridgeError> 
 
     let header = CartridgeHeader::parse(&contents[0x134..=0x14f]);
 
-    println!("ROM loaded!");
-    println!("\tTitle: {}", header.title);
-    println!("\tLicensee code: {}", header.new_licensee_code);
-    println!("\tType: 0x{:02x}", header.cartridge_type);
-    println!(
-        "\tROM size: {} kb ({} banks)",
-        32 * (1 << header.rom_size),
-        32 * (1 << header.rom_size) / 16
+    let mbc = mbc(
+        header.cartridge_type,
+        header.ram_size,
+        header.rom_size,
+        contents,
     );
-
-    let mbc = mbc(header.cartridge_type, header.ram_size, contents);
 
     Ok(Cartridge { header, mbc })
 }

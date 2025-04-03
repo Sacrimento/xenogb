@@ -6,20 +6,22 @@ pub struct MBC1 {
     rom: Vec<u8>,
     sram: Vec<[u8; 0x2000]>,
     rom_bank: usize,
+    rom_bank_mask: usize,
     ram_bank: usize,
     ram_enable: bool,
     banking_mode: u8,
 }
 
 impl MBC1 {
-    pub fn new(rom: Vec<u8>, ram_code: u8) -> Self {
+    pub fn new(rom: Vec<u8>, ram_banks_code: u8, rom_banks_code: u8) -> Self {
         Self {
             rom,
-            rom_bank: 0,
+            rom_bank: 1,
+            rom_bank_mask: ((1 << (1 + rom_banks_code)) - 1) as usize,
             ram_bank: 0,
             ram_enable: false,
             banking_mode: 0,
-            sram: <MBC1 as MemoryBankController>::init_sram(ram_code),
+            sram: <MBC1 as MemoryBankController>::init_sram(ram_banks_code),
         }
     }
 }
@@ -29,7 +31,11 @@ impl MemoryBankController for MBC1 {
         if addr <= 0x3fff {
             return self.rom[addr as usize];
         } else if between!(addr, 0x4000, 0x7fff) {
-            let offset = self.rom_bank.max(1) * 0x4000;
+            let offset = if self.banking_mode == 1 {
+                ((self.ram_bank << 5) | self.rom_bank) * 0x4000
+            } else {
+                self.rom_bank * 0x4000
+            };
             return self.rom[offset + (addr as usize - 0x4000)];
         } else if between!(addr, 0xa000, 0xbfff) {
             if !self.ram_enable {
@@ -44,7 +50,7 @@ impl MemoryBankController for MBC1 {
         if addr <= 0x1fff {
             self.ram_enable = value & 0xf == 0xa;
         } else if between!(addr, 0x2000, 0x3fff) {
-            self.rom_bank = value as usize & 0x1f;
+            self.rom_bank = (value as usize & 0x1f).max(1) & self.rom_bank_mask;
         } else if between!(addr, 0x4000, 0x5fff) {
             self.ram_bank = value as usize & 0x3;
         } else if between!(addr, 0x6000, 0x7fff) {

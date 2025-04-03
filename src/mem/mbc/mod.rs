@@ -9,11 +9,11 @@ pub trait MemoryBankController {
 
     fn write(&mut self, addr: u16, value: u8) -> ();
 
-    fn init_sram(ram_code: u8) -> Vec<[u8; 0x2000]>
+    fn init_sram(ram_banks_code: u8) -> Vec<[u8; 0x2000]>
     where
         Self: Sized,
     {
-        let banks = match ram_code {
+        let banks = match ram_banks_code {
             0 | 1 => 0,
             2 => 1,
             3 => 4,
@@ -51,15 +51,17 @@ impl MemoryBankController for NoMBC {
 
 pub fn mbc(
     mbc_code: u8,
-    ram_code: u8,
+    ram_banks_code: u8,
+    rom_banks_code: u8,
     rom: Vec<u8>,
 ) -> Box<dyn MemoryBankController + Send + Sync> {
     match mbc_code {
         0 => Box::new(NoMBC::new(rom)),
-        1 => Box::new(MBC1::new(rom, ram_code)),
-        2 => Box::new(MBC1::new(rom, ram_code)),
-        3 => Box::new(MBC1::new(rom, ram_code)),
-        0x1b => Box::new(MBC5::new(rom, ram_code)),
+        1 => Box::new(MBC1::new(rom, ram_banks_code, rom_banks_code)),
+        2 => Box::new(MBC1::new(rom, ram_banks_code, rom_banks_code)),
+        3 => Box::new(MBC1::new(rom, ram_banks_code, rom_banks_code)),
+        0x19 => Box::new(MBC5::new(rom, ram_banks_code)),
+        0x1b => Box::new(MBC5::new(rom, ram_banks_code)),
         _ => todo!(),
     }
 }
