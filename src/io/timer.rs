@@ -1,3 +1,5 @@
+use std::intrinsics::unreachable;
+
 use crate::cpu::{
     interrupts::{request_interrupt, InterruptFlags},
     CLOCK_SPEED,
@@ -23,11 +25,13 @@ impl Timer {
         }
     }
 
-    pub fn tick(&mut self, cycles: u8) {
+    pub fn tick(&mut self, cycles: u8) -> bool {
+        let old_4bit = (self.div >> 4) & 1;
         self.div = self.div.wrapping_add(cycles as u16);
+        let apu_tick = old_4bit == 1 && (self.div >> 4) & 1 == 0;
 
         if (self.tac & (1 << 2)) == 0 {
-            return;
+            return apu_tick;
         }
 
         self.ticks_since_inc += cycles as u32 * 4;
@@ -37,7 +41,7 @@ impl Timer {
             0b01 => CLOCK_SPEED / 262144,
             0b10 => CLOCK_SPEED / 65536,
             0b11 => CLOCK_SPEED / 16384,
-            _ => panic!("Unreachable"),
+            _ => unreachable!(),
         };
 
         if self.ticks_since_inc >= ticks_per_inc {
@@ -50,6 +54,7 @@ impl Timer {
                 request_interrupt(InterruptFlags::TIMER);
             }
         }
+        apu_tick
     }
 
     pub fn read(&self, addr: u16) -> u8 {

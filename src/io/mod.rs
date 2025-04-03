@@ -1,4 +1,5 @@
 use crate::between;
+mod audio;
 pub mod joypad;
 mod serial;
 mod timer;
@@ -9,12 +10,14 @@ use joypad::Joypad;
 use serial::Serial;
 use timer::Timer;
 
+use audio::apu::APU;
 use video::ppu::{Vbuf, PPU};
 
 pub struct IOMMU {
     pub serial: Serial,
     pub timer: Timer,
     pub ppu: PPU,
+    pub apu: APU,
     pub joypad: Joypad,
 }
 
@@ -24,6 +27,7 @@ impl IOMMU {
             serial: Serial::default(),
             timer: Timer::new(),
             ppu: PPU::new(video_channel_sd),
+            apu: APU::default(),
             joypad: Joypad::new(),
         }
     }
@@ -44,10 +48,10 @@ impl IOMMU {
             self.timer.write(addr, value);
         } else if between!(addr, 0xff10, 0xff26) {
             // Audio
-            // println!("Unhandled io.write at 0x{:04X}", addr);
+            self.apu.write(addr, value);
         } else if between!(addr, 0xff30, 0xff3f) {
             // Wave pattern
-            // println!("Unhandled io.write at 0x{:04X}", addr);
+            self.apu.write(addr, value);
         } else if between!(addr, 0xff40, 0xff4b) {
             // LCD
             self.ppu.lcd.write(addr, value);
@@ -86,12 +90,10 @@ impl IOMMU {
             self.timer.read(addr)
         } else if between!(addr, 0xff10, 0xff26) {
             // Audio
-            // println!("Unhandled io.read at 0x{:04X}", addr);
-            0xff
+            self.apu.read(addr)
         } else if between!(addr, 0xff30, 0xff3f) {
             // Wave pattern
-            println!("Unhandled io.read at 0x{:04X}", addr);
-            0xff
+            self.apu.read(addr)
         } else if between!(addr, 0xff40, 0xff4b) {
             // LCD
             self.ppu.lcd.read(addr)
