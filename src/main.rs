@@ -8,7 +8,6 @@ mod utils;
 use clap::Parser;
 use cpu::cpu::LR35902CPU;
 use eframe::egui::ViewportBuilder;
-use eframe::Renderer;
 use mem::boot::BootRom;
 use mem::bus::Bus;
 use mem::cartridge::parse_cartridge;

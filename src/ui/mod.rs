@@ -24,28 +24,25 @@ pub const WINDOW_SIZE: [f32; 2] = [(RESX * SCALE) as f32, (RESY * SCALE) as f32]
 
 pub struct XenoGBUI {
     cpu: Arc<Mutex<LR35902CPU>>,
-    // vpu_buffer: Vec<u8>,
-    // vpu_texture: egui::TextureHandle,
+    screen_buffer: [u8; RESX * RESY * 4],
+    screen_texture: egui::TextureHandle,
 }
 
 impl XenoGBUI {
     pub fn new(ctx: &eframe::CreationContext<'_>, cpu: Arc<Mutex<LR35902CPU>>) -> Self {
-        // let vpu_buffer = vec![0xff; RESX * RESY * 4 * SCALE * SCALE];
-        // let vpu_texture = ctx.egui_ctx.load_texture(
-        //     "screen",
-        //     egui::ColorImage::from_rgba_unmultiplied(
-        //         [RESX * SCALE, RESY * SCALE],
-        //         &vpu_buffer,
-        //     ),
-        //     egui::TextureOptions::NEAREST,
-        // );
+        let screen_buffer = [0xff; RESX * RESY * 4];
+        let screen_texture = ctx.egui_ctx.load_texture(
+            "screen",
+            egui::ColorImage::from_rgba_unmultiplied([RESX, RESY], &screen_buffer),
+            egui::TextureOptions::NEAREST,
+        );
 
         ctx.egui_ctx.set_zoom_factor(SCALE as f32);
 
         Self {
             cpu,
-            // vpu_buffer,
-            // vpu_texture,
+            screen_buffer,
+            screen_texture,
         }
     }
 
@@ -96,28 +93,20 @@ impl XenoGBUI {
         }
     }
 
-    fn render_vbuf(&mut self, ui: &mut egui::Ui) {
+    fn render_vbuf(&mut self) {
         let vbuf = VIDEO_BUFFER.lock().unwrap();
 
-        for y in 0..RESY {
-            for x in 0..RESX {
-                let rect = egui::Rect::from_min_size(
-                    egui::pos2(x as f32, y as f32),
-                    vec2(SCALE as f32, SCALE as f32),
-                );
-                ui.painter().rect_filled(
-                    rect,
-                    egui::CornerRadius::ZERO,
-                    egui::Color32::from_gray((vbuf[y * RESX + x]) as u8),
-                );
-            }
+        for i in 0..vbuf.len() {
+            self.screen_buffer[i * 4] = vbuf[i];
+            self.screen_buffer[i * 4 + 1] = vbuf[i];
+            self.screen_buffer[i * 4 + 2] = vbuf[i];
         }
     }
 }
 
 impl eframe::App for XenoGBUI {
-    fn update(&mut self, ctx: &eframe::egui::Context, _frame: &mut eframe::Frame) {
-        ctx.input(|inp| {
+    fn update(&mut self, ctx: &eframe::egui::Context, frame: &mut eframe::Frame) {
+        frame.ctx.input(|inp| {
             let mut cpu = self.cpu.lock().unwrap();
             for (emu_key, ui_key) in KEYMAP.entries() {
                 if inp.key_pressed(*ui_key) {
@@ -129,10 +118,20 @@ impl eframe::App for XenoGBUI {
             }
         });
 
-        egui::CentralPanel::default().show(ctx, |ui| {
-            self.render_vbuf(ui);
-            // self.render_vram(ui);
-        });
+        self.render_vbuf();
+        ctx.tex_manager().write().set(
+            self.screen_texture.id(),
+            egui::epaint::ImageDelta::full(
+                egui::ColorImage::from_rgba_unmultiplied([RESX, RESY], &self.screen_buffer),
+                egui::TextureOptions::NEAREST,
+            ),
+        );
+
+        egui::CentralPanel::default()
+            .frame(egui::Frame::NONE)
+            .show(ctx, |ui| {
+                ui.image(&self.screen_texture);
+            });
 
         ctx.request_repaint();
     }
