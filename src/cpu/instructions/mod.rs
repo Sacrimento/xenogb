@@ -110,7 +110,7 @@ impl Instruction {
 }
 
 pub static INSTRUCTIONS: phf::Map<u16, Instruction> = phf_map! {
-    0x00u16 => Instruction { name: "NOP", addr_mode: AddrMode::R_R, func: |_| {4}, ..Instruction::default() },
+    0x00u16 => Instruction { name: "NOP", addr_mode: AddrMode::R_R, func: |_| {1}, ..Instruction::default() },
     0x01u16 => Instruction { name: "LD", addr_mode: AddrMode::R16_IMM16, func: ldr, reg1: Some(CPURegisterId::BC), reg2: None, ..Instruction::default() },
     0x02u16 => Instruction { name: "LD", addr_mode: AddrMode::RADDR_R, func: ldm, reg1: Some(CPURegisterId::BC), reg2: Some(CPURegisterId::A), ..Instruction::default() },
     0x03u16 => Instruction {  name: "INC", addr_mode: AddrMode::R16, func: inc, reg1: Some(CPURegisterId::BC), ..Instruction::default() },
