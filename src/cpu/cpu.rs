@@ -27,7 +27,7 @@ struct CPURegisters {
 }
 
 impl CPURegisters {
-    pub fn new() -> Self {
+    pub fn new(pc: u16) -> Self {
         Self {
             a: 0x01,
             f: 0xb0,
@@ -39,7 +39,7 @@ impl CPURegisters {
             l: 0x4d,
 
             sp: 0xfffe,
-            pc: 0x0,
+            pc,
         }
     }
 }
@@ -58,12 +58,13 @@ pub struct LR35902CPU {
 
 impl LR35902CPU {
     pub fn new(bus: Bus, serial: bool) -> Self {
+        let pc = if bus.booting { 0 } else { 0x100 };
         Self {
             bus,
             serial,
             current_instruction: &INSTRUCTIONS[&0],
             halt: false,
-            registers: CPURegisters::new(),
+            registers: CPURegisters::new(pc),
             int_master: false,
             enabling_ints: false,
         }
