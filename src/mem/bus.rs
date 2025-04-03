@@ -31,7 +31,7 @@ pub struct Bus {
     dma: Option<DMA>,
 
     pub booting: bool,
-    boot_rom: [u8; 0x100],
+    boot_rom: &'static [u8; 0x100],
 }
 
 impl Bus {
