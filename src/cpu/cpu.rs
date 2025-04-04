@@ -54,6 +54,8 @@ pub struct LR35902CPU {
     pub halt: bool,
     pub int_master: bool,
     pub enabling_ints: bool,
+
+    __ticks: u32,
 }
 
 impl LR35902CPU {
@@ -67,6 +69,7 @@ impl LR35902CPU {
             registers: CPURegisters::new(pc),
             int_master: false,
             enabling_ints: false,
+            __ticks: 0,
         }
     }
 
@@ -108,6 +111,12 @@ impl LR35902CPU {
         self.bus.io.timer.tick(cycles);
         self.bus.dma_tick(cycles);
         self.bus.io.ppu.tick(cycles);
+
+        self.__ticks = self.__ticks.wrapping_add(1);
+
+        if self.__ticks % (u32::MAX / 256) == 0 {
+            self.bus.cartridge.mbc.save();
+        }
     }
 
     pub fn set_register(&mut self, register: &CPURegisterId, value: u16) {

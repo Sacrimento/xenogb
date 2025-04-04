@@ -25,7 +25,7 @@ struct DMA {
 }
 
 pub struct Bus {
-    cartridge: Cartridge,
+    pub cartridge: Cartridge,
     ram: RAM,
     pub io: IOMMU,
     dma: Option<DMA>,

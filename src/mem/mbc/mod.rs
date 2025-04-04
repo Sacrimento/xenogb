@@ -1,5 +1,10 @@
 mod mbc1;
 mod mbc5;
+use std::io::Write;
+use std::{
+    fs::{self, File},
+    path::PathBuf,
+};
 
 use mbc1::MBC1;
 use mbc5::MBC5;
@@ -9,7 +14,9 @@ pub trait MemoryBankController {
 
     fn write(&mut self, addr: u16, value: u8) -> ();
 
-    fn init_sram(ram_banks_code: u8) -> Vec<[u8; 0x2000]>
+    fn save(&self) -> ();
+
+    fn build_sram(ram_banks_code: u8) -> Vec<[u8; 0x2000]>
     where
         Self: Sized,
     {
@@ -29,6 +36,34 @@ pub trait MemoryBankController {
         }
         vec
     }
+
+    fn save_sram(save_fname: &PathBuf, sram: &Vec<[u8; 0x2000]>)
+    where
+        Self: Sized,
+    {
+        let mut file = File::create(save_fname).unwrap();
+        for bank in sram.iter() {
+            file.write(&bank[..]).unwrap();
+        }
+    }
+
+    fn load_sram(path: &PathBuf, has_save: bool, ram_banks_code: u8) -> Vec<[u8; 0x2000]>
+    where
+        Self: Sized,
+    {
+        if !has_save || !path.exists() {
+            return Self::build_sram(ram_banks_code);
+        }
+
+        let bytes = fs::read(path).unwrap();
+        let mut sram: Vec<[u8; 0x2000]> = Vec::new();
+        sram.resize(bytes.len() / 0x2000, [0; 0x2000]);
+
+        for bank in 0..sram.len() {
+            sram[bank].copy_from_slice(&bytes[bank * 0x2000..bank * 0x2000 + 0x2000]);
+        }
+        sram
+    }
 }
 
 struct NoMBC {
@@ -47,6 +82,8 @@ impl MemoryBankController for NoMBC {
     fn read(&self, addr: u16) -> u8 {
         self.rom[addr as usize]
     }
+
+    fn save(&self) {}
 }
 
 pub fn mbc(
@@ -54,14 +91,26 @@ pub fn mbc(
     ram_banks_code: u8,
     rom_banks_code: u8,
     rom: Vec<u8>,
+    rom_fname: PathBuf,
 ) -> Box<dyn MemoryBankController + Send + Sync> {
     match mbc_code {
         0 => Box::new(NoMBC::new(rom)),
-        1 => Box::new(MBC1::new(rom, ram_banks_code, rom_banks_code)),
-        2 => Box::new(MBC1::new(rom, ram_banks_code, rom_banks_code)),
-        3 => Box::new(MBC1::new(rom, ram_banks_code, rom_banks_code)),
-        0x19 => Box::new(MBC5::new(rom, ram_banks_code)),
-        0x1b => Box::new(MBC5::new(rom, ram_banks_code)),
+        1 | 2 => Box::new(MBC1::new(
+            rom,
+            ram_banks_code,
+            rom_banks_code,
+            false,
+            rom_fname,
+        )),
+        3 => Box::new(MBC1::new(
+            rom,
+            ram_banks_code,
+            rom_banks_code,
+            true,
+            rom_fname,
+        )),
+        0x19 | 0x1a | 0x1c | 0x1d => Box::new(MBC5::new(rom, ram_banks_code, false, rom_fname)),
+        0x1b | 0x1e => Box::new(MBC5::new(rom, ram_banks_code, true, rom_fname)),
         _ => todo!(),
     }
 }

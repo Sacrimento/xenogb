@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use crate::between;
 
 use super::MemoryBankController;
@@ -10,10 +12,21 @@ pub struct MBC1 {
     ram_bank: usize,
     ram_enable: bool,
     banking_mode: u8,
+
+    has_save: bool,
+    save_fname: PathBuf,
 }
 
 impl MBC1 {
-    pub fn new(rom: Vec<u8>, ram_banks_code: u8, rom_banks_code: u8) -> Self {
+    pub fn new(
+        rom: Vec<u8>,
+        ram_banks_code: u8,
+        rom_banks_code: u8,
+        has_save: bool,
+        mut rom_fname: PathBuf,
+    ) -> Self {
+        rom_fname.set_extension("gbsave");
+
         Self {
             rom,
             rom_bank: 1,
@@ -21,7 +34,9 @@ impl MBC1 {
             ram_bank: 0,
             ram_enable: false,
             banking_mode: 0,
-            sram: <MBC1 as MemoryBankController>::init_sram(ram_banks_code),
+            sram: <MBC1 as MemoryBankController>::load_sram(&rom_fname, has_save, ram_banks_code),
+            has_save,
+            save_fname: rom_fname,
         }
     }
 }
@@ -61,6 +76,12 @@ impl MemoryBankController for MBC1 {
             }
         } else {
             panic!("Invalid addr for mbc1.write");
+        }
+    }
+
+    fn save(&self) {
+        if self.has_save {
+            <MBC1 as MemoryBankController>::save_sram(&self.save_fname, &self.sram);
         }
     }
 }

@@ -84,7 +84,7 @@ impl IOMMU {
             self.timer.read(addr)
         } else if between!(addr, 0xff10, 0xff26) {
             // Audio
-            println!("Unhandled io.read at 0x{:04X}", addr);
+            // println!("Unhandled io.read at 0x{:04X}", addr);
             0xff
         } else if between!(addr, 0xff30, 0xff3f) {
             // Wave pattern

@@ -64,7 +64,7 @@ impl CartridgeHeader {
 #[allow(dead_code)]
 pub struct Cartridge {
     header: CartridgeHeader,
-    mbc: Box<dyn MemoryBankController + Send + Sync>,
+    pub mbc: Box<dyn MemoryBankController + Send + Sync>,
 }
 
 impl Cartridge {
@@ -78,7 +78,7 @@ impl Cartridge {
 }
 
 pub fn parse_cartridge(cartridge: PathBuf) -> Result<Cartridge, CartridgeError> {
-    let contents: Vec<u8> = fs::read(cartridge).expect("Unable to read the cartridge");
+    let contents: Vec<u8> = fs::read(&cartridge).expect("Unable to read the cartridge");
 
     let header = CartridgeHeader::parse(&contents[0x134..=0x14f]);
 
@@ -87,6 +87,7 @@ pub fn parse_cartridge(cartridge: PathBuf) -> Result<Cartridge, CartridgeError> 
         header.ram_size,
         header.rom_size,
         contents,
+        cartridge,
     );
 
     Ok(Cartridge { header, mbc })

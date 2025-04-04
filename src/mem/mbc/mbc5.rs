@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use crate::between;
 
 use super::MemoryBankController;
@@ -8,16 +10,23 @@ pub struct MBC5 {
     rom_bank: usize,
     ram_bank: usize,
     ram_enable: bool,
+
+    has_save: bool,
+    save_fname: PathBuf,
 }
 
 impl MBC5 {
-    pub fn new(rom: Vec<u8>, ram_code: u8) -> Self {
+    pub fn new(rom: Vec<u8>, ram_banks_code: u8, has_save: bool, mut rom_fname: PathBuf) -> Self {
+        rom_fname.set_extension("gbsave");
+
         Self {
             rom,
             rom_bank: 0,
             ram_bank: 0,
             ram_enable: false,
-            sram: <MBC5 as MemoryBankController>::init_sram(ram_code),
+            sram: <MBC5 as MemoryBankController>::load_sram(&rom_fname, has_save, ram_banks_code),
+            has_save,
+            save_fname: rom_fname,
         }
     }
 }
@@ -53,6 +62,12 @@ impl MemoryBankController for MBC5 {
             }
         } else {
             println!("Unhandled mbc5.write at {:04X}", addr);
+        }
+    }
+
+    fn save(&self) {
+        if self.has_save {
+            <MBC5 as MemoryBankController>::save_sram(&self.save_fname, &self.sram);
         }
     }
 }

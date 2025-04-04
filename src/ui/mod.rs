@@ -105,8 +105,8 @@ impl XenoGBUI {
 }
 
 impl eframe::App for XenoGBUI {
-    fn update(&mut self, ctx: &eframe::egui::Context, frame: &mut eframe::Frame) {
-        frame.ctx.input(|inp| {
+    fn update(&mut self, ctx: &eframe::egui::Context, _frame: &mut eframe::Frame) {
+        ctx.input(|inp| {
             let mut cpu = self.cpu.lock().unwrap();
             for (emu_key, ui_key) in KEYMAP.entries() {
                 if inp.key_pressed(*ui_key) {
