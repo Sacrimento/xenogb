@@ -2,7 +2,9 @@ use crate::cpu::instructions::{stack::_push, CPURegisterId, Instruction, INSTRUC
 use crate::cpu::interrupts::{InterruptFlags, INTERRUPT_ENABLE, INTERRUPT_FLAGS};
 #[allow(unused_imports)]
 use crate::dbg::{print_serial, print_state, print_state_doctor};
+use crate::io::joypad::{JoypadEvent, JoypadEventType};
 use crate::mem::bus::Bus;
+use crossbeam_channel::Receiver;
 
 #[allow(nonstandard_style)]
 pub mod CPUFlags {
@@ -55,11 +57,12 @@ pub struct LR35902CPU {
     pub int_master: bool,
     pub enabling_ints: bool,
 
+    io_events_rc: Receiver<JoypadEvent>,
     __ticks: u32,
 }
 
 impl LR35902CPU {
-    pub fn new(bus: Bus, serial: bool) -> Self {
+    pub fn new(bus: Bus, serial: bool, io_events_rc: Receiver<JoypadEvent>) -> Self {
         let pc = if bus.booting { 0 } else { 0x100 };
         Self {
             bus,
@@ -70,6 +73,7 @@ impl LR35902CPU {
             int_master: false,
             enabling_ints: false,
             __ticks: 0,
+            io_events_rc,
         }
     }
 
@@ -116,6 +120,15 @@ impl LR35902CPU {
 
         if self.__ticks % (u32::MAX / 256) == 0 {
             self.bus.cartridge.mbc.save();
+        }
+    }
+
+    pub fn handle_io_events(&mut self) {
+        if let Ok(event) = self.io_events_rc.try_recv() {
+            match event.event_type {
+                JoypadEventType::PRESSED => self.bus.io.joypad.press(event.key),
+                JoypadEventType::RELEASED => self.bus.io.joypad.release(event.key),
+            }
         }
     }
 

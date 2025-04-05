@@ -52,7 +52,8 @@ fn main() -> Result<(), XenoGBError> {
     let (video_channel_sd, video_channel_rc) = crossbeam_channel::unbounded();
     let bus = Bus::new(cartridge, args.boot_rom, video_channel_sd);
 
-    let mut cpu = LR35902CPU::new(bus, args.serial);
+    let (io_events_sd, io_events_rc) = crossbeam_channel::unbounded();
+    let mut cpu = LR35902CPU::new(bus, args.serial, io_events_rc);
 
     if args.headless {
         let usr1 = Arc::new(AtomicBool::new(false));
@@ -84,11 +85,14 @@ fn main() -> Result<(), XenoGBError> {
             let mut _cpu = cpu.clone();
 
             std::thread::spawn(move || loop {
-                _cpu.lock().unwrap().step();
+                let mut __cpu = _cpu.lock().unwrap();
+                __cpu.step();
+                __cpu.handle_io_events();
             });
 
             Ok(Box::new(XenoGBUI::new(
                 ctx,
+                io_events_sd,
                 video_channel_rc,
                 cpu,
                 args.debug,

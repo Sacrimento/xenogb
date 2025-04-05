@@ -1,11 +1,11 @@
-use crate::io::joypad::JOYPAD_INPUT;
+use crate::io::joypad::{JoypadEvent, JoypadEventType, JOYPAD_INPUT};
 use crate::io::video::ppu::{Vbuf, RESX, RESY};
 use crate::LR35902CPU;
 use cphf::{phf_ordered_map, OrderedMap};
 use eframe::egui;
 use std::sync::{Arc, Mutex};
 mod debugger;
-use crossbeam_channel::Receiver;
+use crossbeam_channel::{Receiver, Sender};
 
 static KEYMAP: OrderedMap<u8, egui::Key> = phf_ordered_map! {u8, egui::Key;
     JOYPAD_INPUT::DOWN => egui::Key::ArrowDown,
@@ -24,16 +24,17 @@ const SCALE: usize = 4;
 pub const WINDOW_SIZE: [f32; 2] = [(RESX * SCALE) as f32, (RESY * SCALE) as f32];
 
 pub struct XenoGBUI {
-    cpu: Arc<Mutex<LR35902CPU>>,
     screen_buffer: [u8; RESX * RESY * 4],
     screen_texture: egui::TextureHandle,
     debugger: debugger::DebuggerState,
     video_channel_rc: Receiver<Vbuf>,
+    events_sd: Sender<JoypadEvent>,
 }
 
 impl XenoGBUI {
     pub fn new(
         ctx: &eframe::CreationContext<'_>,
+        events_sd: Sender<JoypadEvent>,
         video_channel_rc: Receiver<Vbuf>,
         cpu: Arc<Mutex<LR35902CPU>>,
         debug: bool,
@@ -45,14 +46,14 @@ impl XenoGBUI {
             egui::TextureOptions::NEAREST,
         );
 
-        let debugger = debugger::DebuggerState::new(ctx, debug, cpu.clone());
+        let debugger = debugger::DebuggerState::new(ctx, debug, cpu);
 
         Self {
-            cpu,
             screen_buffer,
             screen_texture,
             debugger,
             video_channel_rc,
+            events_sd,
         }
     }
 
@@ -73,13 +74,22 @@ impl XenoGBUI {
 impl eframe::App for XenoGBUI {
     fn update(&mut self, ctx: &eframe::egui::Context, _frame: &mut eframe::Frame) {
         ctx.input(|inp| {
-            let mut cpu = self.cpu.lock().unwrap();
             for (emu_key, ui_key) in KEYMAP.entries() {
                 if inp.key_pressed(*ui_key) {
-                    cpu.bus.io.joypad.press(*emu_key);
+                    self.events_sd
+                        .send(JoypadEvent {
+                            event_type: JoypadEventType::PRESSED,
+                            key: *emu_key,
+                        })
+                        .expect("Could not send ui key press");
                 }
                 if inp.key_released(*ui_key) {
-                    cpu.bus.io.joypad.release(*emu_key);
+                    self.events_sd
+                        .send(JoypadEvent {
+                            event_type: JoypadEventType::RELEASED,
+                            key: *emu_key,
+                        })
+                        .expect("Could not send ui key release");
                 }
             }
 
