@@ -1,10 +1,11 @@
 use crate::io::joypad::JOYPAD_INPUT;
-use crate::io::video::ppu::{RESX, RESY, VIDEO_BUFFER};
+use crate::io::video::ppu::{Vbuf, RESX, RESY};
 use crate::LR35902CPU;
 use cphf::{phf_ordered_map, OrderedMap};
 use eframe::egui;
 use std::sync::{Arc, Mutex};
 mod debugger;
+use crossbeam_channel::Receiver;
 
 static KEYMAP: OrderedMap<u8, egui::Key> = phf_ordered_map! {u8, egui::Key;
     JOYPAD_INPUT::DOWN => egui::Key::ArrowDown,
@@ -27,11 +28,13 @@ pub struct XenoGBUI {
     screen_buffer: [u8; RESX * RESY * 4],
     screen_texture: egui::TextureHandle,
     debugger: debugger::DebuggerState,
+    video_channel_rc: Receiver<Vbuf>,
 }
 
 impl XenoGBUI {
     pub fn new(
         ctx: &eframe::CreationContext<'_>,
+        video_channel_rc: Receiver<Vbuf>,
         cpu: Arc<Mutex<LR35902CPU>>,
         debug: bool,
     ) -> Self {
@@ -49,11 +52,15 @@ impl XenoGBUI {
             screen_buffer,
             screen_texture,
             debugger,
+            video_channel_rc,
         }
     }
 
     fn render_vbuf(&mut self) {
-        let vbuf = VIDEO_BUFFER.lock().unwrap();
+        let vbuf = self
+            .video_channel_rc
+            .recv()
+            .expect("Could not receive video buffer");
 
         for i in 0..vbuf.len() {
             self.screen_buffer[i * 4] = vbuf[i];

@@ -3,7 +3,9 @@ use super::cartridge::Cartridge;
 use super::ram::RAM;
 use crate::between;
 use crate::cpu::interrupts::{INTERRUPT_ENABLE, INTERRUPT_FLAGS};
+use crate::io::video::ppu::Vbuf;
 use crate::io::IOMMU;
+use crossbeam_channel::Sender;
 
 // 0x0000	0x3FFF	16 KiB ROM bank 00
 // 0x4000	0x7FFF	16 KiB ROM Bank 01–NN
@@ -35,11 +37,15 @@ pub struct Bus {
 }
 
 impl Bus {
-    pub fn new(cartridge: Cartridge, boot_rom_name: BootRom) -> Self {
+    pub fn new(
+        cartridge: Cartridge,
+        boot_rom_name: BootRom,
+        video_channel_sd: Sender<Vbuf>,
+    ) -> Self {
         Self {
             cartridge,
             ram: RAM::new(),
-            io: IOMMU::new(),
+            io: IOMMU::new(video_channel_sd),
             dma: None,
             booting: !matches!(boot_rom_name, BootRom::NONE),
             boot_rom: boot_rom(boot_rom_name),

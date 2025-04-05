@@ -3,11 +3,12 @@ pub mod joypad;
 mod serial;
 mod timer;
 pub mod video;
+use crossbeam_channel::Sender;
 
 use joypad::Joypad;
 use serial::Serial;
 use timer::Timer;
-use video::ppu::PPU;
+use video::ppu::{Vbuf, PPU};
 
 pub struct IOMMU {
     pub serial: Serial,
@@ -17,11 +18,11 @@ pub struct IOMMU {
 }
 
 impl IOMMU {
-    pub fn new() -> Self {
+    pub fn new(video_channel_sd: Sender<Vbuf>) -> Self {
         Self {
             serial: Serial::default(),
             timer: Timer::new(),
-            ppu: PPU::new(),
+            ppu: PPU::new(video_channel_sd),
             joypad: Joypad::new(),
         }
     }

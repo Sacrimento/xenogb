@@ -1,14 +1,14 @@
 use super::lcd::{PPUMode, LCD, LCDC_FLAGS, LCDS_FLAGS};
 use crate::cpu::interrupts::{request_interrupt, InterruptFlags};
 use crate::{between, flag_set};
-use std::sync::Mutex;
+use crossbeam_channel::Sender;
 
 const LINES_PER_FRAME: u8 = 154;
 const TICKS_PER_LINE: u16 = 456;
 pub const RESX: usize = 160;
 pub const RESY: usize = 144;
 
-pub static VIDEO_BUFFER: Mutex<[u8; RESX * RESY]> = Mutex::new([0xff; RESX * RESY]);
+pub type Vbuf = [u8; RESX * RESY];
 
 #[allow(nonstandard_style)]
 mod SpriteFlags {
@@ -53,10 +53,13 @@ pub struct PPU {
     window_drawn: bool,
 
     last_frame: std::time::Instant,
+
+    vbuf: Vbuf,
+    video_channel_sd: Sender<Vbuf>,
 }
 
 impl PPU {
-    pub fn new() -> Self {
+    pub fn new(video_channel_sd: Sender<Vbuf>) -> Self {
         let mut lcd = LCD::new();
         lcd.set_ppu_mode(PPUMode::OAMScan);
 
@@ -72,6 +75,8 @@ impl PPU {
             window_line: 0,
             window_drawn: false,
             last_frame: std::time::Instant::now(),
+            vbuf: [0xff; RESX * RESY],
+            video_channel_sd,
         }
     }
 
@@ -350,8 +355,7 @@ impl PPU {
             pixel = background_pixel;
         }
 
-        let mut vbuf = VIDEO_BUFFER.lock().unwrap();
-        (*vbuf)[self.lcd.ly as usize * RESX + self.line_x as usize] = pixel;
+        self.vbuf[self.lcd.ly as usize * RESX + self.line_x as usize] = pixel;
 
         self.line_x += 1;
     }
@@ -393,6 +397,10 @@ impl PPU {
             if self.lcd.ly >= LINES_PER_FRAME {
                 self.lcd.ly = 0;
                 self.lcd.set_ppu_mode(PPUMode::OAMScan);
+
+                self.video_channel_sd
+                    .send(self.vbuf)
+                    .expect("Could not send next frame");
 
                 if flag_set!(self.lcd.lcds, LCDS_FLAGS::MODE_OAM_STAT) {
                     request_interrupt(InterruptFlags::STAT);

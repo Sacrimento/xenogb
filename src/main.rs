@@ -7,7 +7,9 @@ mod utils;
 
 use clap::Parser;
 use cpu::cpu::LR35902CPU;
+use crossbeam_channel;
 use eframe::egui::ViewportBuilder;
+use io::video::ppu::{Vbuf, RESX, RESY};
 use mem::boot::BootRom;
 use mem::bus::Bus;
 use mem::cartridge::parse_cartridge;
@@ -47,19 +49,25 @@ fn main() -> Result<(), XenoGBError> {
 
     let cartridge = parse_cartridge(args.cartridge).expect("Could not load the cartrdige");
 
-    let bus = Bus::new(cartridge, args.boot_rom);
+    let (video_channel_sd, video_channel_rc) = crossbeam_channel::unbounded();
+    let bus = Bus::new(cartridge, args.boot_rom, video_channel_sd);
 
     let mut cpu = LR35902CPU::new(bus, args.serial);
 
     if args.headless {
         let usr1 = Arc::new(AtomicBool::new(false));
+        let mut last_frame: Vbuf = [0; RESX * RESY];
         signal_hook::flag::register(SIGUSR1, Arc::clone(&usr1)).unwrap();
         loop {
+            cpu.step();
             if usr1.load(Ordering::Relaxed) {
-                vbuf_snapshot();
+                vbuf_snapshot(last_frame);
                 return Ok(());
             }
-            cpu.step();
+            if !video_channel_rc.is_empty() {
+                // Consume vbuf
+                last_frame = video_channel_rc.recv().unwrap();
+            }
         }
     }
 
@@ -79,7 +87,12 @@ fn main() -> Result<(), XenoGBError> {
                 _cpu.lock().unwrap().step();
             });
 
-            Ok(Box::new(XenoGBUI::new(ctx, cpu, args.debug)))
+            Ok(Box::new(XenoGBUI::new(
+                ctx,
+                video_channel_rc,
+                cpu,
+                args.debug,
+            )))
         }),
     )
     .unwrap();
