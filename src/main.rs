@@ -37,8 +37,9 @@ struct Args {
 
     #[arg(short, long, value_enum, default_value_t = BootRom::NONE)]
     boot_rom: BootRom,
-    // #[arg(short, long, default_value_t = false)]
-    // debug: bool,
+
+    #[arg(short, long, default_value_t = false)]
+    debug: bool,
 }
 
 fn main() -> Result<(), XenoGBError> {
@@ -65,7 +66,9 @@ fn main() -> Result<(), XenoGBError> {
     eframe::run_native(
         "xenogb",
         eframe::NativeOptions {
-            viewport: ViewportBuilder::default().with_inner_size(ui::WINDOW_SIZE),
+            viewport: ViewportBuilder::default()
+                .with_inner_size(ui::WINDOW_SIZE)
+                .with_resizable(false),
             ..Default::default()
         },
         Box::new(move |ctx| {
@@ -76,7 +79,7 @@ fn main() -> Result<(), XenoGBError> {
                 _cpu.lock().unwrap().step();
             });
 
-            Ok(Box::new(XenoGBUI::new(ctx, cpu)))
+            Ok(Box::new(XenoGBUI::new(ctx, cpu, args.debug)))
         }),
     )
     .unwrap();

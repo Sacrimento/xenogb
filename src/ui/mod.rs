@@ -1,11 +1,10 @@
 use crate::io::joypad::JOYPAD_INPUT;
-use crate::io::video::lcd::LCD;
 use crate::io::video::ppu::{RESX, RESY, VIDEO_BUFFER};
 use crate::LR35902CPU;
 use cphf::{phf_ordered_map, OrderedMap};
 use eframe::egui;
-use eframe::{self, egui::vec2};
 use std::sync::{Arc, Mutex};
+mod debugger;
 
 static KEYMAP: OrderedMap<u8, egui::Key> = phf_ordered_map! {u8, egui::Key;
     JOYPAD_INPUT::DOWN => egui::Key::ArrowDown,
@@ -17,6 +16,7 @@ static KEYMAP: OrderedMap<u8, egui::Key> = phf_ordered_map! {u8, egui::Key;
     JOYPAD_INPUT::SELECT => egui::Key::Space,
     JOYPAD_INPUT::START => egui::Key::Enter,
 };
+const DEBUGGER_KEY: egui::Key = egui::Key::D;
 
 const SCALE: usize = 4;
 
@@ -26,10 +26,15 @@ pub struct XenoGBUI {
     cpu: Arc<Mutex<LR35902CPU>>,
     screen_buffer: [u8; RESX * RESY * 4],
     screen_texture: egui::TextureHandle,
+    debugger: debugger::DebuggerState,
 }
 
 impl XenoGBUI {
-    pub fn new(ctx: &eframe::CreationContext<'_>, cpu: Arc<Mutex<LR35902CPU>>) -> Self {
+    pub fn new(
+        ctx: &eframe::CreationContext<'_>,
+        cpu: Arc<Mutex<LR35902CPU>>,
+        debug: bool,
+    ) -> Self {
         let screen_buffer = [0xff; RESX * RESY * 4];
         let screen_texture = ctx.egui_ctx.load_texture(
             "screen",
@@ -37,59 +42,13 @@ impl XenoGBUI {
             egui::TextureOptions::NEAREST,
         );
 
-        ctx.egui_ctx.set_zoom_factor(SCALE as f32);
+        let debugger = debugger::DebuggerState::new(ctx, debug, cpu.clone());
 
         Self {
             cpu,
             screen_buffer,
             screen_texture,
-        }
-    }
-
-    #[allow(dead_code)]
-    fn render_tile(&mut self, tile_num: u32, x: u32, y: u32) -> Vec<(egui::Rect, egui::Color32)> {
-        let cpu = self.cpu.lock().unwrap();
-        let mut ret_vec: Vec<(egui::Rect, egui::Color32)> = vec![];
-
-        for tile_y in (0..16).step_by(2) {
-            let b1 = cpu.bus.read((0x8000 + (tile_num * 16) + tile_y) as u16);
-            let b2 = cpu.bus.read((0x8000 + (tile_num * 16) + tile_y + 1) as u16);
-
-            for bit in (0..8).rev().step_by(1) {
-                let hi = ((b2 >> bit) & 1) << 1;
-                let lo = (b1 >> bit) & 1;
-
-                ret_vec.push((
-                    egui::Rect::from_min_size(
-                        egui::pos2((x + (7 - bit)) as f32, (tile_y as u32 / 2 + y) as f32),
-                        vec2(SCALE as f32, SCALE as f32),
-                    ),
-                    egui::Color32::from_gray(LCD::get_pixel(hi | lo)),
-                ));
-            }
-        }
-        ret_vec
-    }
-
-    #[allow(dead_code)]
-    fn render_vram(&mut self, ui: &mut egui::Ui) {
-        let mut tile_num = 0;
-        let mut x_render = 0;
-        let mut y_render = 0;
-
-        for y in 0..24 {
-            for x in 0..16 {
-                for (rect, color) in
-                    self.render_tile(tile_num, (x_render + x) as u32, (y_render + y) as u32)
-                {
-                    ui.painter()
-                        .rect_filled(rect, egui::CornerRadius::ZERO, color);
-                }
-                x_render += 8 as u32;
-                tile_num += 1;
-            }
-            y_render += 8 as u32;
-            x_render = 0;
+            debugger,
         }
     }
 
@@ -116,6 +75,10 @@ impl eframe::App for XenoGBUI {
                     cpu.bus.io.joypad.release(*emu_key);
                 }
             }
+
+            if inp.modifiers.ctrl && inp.key_released(DEBUGGER_KEY) {
+                self.debugger.enabled = !self.debugger.enabled;
+            }
         });
 
         self.render_vbuf();
@@ -130,8 +93,15 @@ impl eframe::App for XenoGBUI {
         egui::CentralPanel::default()
             .frame(egui::Frame::NONE)
             .show(ctx, |ui| {
-                ui.image(&self.screen_texture);
+                let screen = egui::Image::from_texture(&self.screen_texture)
+                    .fit_to_original_size(SCALE as f32)
+                    .maintain_aspect_ratio(true);
+                ui.add(screen);
             });
+
+        if self.debugger.enabled {
+            self.debugger.ui(ctx);
+        }
 
         ctx.request_repaint();
     }
