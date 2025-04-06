@@ -43,7 +43,7 @@ impl Sprite {
 
 pub struct PPU {
     oam: Vec<Sprite>,
-    vram: [u8; 0x2000],
+    pub vram: [u8; 0x2000],
 
     pub lcd: LCD,
     line_ticks: u16,
@@ -398,9 +398,11 @@ impl PPU {
                 self.lcd.ly = 0;
                 self.lcd.set_ppu_mode(PPUMode::OAMScan);
 
-                self.video_channel_sd
-                    .send(self.vbuf)
-                    .expect("Could not send next frame");
+                if !self.video_channel_sd.is_full() {
+                    self.video_channel_sd
+                        .send(self.vbuf)
+                        .expect("Could not send next frame");
+                }
 
                 if flag_set!(self.lcd.lcds, LCDS_FLAGS::MODE_OAM_STAT) {
                     request_interrupt(InterruptFlags::STAT);

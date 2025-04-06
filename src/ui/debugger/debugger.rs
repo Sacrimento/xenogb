@@ -1,7 +1,6 @@
-use crate::LR35902CPU;
-use std::sync::{Arc, Mutex};
-
 use super::views::vram::Vram;
+use crate::debugger::{DebuggerCommand, EmulationState};
+use crossbeam_channel::{Receiver, Sender};
 use eframe::egui;
 use egui_tiles;
 
@@ -10,27 +9,32 @@ pub enum Tabs {
     Vram,
 }
 
-pub struct DebuggerState {
+pub struct DebuggerUi {
     pub enabled: bool,
 
     pub tree: egui_tiles::Tree<Tabs>,
 
     pub vram: Vram,
+    // dbg_commands_sd: Sender<DebuggerCommand>,
+    // dbg_data_rc: Receiver<EmulationState>,
 }
 
-impl DebuggerState {
+impl DebuggerUi {
     pub fn new(
         ctx: &eframe::CreationContext<'_>,
         enabled: bool,
-        cpu: Arc<Mutex<LR35902CPU>>,
+        _dbg_commands_sd: Sender<DebuggerCommand>,
+        dbg_data_rc: Receiver<EmulationState>,
     ) -> Self {
         let tabs = vec![Tabs::Vram, Tabs::Menu];
-        let vram = Vram::new(ctx, cpu.clone());
+        let vram = Vram::new(ctx, dbg_data_rc.clone());
 
         Self {
             enabled,
             tree: egui_tiles::Tree::new_tabs("debugger", tabs),
             vram,
+            // dbg_commands_sd,
+            // dbg_data_rc,
         }
     }
 }

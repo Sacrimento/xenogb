@@ -1,25 +1,26 @@
+use crate::debugger::EmulationState;
 use crate::io::video::lcd::LCD;
-use crate::LR35902CPU;
+use crossbeam_channel::Receiver;
 use eframe::egui::{
     self, epaint, vec2, Align, Color32, ColorImage, CornerRadius, Image, Layout, Rect, Scene,
     Sense, Stroke, StrokeKind, TextureHandle, TextureOptions, Ui,
 };
-use std::sync::{Arc, Mutex};
 
 const VRAM_SCALE: usize = 5;
 const VRAMX: usize = 16;
 const VRAMY: usize = 24;
 
 pub struct Vram {
-    cpu: Arc<Mutex<LR35902CPU>>,
     vram_textures: [TextureHandle; VRAMX * VRAMY],
 
     selected_tile_idx: Option<usize>,
     selected_tile_scene_rect: Rect,
+
+    dbg_data_rc: Receiver<EmulationState>,
 }
 
 impl Vram {
-    pub fn new(ctx: &eframe::CreationContext<'_>, cpu: Arc<Mutex<LR35902CPU>>) -> Self {
+    pub fn new(ctx: &eframe::CreationContext<'_>, dbg_data_rc: Receiver<EmulationState>) -> Self {
         let vram_textures = [(); VRAMX * VRAMY].map(|()| {
             ctx.egui_ctx.load_texture(
                 "vram",
@@ -29,10 +30,10 @@ impl Vram {
         });
 
         Self {
-            cpu,
             vram_textures,
             selected_tile_idx: None,
             selected_tile_scene_rect: Rect::ZERO,
+            dbg_data_rc,
         }
     }
 
@@ -62,13 +63,22 @@ impl Vram {
     }
 
     fn render_tile(&self, ui: &mut Ui, tile_idx: usize) -> () {
-        let cpu = self.cpu.lock().unwrap();
+        let vram: [u8; 0x2000];
+
+        if let Ok(data) = self.dbg_data_rc.try_recv() {
+            vram = data.vram;
+        } else {
+            return;
+        }
+
         let mut tile_buffer: [u8; 64] = [0; 64];
         let mut tile_buffer_idx: usize = 0;
 
         for tile_y in (0..16).step_by(2) {
-            let b1 = cpu.bus.read((0x8000 + (tile_idx * 16) + tile_y) as u16);
-            let b2 = cpu.bus.read((0x8000 + (tile_idx * 16) + tile_y + 1) as u16);
+            let b1 = vram[(tile_idx * 16) + tile_y];
+            let b2 = vram[(tile_idx * 16) + tile_y + 1];
+            // let b1 = cpu.bus.read((0x8000 + (tile_idx * 16) + tile_y) as u16);
+            // let b2 = cpu.bus.read((0x8000 + (tile_idx * 16) + tile_y + 1) as u16);
 
             for bit in (0..8).rev().step_by(1) {
                 let hi = ((b2 >> bit) & 1) << 1;

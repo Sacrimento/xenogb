@@ -1,9 +1,9 @@
-use super::super::{Behavior, DebuggerState};
+use super::super::{Behavior, DebuggerUi};
 
 use eframe;
 use eframe::egui;
 
-impl DebuggerState {
+impl DebuggerUi {
     pub fn ui(&mut self, ctx: &egui::Context) {
         ctx.show_viewport_immediate(
             egui::ViewportId::from_hash_of("debugger"),

@@ -1,10 +1,9 @@
 use crate::io::joypad::{JoypadEvent, JoypadEventType, JOYPAD_INPUT};
 use crate::io::video::ppu::{Vbuf, RESX, RESY};
-use crate::LR35902CPU;
 use cphf::{phf_ordered_map, OrderedMap};
 use eframe::egui;
-use std::sync::{Arc, Mutex};
 mod debugger;
+use crate::debugger::{DebuggerCommand, EmulationState};
 use crossbeam_channel::{Receiver, Sender};
 
 static KEYMAP: OrderedMap<u8, egui::Key> = phf_ordered_map! {u8, egui::Key;
@@ -26,9 +25,10 @@ pub const WINDOW_SIZE: [f32; 2] = [(RESX * SCALE) as f32, (RESY * SCALE) as f32]
 pub struct XenoGBUI {
     screen_buffer: [u8; RESX * RESY * 4],
     screen_texture: egui::TextureHandle,
-    debugger: debugger::DebuggerState,
+    debugger: debugger::DebuggerUi,
     video_channel_rc: Receiver<Vbuf>,
     events_sd: Sender<JoypadEvent>,
+    dbg_commands_sd: Sender<DebuggerCommand>,
 }
 
 impl XenoGBUI {
@@ -36,7 +36,8 @@ impl XenoGBUI {
         ctx: &eframe::CreationContext<'_>,
         events_sd: Sender<JoypadEvent>,
         video_channel_rc: Receiver<Vbuf>,
-        cpu: Arc<Mutex<LR35902CPU>>,
+        dbg_commands_sd: Sender<DebuggerCommand>,
+        dbg_data_rc: Receiver<EmulationState>,
         debug: bool,
     ) -> Self {
         let screen_buffer = [0xff; RESX * RESY * 4];
@@ -46,7 +47,7 @@ impl XenoGBUI {
             egui::TextureOptions::NEAREST,
         );
 
-        let debugger = debugger::DebuggerState::new(ctx, debug, cpu);
+        let debugger = debugger::DebuggerUi::new(ctx, debug, dbg_commands_sd.clone(), dbg_data_rc);
 
         Self {
             screen_buffer,
@@ -54,19 +55,25 @@ impl XenoGBUI {
             debugger,
             video_channel_rc,
             events_sd,
+            dbg_commands_sd,
         }
     }
 
-    fn render_vbuf(&mut self) {
-        let vbuf = self
-            .video_channel_rc
-            .recv()
-            .expect("Could not receive video buffer");
+    fn render_vbuf(&mut self, ctx: &eframe::egui::Context) {
+        if let Ok(vbuf) = self.video_channel_rc.try_recv() {
+            for i in 0..vbuf.len() {
+                self.screen_buffer[i * 4] = vbuf[i];
+                self.screen_buffer[i * 4 + 1] = vbuf[i];
+                self.screen_buffer[i * 4 + 2] = vbuf[i];
+            }
 
-        for i in 0..vbuf.len() {
-            self.screen_buffer[i * 4] = vbuf[i];
-            self.screen_buffer[i * 4 + 1] = vbuf[i];
-            self.screen_buffer[i * 4 + 2] = vbuf[i];
+            ctx.tex_manager().write().set(
+                self.screen_texture.id(),
+                egui::epaint::ImageDelta::full(
+                    egui::ColorImage::from_rgba_unmultiplied([RESX, RESY], &self.screen_buffer),
+                    egui::TextureOptions::NEAREST,
+                ),
+            );
         }
     }
 }
@@ -95,17 +102,13 @@ impl eframe::App for XenoGBUI {
 
             if inp.modifiers.ctrl && inp.key_released(DEBUGGER_KEY) {
                 self.debugger.enabled = !self.debugger.enabled;
+                self.dbg_commands_sd
+                    .send(DebuggerCommand::ENABLED(self.debugger.enabled))
+                    .unwrap();
             }
         });
 
-        self.render_vbuf();
-        ctx.tex_manager().write().set(
-            self.screen_texture.id(),
-            egui::epaint::ImageDelta::full(
-                egui::ColorImage::from_rgba_unmultiplied([RESX, RESY], &self.screen_buffer),
-                egui::TextureOptions::NEAREST,
-            ),
-        );
+        self.render_vbuf(ctx);
 
         egui::CentralPanel::default()
             .frame(egui::Frame::NONE)
