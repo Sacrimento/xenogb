@@ -10,7 +10,7 @@ const VRAM_SCALE: usize = 5;
 const VRAMX: usize = 16;
 const VRAMY: usize = 24;
 
-pub struct Vram {
+pub struct VramUi {
     vram_textures: [TextureHandle; VRAMX * VRAMY],
 
     selected_tile_idx: Option<usize>,
@@ -19,7 +19,7 @@ pub struct Vram {
     dbg_data_rc: Receiver<EmulationState>,
 }
 
-impl Vram {
+impl VramUi {
     pub fn new(ctx: &eframe::CreationContext<'_>, dbg_data_rc: Receiver<EmulationState>) -> Self {
         let vram_textures = [(); VRAMX * VRAMY].map(|()| {
             ctx.egui_ctx.load_texture(

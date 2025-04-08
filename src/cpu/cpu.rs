@@ -1,7 +1,11 @@
+use std::time::Instant;
+
 use crate::cpu::instructions::{stack::_push, CPURegisterId, Instruction, INSTRUCTIONS};
 use crate::cpu::interrupts::{InterruptFlags, INTERRUPT_ENABLE, INTERRUPT_FLAGS};
 #[allow(unused_imports)]
-use crate::dbg::{print_serial, print_state, print_state_doctor};
+use crate::dbg::print_serial;
+use crate::debugger::{CpuMetricFields, CPU_METRICS};
+use crate::flag_set;
 use crate::io::joypad::{JoypadEvent, JoypadEventType};
 use crate::mem::bus::Bus;
 use crossbeam_channel::Receiver;
@@ -14,18 +18,19 @@ pub mod CPUFlags {
     pub const C: u8 = 0x10;
 }
 
-struct CPURegisters {
-    a: u8,
-    f: u8,
-    b: u8,
-    c: u8,
-    d: u8,
-    e: u8,
-    h: u8,
-    l: u8,
+#[derive(Clone)]
+pub struct CPURegisters {
+    pub a: u8,
+    pub f: u8,
+    pub b: u8,
+    pub c: u8,
+    pub d: u8,
+    pub e: u8,
+    pub h: u8,
+    pub l: u8,
 
-    pc: u16,
-    sp: u16,
+    pub pc: u16,
+    pub sp: u16,
 }
 
 impl CPURegisters {
@@ -47,7 +52,7 @@ impl CPURegisters {
 }
 
 pub struct LR35902CPU {
-    registers: CPURegisters,
+    pub registers: CPURegisters,
     serial: bool,
 
     pub bus: Bus,
@@ -83,13 +88,12 @@ impl LR35902CPU {
         if !self.halt {
             self.set_instruction();
 
-            // print_state(self);
             if self.serial {
                 print_serial(self);
             }
 
             cycles = (self.current_instruction.func)(self);
-            // print_state_doctor(self);
+            CPU_METRICS.with_borrow_mut(|mh| mh.count(CpuMetricFields::INSTRUCTIONS, 1));
         }
 
         if INTERRUPT_FLAGS.get() > 0 {
@@ -107,10 +111,12 @@ impl LR35902CPU {
             self.int_master = true;
         }
 
+        CPU_METRICS.with_borrow_mut(|mh| mh.count(CpuMetricFields::CYCLES, cycles as u32));
         cycles
     }
 
     pub fn step(&mut self) {
+        let start = Instant::now();
         let cycles = self.tick();
         self.bus.io.timer.tick(cycles);
         self.bus.dma_tick(cycles);
@@ -121,6 +127,9 @@ impl LR35902CPU {
         if self.__ticks % (u32::MAX / 256) == 0 {
             self.bus.cartridge.mbc.save();
         }
+
+        let tick_time = (Instant::now() - start) / (cycles as u32 * 4);
+        CPU_METRICS.with_borrow_mut(|mh| mh.time(CpuMetricFields::TICK_TIME, tick_time));
     }
 
     pub fn handle_io_events(&mut self) {
@@ -230,10 +239,7 @@ impl LR35902CPU {
     }
 
     pub fn get_flag(&self, flag: u8) -> u8 {
-        if self.registers.f & flag == flag {
-            return 1;
-        }
-        0
+        flag_set!(self.registers.f, flag) as u8
     }
 
     pub fn set_flags(&mut self, z: i8, n: i8, h: i8, c: i8) {

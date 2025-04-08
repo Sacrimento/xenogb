@@ -1,11 +1,11 @@
-use super::views::vram::Vram;
+use super::views::{cpu::CpuUi, vram::VramUi};
 use crate::debugger::{DebuggerCommand, EmulationState};
 use crossbeam_channel::{Receiver, Sender};
 use eframe::egui;
 use egui_tiles;
 
 pub enum Tabs {
-    Menu,
+    Cpu,
     Vram,
 }
 
@@ -14,7 +14,8 @@ pub struct DebuggerUi {
 
     pub tree: egui_tiles::Tree<Tabs>,
 
-    pub vram: Vram,
+    pub vram: VramUi,
+    pub cpu: CpuUi,
     // dbg_commands_sd: Sender<DebuggerCommand>,
     // dbg_data_rc: Receiver<EmulationState>,
 }
@@ -26,13 +27,15 @@ impl DebuggerUi {
         _dbg_commands_sd: Sender<DebuggerCommand>,
         dbg_data_rc: Receiver<EmulationState>,
     ) -> Self {
-        let tabs = vec![Tabs::Vram, Tabs::Menu];
-        let vram = Vram::new(ctx, dbg_data_rc.clone());
+        let tabs = vec![Tabs::Vram, Tabs::Cpu];
+        let vram = VramUi::new(ctx, dbg_data_rc.clone());
+        let cpu = CpuUi::new(dbg_data_rc.clone());
 
         Self {
             enabled,
             tree: egui_tiles::Tree::new_tabs("debugger", tabs),
             vram,
+            cpu,
             // dbg_commands_sd,
             // dbg_data_rc,
         }
@@ -40,14 +43,15 @@ impl DebuggerUi {
 }
 
 pub struct Behavior<'a> {
-    pub vram: &'a mut Vram,
+    pub vram: &'a mut VramUi,
+    pub cpu: &'a mut CpuUi,
 }
 
 impl<'a> egui_tiles::Behavior<Tabs> for Behavior<'a> {
     fn tab_title_for_pane(&mut self, tab: &Tabs) -> egui::WidgetText {
         match tab {
             Tabs::Vram => "VRAM".into(),
-            Tabs::Menu => "MENU".into(),
+            Tabs::Cpu => "CPU".into(),
         }
     }
 
@@ -59,9 +63,7 @@ impl<'a> egui_tiles::Behavior<Tabs> for Behavior<'a> {
     ) -> egui_tiles::UiResponse {
         match tab {
             Tabs::Vram => self.vram.ui(ui),
-            Tabs::Menu => {
-                ui.label("menu");
-            }
+            Tabs::Cpu => self.cpu.ui(ui),
         }
 
         Default::default()

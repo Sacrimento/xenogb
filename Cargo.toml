@@ -8,6 +8,7 @@ clap = { version = "4.5.32", features = ["derive"] }
 cphf = "1.0.0"
 crossbeam-channel = "0.5.14"
 eframe = { version = "0.31.1", features = ["glow"] }
+egui_plot = "0.31.0"
 egui_tiles = "0.12.0"
 phf = { version = "0.11.3", features = ["macros"] }
 signal-hook = "0.3.17"

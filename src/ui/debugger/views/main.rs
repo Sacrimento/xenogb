@@ -16,6 +16,7 @@ impl DebuggerUi {
                     .show(ctx, |ui| {
                         let mut behavior = Behavior {
                             vram: &mut self.vram,
+                            cpu: &mut self.cpu,
                         };
                         self.tree.ui(&mut behavior, ui);
                     });
