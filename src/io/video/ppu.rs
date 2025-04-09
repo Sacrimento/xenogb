@@ -123,7 +123,7 @@ impl PPU {
             return;
         }
 
-        for _ in 0..cycles {
+        for _ in 0..(cycles * 4) {
             self.line_ticks += 1;
             match self.lcd.get_ppu_mode() {
                 PPUMode::HBlank => self.hblank(),
