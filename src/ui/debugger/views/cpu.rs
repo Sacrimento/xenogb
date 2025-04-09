@@ -1,12 +1,16 @@
-use crossbeam_channel::Receiver;
+use crossbeam_channel::{Receiver, Sender};
 use eframe::egui;
-use egui::{Align, Grid, Layout, Ui};
+use egui::{Align, Grid, Layout, Slider, Ui};
 
 use super::super::utils::timedata::TimeData;
-use crate::cpu::cpu::{CPUFlags, CPURegisters};
-use crate::cpu::interrupts::InterruptFlags;
+use crate::cpu::{
+    cpu::{CPUFlags, CPURegisters},
+    interrupts::InterruptFlags,
+    CLOCK_SPEED,
+};
 use crate::debugger::{
-    CpuMetrics, CpuState, EmulationState, InterruptState, MetricType, MetricsExport,
+    CpuMetrics, CpuState, DebuggerCommand, EmulationState, InterruptState, MetricType,
+    MetricsExport,
 };
 use crate::flag_set;
 
@@ -14,19 +18,29 @@ const HISTORY_SIZE: usize = 60;
 
 pub struct CpuUi {
     dbg_data_rc: Receiver<EmulationState>,
+    dbg_commands_sd: Sender<DebuggerCommand>,
 
     instructions_td: TimeData,
     tick_td: TimeData,
     cycles_td: TimeData,
+    freq_td: TimeData,
+
+    freq: f64,
 }
 
 impl CpuUi {
-    pub fn new(dbg_data_rc: Receiver<EmulationState>) -> Self {
+    pub fn new(
+        dbg_data_rc: Receiver<EmulationState>,
+        dbg_commands_sd: Sender<DebuggerCommand>,
+    ) -> Self {
         Self {
             dbg_data_rc,
+            dbg_commands_sd,
             instructions_td: TimeData::new(HISTORY_SIZE, "instructions-dt".into()),
             tick_td: TimeData::new(HISTORY_SIZE, "tick-dt".into()),
             cycles_td: TimeData::new(HISTORY_SIZE, "cycles-dt".into()),
+            freq_td: TimeData::new(HISTORY_SIZE, "freq-dt".into()),
+            freq: CLOCK_SPEED as f64 / 1000000 as f64,
         }
     }
 
@@ -163,6 +177,25 @@ impl CpuUi {
                     metrics_export.metrics.tick_time.get()
                 ),
             );
+            self.freq_td.ui(
+                ui,
+                format!(
+                    "CPU clock speed: {:?} Mhz",
+                    metrics_export.metrics.cycles.get() as f64 * 4.0 * metrics_export.secs_ratio()
+                        / 1000000.0
+                ),
+            );
+            let res = ui.add(
+                Slider::new(&mut self.freq, 2.0..=35.0)
+                    .logarithmic(true)
+                    .suffix("Mhz")
+                    .text("Target CPU frequency"),
+            );
+            if res.drag_stopped() || res.lost_focus() {
+                self.dbg_commands_sd
+                    .send(DebuggerCommand::CPU_CLOCK((self.freq * 1000000.0) as u32))
+                    .expect("Could not send DebuggerCommand::CPU_CLOCK");
+            }
         });
     }
 
@@ -178,6 +211,11 @@ impl CpuUi {
         self.cycles_td.update(
             metrics_export.at,
             metrics_export.metrics.cycles.get() as f64,
+        );
+        self.freq_td.update(
+            metrics_export.at,
+            metrics_export.metrics.cycles.get() as f64 * 4.0 * metrics_export.secs_ratio()
+                / 1000000.0,
         );
     }
 }

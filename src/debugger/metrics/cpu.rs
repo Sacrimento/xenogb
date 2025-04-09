@@ -1,4 +1,4 @@
-use super::metric_type::{Counter, MeanTime, MetricType};
+use super::metric_type::{Counter, MeanTime, MetricType, Time};
 use super::metrics::Metrics;
 
 #[allow(nonstandard_style)]
@@ -27,7 +27,7 @@ impl Metrics for CpuMetrics {
         f.register(value);
     }
 
-    fn time(&mut self, field: Self::Field, value: std::time::Duration) {
+    fn mean_time(&mut self, field: Self::Field, value: std::time::Duration) {
         let f = match field {
             CpuMetricFields::TICK_TIME => &mut self.tick_time,
             _ => unreachable!(),

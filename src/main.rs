@@ -8,6 +8,7 @@ mod utils;
 
 use clap::Parser;
 use cpu::cpu::LR35902CPU;
+use cpu::CLOCK_SPEED;
 use crossbeam_channel::{bounded, unbounded, Receiver};
 use debugger::Debugger;
 use eframe::egui::ViewportBuilder;
@@ -65,7 +66,7 @@ fn run_headless(mut cpu: LR35902CPU, video_channel_rc: Receiver<Vbuf>) {
 
 fn run(mut cpu: LR35902CPU, mut debugger: Debugger) {
     loop {
-        debugger.handle_events();
+        debugger.handle_events(&mut cpu);
 
         if debugger.cpu_should_step(&cpu) {
             cpu.step();
@@ -85,10 +86,12 @@ fn main() -> Result<(), XenoGBError> {
     let bus = Bus::new(cartridge, args.boot_rom, video_channel_sd);
 
     let (io_events_sd, io_events_rc) = unbounded();
-    let cpu = LR35902CPU::new(bus, args.serial, io_events_rc);
 
     if args.headless {
-        return Ok(run_headless(cpu, video_channel_rc));
+        return Ok(run_headless(
+            LR35902CPU::new(bus, args.serial, u32::MAX, io_events_rc),
+            video_channel_rc,
+        ));
     }
 
     eframe::run_native(
@@ -105,7 +108,7 @@ fn main() -> Result<(), XenoGBError> {
 
             std::thread::spawn(move || {
                 run(
-                    cpu,
+                    LR35902CPU::new(bus, args.serial, CLOCK_SPEED, io_events_rc),
                     Debugger::new(args.debug, ui_debugger_commands_rc, dbg_data_sd),
                 )
             });

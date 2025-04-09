@@ -8,7 +8,7 @@ use crate::cpu::cpu::LR35902CPU;
 use std::cell::RefCell;
 
 thread_local! {
-    pub static CPU_METRICS: RefCell<MetricsHandler<CpuMetrics>> = RefCell::new(MetricsHandler::<CpuMetrics>::new(Duration::from_millis(500)));
+    pub static CPU_METRICS: RefCell<MetricsHandler<CpuMetrics>> = RefCell::new(MetricsHandler::<CpuMetrics>::new(Duration::from_millis(1000)));
 }
 
 pub struct Debugger {
@@ -37,10 +37,11 @@ impl Debugger {
         }
     }
 
-    pub fn handle_events(&mut self) {
+    pub fn handle_events(&mut self, cpu: &mut LR35902CPU) {
         if let Ok(event) = self.ui_commands_rc.try_recv() {
             match event {
                 DebuggerCommand::ENABLED(enabled) => self.set_enabled(enabled),
+                DebuggerCommand::CPU_CLOCK(clock_speed) => cpu.clock.set_speed(clock_speed),
             }
         }
     }

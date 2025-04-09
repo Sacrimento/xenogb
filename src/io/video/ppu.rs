@@ -5,6 +5,8 @@ use crossbeam_channel::Sender;
 
 const LINES_PER_FRAME: u8 = 154;
 const TICKS_PER_LINE: u16 = 456;
+pub const TICKS_PER_FRAME: u32 = LINES_PER_FRAME as u32 * TICKS_PER_LINE as u32;
+
 pub const RESX: usize = 160;
 pub const RESY: usize = 144;
 

@@ -1,5 +1,6 @@
 use std::time::Instant;
 
+use super::clock::Clock;
 use crate::cpu::instructions::{stack::_push, CPURegisterId, Instruction, INSTRUCTIONS};
 use crate::cpu::interrupts::{InterruptFlags, INTERRUPT_ENABLE, INTERRUPT_FLAGS};
 #[allow(unused_imports)]
@@ -62,12 +63,17 @@ pub struct LR35902CPU {
     pub int_master: bool,
     pub enabling_ints: bool,
 
+    pub clock: Clock,
     io_events_rc: Receiver<JoypadEvent>,
-    __ticks: u32,
 }
 
 impl LR35902CPU {
-    pub fn new(bus: Bus, serial: bool, io_events_rc: Receiver<JoypadEvent>) -> Self {
+    pub fn new(
+        bus: Bus,
+        serial: bool,
+        clock_speed: u32,
+        io_events_rc: Receiver<JoypadEvent>,
+    ) -> Self {
         let pc = if bus.booting { 0 } else { 0x100 };
         Self {
             bus,
@@ -77,7 +83,7 @@ impl LR35902CPU {
             registers: CPURegisters::new(pc),
             int_master: false,
             enabling_ints: false,
-            __ticks: 0,
+            clock: Clock::new(clock_speed),
             io_events_rc,
         }
     }
@@ -122,14 +128,16 @@ impl LR35902CPU {
         self.bus.dma_tick(cycles);
         self.bus.io.ppu.tick(cycles);
 
-        self.__ticks = self.__ticks.wrapping_add(1);
+        //     self.bus.cartridge.mbc.save();
 
-        if self.__ticks % (u32::MAX / 256) == 0 {
-            self.bus.cartridge.mbc.save();
-        }
+        CPU_METRICS.with_borrow_mut(|mh| {
+            mh.mean_time(
+                CpuMetricFields::TICK_TIME,
+                (Instant::now() - start) / (cycles as u32 * 4),
+            )
+        });
 
-        let tick_time = (Instant::now() - start) / (cycles as u32 * 4);
-        CPU_METRICS.with_borrow_mut(|mh| mh.time(CpuMetricFields::TICK_TIME, tick_time));
+        self.clock.tick(cycles as u32 * 4);
     }
 
     pub fn handle_io_events(&mut self) {

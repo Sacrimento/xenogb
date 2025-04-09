@@ -8,6 +8,7 @@ use crossbeam_channel::Sender;
 use joypad::Joypad;
 use serial::Serial;
 use timer::Timer;
+
 use video::ppu::{Vbuf, PPU};
 
 pub struct IOMMU {

@@ -1,6 +1,7 @@
-use crate::cpu::interrupts::{request_interrupt, InterruptFlags};
-
-const CLOCK_SPEED: u32 = 4194304;
+use crate::cpu::{
+    interrupts::{request_interrupt, InterruptFlags},
+    CLOCK_SPEED,
+};
 
 pub struct Timer {
     div: u16,

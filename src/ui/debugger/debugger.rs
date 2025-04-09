@@ -24,12 +24,12 @@ impl DebuggerUi {
     pub fn new(
         ctx: &eframe::CreationContext<'_>,
         enabled: bool,
-        _dbg_commands_sd: Sender<DebuggerCommand>,
+        dbg_commands_sd: Sender<DebuggerCommand>,
         dbg_data_rc: Receiver<EmulationState>,
     ) -> Self {
         let tabs = vec![Tabs::Vram, Tabs::Cpu];
         let vram = VramUi::new(ctx, dbg_data_rc.clone());
-        let cpu = CpuUi::new(dbg_data_rc.clone());
+        let cpu = CpuUi::new(dbg_data_rc.clone(), dbg_commands_sd.clone());
 
         Self {
             enabled,

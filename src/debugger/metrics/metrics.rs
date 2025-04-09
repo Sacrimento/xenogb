@@ -70,6 +70,12 @@ impl<T: Metrics + Default + Copy> MetricsHandler<T> {
         }
     }
 
+    pub fn mean_time(&mut self, field: T::Field, value: Duration) {
+        if self.enabled {
+            self.metrics.mean_time(field, value);
+        }
+    }
+
     pub fn time(&mut self, field: T::Field, value: Duration) {
         if self.enabled {
             self.metrics.time(field, value);
@@ -81,6 +87,10 @@ pub trait Metrics {
     type Field;
 
     fn count(&mut self, _field: Self::Field, _value: u32) {
+        unreachable!()
+    }
+
+    fn mean_time(&mut self, _field: Self::Field, _value: Duration) {
         unreachable!()
     }
 
