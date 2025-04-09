@@ -3,16 +3,6 @@ use crate::flag_set;
 const PAD: u8 = 0x10;
 const ACTION: u8 = 0x20;
 
-pub enum JoypadEventType {
-    PRESSED,
-    RELEASED,
-}
-
-pub struct JoypadEvent {
-    pub event_type: JoypadEventType,
-    pub key: u8,
-}
-
 #[allow(nonstandard_style)]
 pub mod JOYPAD_INPUT {
     pub const A: u8 = 0x1;

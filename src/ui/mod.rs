@@ -1,4 +1,5 @@
-use crate::io::joypad::{JoypadEvent, JoypadEventType, JOYPAD_INPUT};
+use crate::cpu::cpu::IOEvent;
+use crate::io::joypad::JOYPAD_INPUT;
 use crate::io::video::ppu::{Vbuf, RESX, RESY};
 use cphf::{phf_ordered_map, OrderedMap};
 use eframe::egui;
@@ -27,14 +28,14 @@ pub struct XenoGBUI {
     screen_texture: egui::TextureHandle,
     debugger: debugger::DebuggerUi,
     video_channel_rc: Receiver<Vbuf>,
-    events_sd: Sender<JoypadEvent>,
+    events_sd: Sender<IOEvent>,
     dbg_commands_sd: Sender<DebuggerCommand>,
 }
 
 impl XenoGBUI {
     pub fn new(
         ctx: &eframe::CreationContext<'_>,
-        events_sd: Sender<JoypadEvent>,
+        events_sd: Sender<IOEvent>,
         video_channel_rc: Receiver<Vbuf>,
         dbg_commands_sd: Sender<DebuggerCommand>,
         dbg_data_rc: Receiver<EmulationState>,
@@ -84,19 +85,19 @@ impl eframe::App for XenoGBUI {
             for (emu_key, ui_key) in KEYMAP.entries() {
                 if inp.key_pressed(*ui_key) {
                     self.events_sd
-                        .send(JoypadEvent {
-                            event_type: JoypadEventType::PRESSED,
-                            key: *emu_key,
-                        })
+                        .send(IOEvent::JOYPAD_PRESS(*emu_key))
                         .expect("Could not send ui key press");
                 }
                 if inp.key_released(*ui_key) {
                     self.events_sd
-                        .send(JoypadEvent {
-                            event_type: JoypadEventType::RELEASED,
-                            key: *emu_key,
-                        })
+                        .send(IOEvent::JOYPAD_RELEASE(*emu_key))
                         .expect("Could not send ui key release");
+                }
+
+                if inp.viewport().close_requested() {
+                    self.events_sd
+                        .send(IOEvent::CLOSE)
+                        .expect("Could not send close");
                 }
             }
 

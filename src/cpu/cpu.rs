@@ -7,9 +7,15 @@ use crate::cpu::interrupts::{InterruptFlags, INTERRUPT_ENABLE, INTERRUPT_FLAGS};
 use crate::dbg::print_serial;
 use crate::debugger::{CpuMetricFields, CPU_METRICS};
 use crate::flag_set;
-use crate::io::joypad::{JoypadEvent, JoypadEventType};
 use crate::mem::bus::Bus;
 use crossbeam_channel::Receiver;
+
+#[allow(nonstandard_style)]
+pub enum IOEvent {
+    JOYPAD_PRESS(u8),
+    JOYPAD_RELEASE(u8),
+    CLOSE,
+}
 
 #[allow(nonstandard_style)]
 pub mod CPUFlags {
@@ -64,16 +70,11 @@ pub struct LR35902CPU {
     pub enabling_ints: bool,
 
     pub clock: Clock,
-    io_events_rc: Receiver<JoypadEvent>,
+    io_events_rc: Receiver<IOEvent>,
 }
 
 impl LR35902CPU {
-    pub fn new(
-        bus: Bus,
-        serial: bool,
-        clock_speed: u32,
-        io_events_rc: Receiver<JoypadEvent>,
-    ) -> Self {
+    pub fn new(bus: Bus, serial: bool, clock_speed: u32, io_events_rc: Receiver<IOEvent>) -> Self {
         let pc = if bus.booting { 0 } else { 0x100 };
         Self {
             bus,
@@ -128,8 +129,6 @@ impl LR35902CPU {
         self.bus.dma_tick(cycles);
         self.bus.io.ppu.tick(cycles);
 
-        //     self.bus.cartridge.mbc.save();
-
         CPU_METRICS.with_borrow_mut(|mh| {
             mh.mean_time(
                 CpuMetricFields::TICK_TIME,
@@ -142,9 +141,10 @@ impl LR35902CPU {
 
     pub fn handle_io_events(&mut self) {
         if let Ok(event) = self.io_events_rc.try_recv() {
-            match event.event_type {
-                JoypadEventType::PRESSED => self.bus.io.joypad.press(event.key),
-                JoypadEventType::RELEASED => self.bus.io.joypad.release(event.key),
+            match event {
+                IOEvent::JOYPAD_PRESS(key) => self.bus.io.joypad.press(key),
+                IOEvent::JOYPAD_RELEASE(key) => self.bus.io.joypad.release(key),
+                IOEvent::CLOSE => self.bus.cartridge.mbc.save(),
             }
         }
     }

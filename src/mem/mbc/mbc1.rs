@@ -81,7 +81,7 @@ impl MemoryBankController for MBC1 {
 
     fn save(&self) {
         if self.has_save {
-            <MBC1 as MemoryBankController>::save_sram(&self.save_fname, &self.sram);
+            Self::save_sram(&self.save_fname, &self.sram);
         }
     }
 }
