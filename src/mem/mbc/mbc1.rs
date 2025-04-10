@@ -34,7 +34,7 @@ impl MBC1 {
             ram_bank: 0,
             ram_enable: false,
             banking_mode: 0,
-            sram: <MBC1 as MemoryBankController>::load_sram(&rom_fname, has_save, ram_banks_code),
+            sram: Self::load_sram(&rom_fname, has_save, ram_banks_code),
             has_save,
             save_fname: rom_fname,
         }
