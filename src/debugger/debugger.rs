@@ -1,6 +1,9 @@
 use super::metrics::{CpuMetrics, MetricsHandler};
 use super::state::EmulationState;
-use super::{commands::DebuggerCommand, state::CpuState};
+use super::{
+    commands::DebuggerCommand,
+    state::{CpuState, PpuState},
+};
 use crossbeam_channel::{Receiver, Sender};
 use std::time::Duration;
 
@@ -8,7 +11,7 @@ use crate::cpu::cpu::LR35902CPU;
 use std::cell::RefCell;
 
 thread_local! {
-    pub static CPU_METRICS: RefCell<MetricsHandler<CpuMetrics>> = RefCell::new(MetricsHandler::<CpuMetrics>::new(Duration::from_millis(1000)));
+    pub static CPU_METRICS: RefCell<MetricsHandler<CpuMetrics>> = RefCell::new(MetricsHandler::<CpuMetrics>::new(Duration::from_millis(200)));
 }
 
 pub struct Debugger {
@@ -18,6 +21,8 @@ pub struct Debugger {
     // breakpoints: Vec<u16>,
     ui_commands_rc: Receiver<DebuggerCommand>,
     dbg_data_sd: Sender<EmulationState>,
+
+    ppu_state: PpuState,
 }
 
 impl Debugger {
@@ -34,6 +39,7 @@ impl Debugger {
             // breakpoints: vec![],
             ui_commands_rc,
             dbg_data_sd,
+            ppu_state: PpuState::new(),
         }
     }
 
@@ -52,7 +58,7 @@ impl Debugger {
         CPU_METRICS.with_borrow_mut(|mh| mh.set_enabled(enabled));
     }
 
-    pub fn collect(&self, cpu: &LR35902CPU) {
+    pub fn collect(&mut self, cpu: &LR35902CPU) {
         if !self.enabled {
             return;
         }
@@ -62,9 +68,10 @@ impl Debugger {
         }
 
         CPU_METRICS.with_borrow_mut(|mh| mh.update());
+        self.ppu_state.update(cpu);
 
         let state = EmulationState {
-            vram: cpu.bus.io.ppu.vram.clone(),
+            ppu: self.ppu_state.clone(),
             cpu: CpuState::new(cpu),
         };
 

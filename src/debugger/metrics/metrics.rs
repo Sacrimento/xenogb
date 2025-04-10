@@ -16,7 +16,6 @@ impl<T> MetricsExport<T> {
         }
     }
 
-    #[allow(dead_code)]
     pub fn secs_ratio(&self) -> f64 {
         1 as f64 / self.duration.as_secs_f64()
     }

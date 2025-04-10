@@ -25,7 +25,7 @@ mod SpriteFlags {
 }
 
 #[derive(Clone, Debug)]
-struct Sprite {
+pub struct Sprite {
     pub y: u8,
     pub x: u8,
     pub tile_idx: u8,
@@ -50,11 +50,11 @@ pub struct PPU {
     pub lcd: LCD,
     line_ticks: u16,
     line_x: u8,
-    line_sprites: Option<Vec<Sprite>>,
+    pub line_sprites: Option<Vec<Sprite>>,
     window_line: u8,
     window_drawn: bool,
 
-    last_frame: std::time::Instant,
+    pub last_frame: std::time::Instant,
 
     vbuf: Vbuf,
     video_channel_sd: Sender<Vbuf>,

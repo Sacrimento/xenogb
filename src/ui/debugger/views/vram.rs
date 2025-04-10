@@ -16,6 +16,9 @@ pub struct VramUi {
     selected_tile_idx: Option<usize>,
     selected_tile_scene_rect: Rect,
 
+    drawn_sprites: Vec<u8>,
+    highlight_sprites: bool,
+
     dbg_data_rc: Receiver<EmulationState>,
 }
 
@@ -33,12 +36,15 @@ impl VramUi {
             vram_textures,
             selected_tile_idx: None,
             selected_tile_scene_rect: Rect::ZERO,
+            drawn_sprites: vec![],
+            highlight_sprites: false,
             dbg_data_rc,
         }
     }
 
     pub fn ui(&mut self, ui: &mut Ui) {
         ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
+            ui.checkbox(&mut self.highlight_sprites, "Highlight sprites");
             self.vram_grid_ui(ui);
             ui.separator();
             self.selected_tile_ui(ui);
@@ -46,6 +52,15 @@ impl VramUi {
     }
 
     fn vram_grid_ui(&mut self, ui: &mut Ui) {
+        let mut vram = None;
+
+        if let Ok(data) = self.dbg_data_rc.try_recv() {
+            if !data.ppu.frame_sprites.is_empty() {
+                self.drawn_sprites = data.ppu.frame_sprites;
+            }
+            vram = Some(data.ppu.vram);
+        }
+
         egui::ScrollArea::vertical()
             .drag_to_scroll(false)
             .show(ui, |ui| {
@@ -54,7 +69,7 @@ impl VramUi {
                     .show(ui, |ui| {
                         for y in 0..VRAMY {
                             for x in 0..VRAMX {
-                                self.tile_ui(ui, x, y);
+                                self.tile_ui(ui, x, y, vram);
                             }
                             ui.end_row();
                         }
@@ -62,23 +77,13 @@ impl VramUi {
             });
     }
 
-    fn render_tile(&self, ui: &mut Ui, tile_idx: usize) -> () {
-        let vram: [u8; 0x2000];
-
-        if let Ok(data) = self.dbg_data_rc.try_recv() {
-            vram = data.vram;
-        } else {
-            return;
-        }
-
+    fn render_tile(&self, ui: &mut Ui, tile_idx: usize, vram: [u8; 0x2000]) -> () {
         let mut tile_buffer: [u8; 64] = [0; 64];
         let mut tile_buffer_idx: usize = 0;
 
         for tile_y in (0..16).step_by(2) {
             let b1 = vram[(tile_idx * 16) + tile_y];
             let b2 = vram[(tile_idx * 16) + tile_y + 1];
-            // let b1 = cpu.bus.read((0x8000 + (tile_idx * 16) + tile_y) as u16);
-            // let b2 = cpu.bus.read((0x8000 + (tile_idx * 16) + tile_y + 1) as u16);
 
             for bit in (0..8).rev().step_by(1) {
                 let hi = ((b2 >> bit) & 1) << 1;
@@ -98,13 +103,24 @@ impl VramUi {
         );
     }
 
-    fn tile_ui(&mut self, ui: &mut Ui, x: usize, y: usize) {
+    fn tile_ui(&mut self, ui: &mut Ui, x: usize, y: usize, vram: Option<[u8; 0x2000]>) {
         let tile_idx = y * VRAMX + x;
-        self.render_tile(ui, tile_idx);
 
-        let img = Image::from_texture(&self.vram_textures[tile_idx as usize])
+        if let Some(vram) = vram {
+            self.render_tile(ui, tile_idx, vram);
+        }
+
+        let mut img = Image::from_texture(&self.vram_textures[tile_idx as usize])
             .fit_to_original_size(VRAM_SCALE as f32)
             .sense(Sense::click());
+
+        if self.highlight_sprites {
+            img = img.tint(if self.drawn_sprites.contains(&(tile_idx as u8)) {
+                Color32::LIGHT_RED
+            } else {
+                Color32::WHITE
+            });
+        }
         let resp = ui.add(img);
         let tile_rect = resp.rect;
 
