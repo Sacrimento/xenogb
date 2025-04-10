@@ -24,7 +24,7 @@ impl MBC5 {
             rom_bank: 0,
             ram_bank: 0,
             ram_enable: false,
-            sram: <MBC5 as MemoryBankController>::load_sram(&rom_fname, has_save, ram_banks_code),
+            sram: Self::load_sram(&rom_fname, has_save, ram_banks_code),
             has_save,
             save_fname: rom_fname,
         }

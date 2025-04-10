@@ -16,7 +16,7 @@ use io::video::ppu::{Vbuf, RESX, RESY};
 use mem::boot::BootRom;
 use mem::bus::Bus;
 use mem::cartridge::parse_cartridge;
-use signal_hook::consts::SIGUSR1;
+
 use std::path::PathBuf;
 use std::sync::{
     atomic::{AtomicBool, Ordering},
@@ -47,7 +47,10 @@ struct Args {
     debug: bool,
 }
 
+#[cfg(unix)]
 fn run_headless(mut cpu: LR35902CPU, video_channel_rc: Receiver<Vbuf>) {
+    use signal_hook::consts::SIGUSR1;
+
     let usr1 = Arc::new(AtomicBool::new(false));
     let mut last_frame: Vbuf = [0; RESX * RESY];
     signal_hook::flag::register(SIGUSR1, Arc::clone(&usr1)).unwrap();
@@ -62,6 +65,11 @@ fn run_headless(mut cpu: LR35902CPU, video_channel_rc: Receiver<Vbuf>) {
             last_frame = frame;
         }
     }
+}
+
+#[cfg(windows)]
+fn run_headless(mut _cpu: LR35902CPU, _video_channel_rc: Receiver<Vbuf>) {
+    panic!("Running headless mode is not yet supported on windows")
 }
 
 fn run(mut cpu: LR35902CPU, mut debugger: Debugger) {

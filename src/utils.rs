@@ -1,6 +1,3 @@
-use crate::io::video::ppu::{Vbuf, RESX, RESY};
-use std::{fs, io::Write};
-
 #[macro_export]
 macro_rules! between {
     ( $x:expr, $l:expr, $h:expr ) => {
@@ -15,7 +12,10 @@ macro_rules! flag_set {
     };
 }
 
+#[cfg(unix)]
 pub fn vbuf_snapshot(frame: Vbuf) {
+    use crate::io::video::ppu::{Vbuf, RESX, RESY};
+    use std::{fs, io::Write};
     // Output the current video buffer to a PGM formatted file
 
     let mut file = fs::File::create("vbuf_snapshot.pgm").unwrap();
