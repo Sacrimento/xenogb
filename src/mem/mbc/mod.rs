@@ -1,4 +1,5 @@
 mod mbc1;
+mod mbc3;
 mod mbc5;
 use std::io::Write;
 use std::{
@@ -7,6 +8,7 @@ use std::{
 };
 
 use mbc1::MBC1;
+use mbc3::MBC3;
 use mbc5::MBC5;
 
 pub trait MemoryBankController {
@@ -94,21 +96,24 @@ pub fn mbc(
     rom_fname: PathBuf,
 ) -> Box<dyn MemoryBankController + Send + Sync> {
     match mbc_code {
-        0 => Box::new(NoMBC::new(rom)),
-        1 | 2 => Box::new(MBC1::new(
+        0x0 => Box::new(NoMBC::new(rom)),
+        0x1 | 0x2 => Box::new(MBC1::new(
             rom,
             ram_banks_code,
             rom_banks_code,
             false,
             rom_fname,
         )),
-        3 => Box::new(MBC1::new(
+        0x3 => Box::new(MBC1::new(
             rom,
             ram_banks_code,
             rom_banks_code,
             true,
             rom_fname,
         )),
+        0xf | 0x10 => Box::new(MBC3::new(rom, ram_banks_code, true, true, rom_fname)),
+        0x11 | 0x12 => Box::new(MBC3::new(rom, ram_banks_code, false, false, rom_fname)),
+        0x13 => Box::new(MBC3::new(rom, ram_banks_code, true, false, rom_fname)),
         0x19 | 0x1a | 0x1c | 0x1d => Box::new(MBC5::new(rom, ram_banks_code, false, rom_fname)),
         0x1b | 0x1e => Box::new(MBC5::new(rom, ram_banks_code, true, rom_fname)),
         _ => todo!(),
