@@ -17,6 +17,7 @@ use std::fmt;
 use crate::cpu::cpu::LR35902CPU;
 
 #[allow(nonstandard_style)]
+#[derive(Debug)]
 pub enum AddrMode {
     R,
     R_R,
@@ -39,6 +40,7 @@ pub enum AddrMode {
     SIMM,
 }
 
+#[derive(Debug)]
 enum CondType {
     Nz,
     Z,
@@ -46,7 +48,7 @@ enum CondType {
     C,
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug)]
 pub enum CPURegisterId {
     A,
     F,
@@ -87,6 +89,7 @@ impl fmt::Display for CPURegisterId {
 
 type FnType = fn(&mut LR35902CPU) -> u8;
 
+#[derive(Debug)]
 pub struct Instruction {
     pub name: &'static str,
     pub addr_mode: AddrMode,

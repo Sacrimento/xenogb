@@ -16,7 +16,10 @@ use crate::mem::cartridge::parse_cartridge;
 use clap::Parser;
 use crossbeam_channel::{bounded, unbounded, Receiver};
 use eframe::egui::ViewportBuilder;
+use log::info;
 use std::path::PathBuf;
+use tracing::{span, Level};
+use tracing_subscriber::FmtSubscriber;
 
 use ui::XenoGBUI;
 
@@ -78,6 +81,8 @@ fn run(mut cpu: LR35902CPU, mut debugger: Debugger) {
         debugger.handle_events(&mut cpu);
 
         if debugger.cpu_should_step(&cpu) {
+            span!(Level::INFO, "cpu-work");
+
             cpu.step();
             cpu.handle_io_events();
         }
@@ -87,6 +92,10 @@ fn run(mut cpu: LR35902CPU, mut debugger: Debugger) {
 }
 
 fn main() -> Result<(), XenoGBError> {
+    FmtSubscriber::builder()
+        .with_file(true)
+        .with_thread_names(true)
+        .init();
     let args = Args::parse();
 
     let cartridge = parse_cartridge(args.cartridge).expect("Could not load the cartrdige");

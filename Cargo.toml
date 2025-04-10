@@ -10,5 +10,9 @@ crossbeam-channel = "0.5.14"
 eframe = { version = "0.31.1", features = ["glow"] }
 egui_plot = "0.31.0"
 egui_tiles = "0.12.0"
+log = "0.4.27"
 phf = { version = "0.11.3", features = ["macros"] }
 signal-hook = "0.3.17"
+tracing = { version = "0.1.41", features = ["log"] }
+tracing-log = "0.2.0"
+tracing-subscriber = "0.3.19"

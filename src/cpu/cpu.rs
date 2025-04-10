@@ -25,7 +25,7 @@ pub mod CPUFlags {
     pub const C: u8 = 0x10;
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct CPURegisters {
     pub a: u8,
     pub f: u8,
@@ -58,6 +58,7 @@ impl CPURegisters {
     }
 }
 
+#[derive(Debug)]
 pub struct LR35902CPU {
     pub registers: CPURegisters,
     serial: bool,

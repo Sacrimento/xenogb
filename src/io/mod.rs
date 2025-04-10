@@ -11,6 +11,7 @@ use timer::Timer;
 
 use video::ppu::{Vbuf, PPU};
 
+#[derive(Debug)]
 pub struct IOMMU {
     pub serial: Serial,
     pub timer: Timer,

@@ -5,7 +5,7 @@ mod SerialTransferControlFlags {
     pub const TRANSFER_ENABLE: u8 = 0x80;
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct Serial {
     transfer_control: u8,
     transfer_data: u8,

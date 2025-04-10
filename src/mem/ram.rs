@@ -1,5 +1,6 @@
 use crate::between;
 
+#[derive(Debug)]
 pub struct RAM {
     wram: [u8; 0x2000],
     hram: [u8; 0x80],

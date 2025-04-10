@@ -66,6 +66,13 @@ pub trait MemoryBankController {
     }
 }
 
+use core::fmt::Debug;
+impl Debug for dyn MemoryBankController + Send + Sync {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "MBC")
+    }
+}
+
 struct NoMBC {
     rom: Vec<u8>,
 }

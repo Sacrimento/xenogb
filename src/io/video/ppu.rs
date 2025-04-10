@@ -43,6 +43,7 @@ impl Sprite {
     }
 }
 
+#[derive(Debug)]
 pub struct PPU {
     oam: Vec<Sprite>,
     pub vram: [u8; 0x2000],

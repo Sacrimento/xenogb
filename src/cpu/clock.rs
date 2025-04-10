@@ -5,6 +5,7 @@ use crate::io::video::ppu::TICKS_PER_FRAME;
 pub const CLOCK_SPEED: u32 = 4194304;
 
 // CPU Clock based on ticks per frames instead of tick duration
+#[derive(Debug)]
 pub struct Clock {
     frame_start: Instant,
     frame_target_duration: Duration,

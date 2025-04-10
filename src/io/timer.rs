@@ -3,6 +3,7 @@ use crate::cpu::{
     CLOCK_SPEED,
 };
 
+#[derive(Debug)]
 pub struct Timer {
     div: u16,
     tima: u8,

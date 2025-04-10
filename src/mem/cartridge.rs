@@ -5,6 +5,7 @@ use std::{fs, path::PathBuf};
 pub struct CartridgeError;
 
 #[allow(unused)]
+#[derive(Debug)]
 pub struct CartridgeHeader {
     //0104-0133 — Nintendo logo
     //0134-0143 — Title
@@ -61,7 +62,7 @@ impl CartridgeHeader {
     }
 }
 
-#[allow(dead_code)]
+#[derive(Debug)]
 pub struct Cartridge {
     header: CartridgeHeader,
     pub mbc: Box<dyn MemoryBankController + Send + Sync>,

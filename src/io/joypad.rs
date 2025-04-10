@@ -15,6 +15,7 @@ pub mod JOYPAD_INPUT {
     pub const DOWN: u8 = 0x80;
 }
 
+#[derive(Debug)]
 pub struct Joypad {
     state: u8,
     selector: u8,

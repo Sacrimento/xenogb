@@ -32,7 +32,7 @@ pub enum PPUMode {
     HBlank,
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct LCD {
     pub lcdc: u8,
     pub lcds: u8,

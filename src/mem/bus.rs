@@ -20,12 +20,13 @@ use crossbeam_channel::Sender;
 // 0xFF80	0xFFFE	High RAM (HRAM)
 // 0xFFFF	0xFFFF	Interrupt Enable register (IE)
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct DMA {
     src: u16,
     dest: u16,
 }
 
+#[derive(Debug)]
 pub struct Bus {
     pub cartridge: Cartridge,
     ram: RAM,
