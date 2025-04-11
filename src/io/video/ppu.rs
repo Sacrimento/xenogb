@@ -401,9 +401,7 @@ impl PPU {
                 self.lcd.set_ppu_mode(PPUMode::OAMScan);
 
                 if !self.video_channel_sd.is_full() {
-                    self.video_channel_sd
-                        .send(self.vbuf)
-                        .expect("Could not send next frame");
+                    _ = self.video_channel_sd.send(self.vbuf);
                 }
 
                 if flag_set!(self.lcd.lcds, LCDS_FLAGS::MODE_OAM_STAT) {
