@@ -9,7 +9,7 @@ pub struct Clock {
     frame_start: Instant,
     frame_target_duration: Duration,
 
-    clock_ticks: u32,
+    pub clock_ticks: u32,
 }
 
 impl Clock {

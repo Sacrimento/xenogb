@@ -2,7 +2,9 @@ mod cpu;
 mod dbg;
 mod debugger;
 mod io;
+mod io_event;
 mod mem;
+mod playback;
 mod ui;
 mod utils;
 
@@ -12,8 +14,10 @@ use crate::io::video::ppu::Vbuf;
 use crate::mem::boot::BootRom;
 use crate::mem::bus::Bus;
 use crate::mem::cartridge::parse_cartridge;
+use crate::playback::Playback;
 use clap::Parser;
-use crossbeam_channel::{bounded, unbounded, Receiver};
+use crossbeam_channel::{bounded, Receiver};
+use io_event::IOListener;
 use std::path::PathBuf;
 
 use ui::run_ui;
@@ -38,6 +42,15 @@ struct Args {
 
     #[arg(short, long, default_value_t = false)]
     debug: bool,
+
+    #[arg(long, default_value_t = false)]
+    record: bool,
+
+    #[arg(long, default_value = None)]
+    record_path: Option<PathBuf>,
+
+    #[arg(long, default_value = None)]
+    replay_path: Option<PathBuf>,
 }
 
 #[cfg(unix)]
@@ -71,13 +84,18 @@ fn run_headless(mut _cpu: LR35902CPU, _video_channel_rc: Receiver<Vbuf>) {
     panic!("Running headless mode is not yet supported on windows")
 }
 
-fn run(mut cpu: LR35902CPU, mut debugger: Debugger) {
+fn run(
+    mut cpu: LR35902CPU,
+    mut debugger: Debugger,
+    io_listener: IOListener,
+    mut playback: Playback,
+) {
     loop {
         debugger.handle_events(&mut cpu);
 
         if debugger.cpu_should_step(&cpu) {
+            io_listener.handle_events(&mut cpu, &mut playback);
             cpu.step();
-            cpu.handle_io_events();
         }
 
         debugger.collect(&cpu);
@@ -93,12 +111,19 @@ fn main() -> Result<(), XenoGBError> {
     let bus = Bus::new(cartridge, args.boot_rom, video_channel_sd);
 
     if args.headless {
-        let (_, io_events_rc) = unbounded();
         return Ok(run_headless(
-            LR35902CPU::new(bus, args.serial, u32::MAX, io_events_rc),
+            LR35902CPU::new(bus, args.serial, u32::MAX),
             video_channel_rc,
         ));
     }
 
-    Ok(run_ui(bus, video_channel_rc, args.debug, args.serial))
+    Ok(run_ui(
+        bus,
+        video_channel_rc,
+        args.debug,
+        args.serial,
+        args.record,
+        args.record_path,
+        args.replay_path,
+    ))
 }

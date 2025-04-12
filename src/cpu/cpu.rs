@@ -3,19 +3,10 @@ use std::time::Instant;
 use super::clock::Clock;
 use crate::cpu::instructions::{stack::_push, CPURegisterId, Instruction, INSTRUCTIONS};
 use crate::cpu::interrupts::{InterruptFlags, INTERRUPT_ENABLE, INTERRUPT_FLAGS};
-#[allow(unused_imports)]
 use crate::dbg::print_serial;
 use crate::debugger::{CpuMetricFields, CPU_METRICS};
 use crate::flag_set;
 use crate::mem::bus::Bus;
-use crossbeam_channel::Receiver;
-
-#[allow(nonstandard_style)]
-pub enum IOEvent {
-    JOYPAD_PRESS(u8),
-    JOYPAD_RELEASE(u8),
-    CLOSE,
-}
 
 #[allow(nonstandard_style)]
 pub mod CPUFlags {
@@ -70,11 +61,10 @@ pub struct LR35902CPU {
     pub enabling_ints: bool,
 
     pub clock: Clock,
-    io_events_rc: Receiver<IOEvent>,
 }
 
 impl LR35902CPU {
-    pub fn new(bus: Bus, serial: bool, clock_speed: u32, io_events_rc: Receiver<IOEvent>) -> Self {
+    pub fn new(bus: Bus, serial: bool, clock_speed: u32) -> Self {
         let pc = if bus.booting { 0 } else { 0x100 };
         Self {
             bus,
@@ -85,7 +75,6 @@ impl LR35902CPU {
             int_master: false,
             enabling_ints: false,
             clock: Clock::new(clock_speed),
-            io_events_rc,
         }
     }
 
@@ -137,16 +126,6 @@ impl LR35902CPU {
         });
 
         self.clock.tick(cycles as u32 * 4);
-    }
-
-    pub fn handle_io_events(&mut self) {
-        if let Ok(event) = self.io_events_rc.try_recv() {
-            match event {
-                IOEvent::JOYPAD_PRESS(key) => self.bus.io.joypad.press(key),
-                IOEvent::JOYPAD_RELEASE(key) => self.bus.io.joypad.release(key),
-                IOEvent::CLOSE => self.bus.cartridge.mbc.save(),
-            }
-        }
     }
 
     pub fn set_register(&mut self, register: &CPURegisterId, value: u16) {

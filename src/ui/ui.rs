@@ -1,17 +1,20 @@
-use std::thread::JoinHandle;
-
 use super::debugger::DebuggerUi;
-use crate::cpu::cpu::{IOEvent, LR35902CPU};
+use crate::cpu::cpu::LR35902CPU;
 use crate::cpu::CLOCK_SPEED;
 use crate::debugger::{Debugger, DebuggerCommand, EmulationState};
 use crate::io::joypad::JOYPAD_INPUT;
 use crate::io::video::ppu::{Vbuf, RESX, RESY};
+use crate::io_event::IOEvent;
+use crate::io_event::IOListener;
 use crate::mem::bus::Bus;
+use crate::playback::Playback;
 use crate::run;
 use cphf::{phf_ordered_map, OrderedMap};
 use crossbeam_channel::{bounded, unbounded, Receiver, Sender};
 use eframe::egui::{self, Context, Id, Modal};
 use egui::{Key, ViewportBuilder, ViewportCommand};
+use std::path::PathBuf;
+use std::thread::JoinHandle;
 
 static KEYMAP: OrderedMap<u8, Key> = phf_ordered_map! {u8, Key;
     JOYPAD_INPUT::DOWN => Key::ArrowDown,
@@ -29,7 +32,15 @@ const SCALE: usize = 4;
 
 pub const WINDOW_SIZE: [f32; 2] = [(RESX * SCALE) as f32, (RESY * SCALE) as f32];
 
-pub fn run_ui(bus: Bus, video_channel_rc: Receiver<Vbuf>, debug: bool, serial: bool) {
+pub fn run_ui(
+    bus: Bus,
+    video_channel_rc: Receiver<Vbuf>,
+    debug: bool,
+    serial: bool,
+    record_enabled: bool,
+    record_path: Option<PathBuf>,
+    replay_path: Option<PathBuf>,
+) {
     let _ = eframe::run_native(
         "xenogb",
         eframe::NativeOptions {
@@ -45,8 +56,10 @@ pub fn run_ui(bus: Bus, video_channel_rc: Receiver<Vbuf>, debug: bool, serial: b
 
             let thread = std::thread::spawn(move || {
                 run(
-                    LR35902CPU::new(bus, serial, CLOCK_SPEED, io_events_rc),
+                    LR35902CPU::new(bus, serial, CLOCK_SPEED),
                     Debugger::new(debug, ui_debugger_commands_rc, dbg_data_sd),
+                    IOListener::new(io_events_rc),
+                    Playback::new(record_enabled, record_path, replay_path),
                 )
             });
 

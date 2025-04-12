@@ -58,6 +58,8 @@ pub struct PPU {
 
     vbuf: Vbuf,
     video_channel_sd: Sender<Vbuf>,
+
+    pub frames: u64,
 }
 
 impl PPU {
@@ -79,6 +81,7 @@ impl PPU {
             last_frame: std::time::Instant::now(),
             vbuf: [0xff; RESX * RESY],
             video_channel_sd,
+            frames: 0,
         }
     }
 
@@ -403,6 +406,8 @@ impl PPU {
                 if !self.video_channel_sd.is_full() {
                     _ = self.video_channel_sd.send(self.vbuf);
                 }
+
+                self.frames += 1;
 
                 if flag_set!(self.lcd.lcds, LCDS_FLAGS::MODE_OAM_STAT) {
                     request_interrupt(InterruptFlags::STAT);
