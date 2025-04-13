@@ -1,5 +1,5 @@
 use super::debugger::DebuggerUi;
-use crate::debugger::{DebuggerCommand, EmulationState};
+use crate::debugger::{DebuggerCommand, EmuSnapshot};
 use crate::io::joypad::JOYPAD_INPUT;
 use crate::io::video::ppu::{Vbuf, RESX, RESY};
 use crate::io_event::IOEvent;
@@ -79,7 +79,7 @@ impl XenoGBUI {
         events_sd: Sender<IOEvent>,
         video_channel_rc: Receiver<Vbuf>,
         dbg_commands_sd: Sender<DebuggerCommand>,
-        dbg_data_rc: Receiver<EmulationState>,
+        dbg_data_rc: Receiver<EmuSnapshot>,
         debug: bool,
     ) -> Self {
         let screen_buffer = [0xff; RESX * RESY * 4];

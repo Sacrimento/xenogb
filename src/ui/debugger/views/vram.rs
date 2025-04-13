@@ -1,4 +1,4 @@
-use crate::debugger::EmulationState;
+use crate::debugger::EmuSnapshot;
 use crate::io::video::lcd::LCD;
 use crossbeam_channel::Receiver;
 use eframe::egui::{
@@ -16,11 +16,11 @@ pub struct VramUi {
     selected_tile_idx: Option<usize>,
     selected_tile_scene_rect: Rect,
 
-    dbg_data_rc: Receiver<EmulationState>,
+    dbg_data_rc: Receiver<EmuSnapshot>,
 }
 
 impl VramUi {
-    pub fn new(ctx: &eframe::CreationContext<'_>, dbg_data_rc: Receiver<EmulationState>) -> Self {
+    pub fn new(ctx: &eframe::CreationContext<'_>, dbg_data_rc: Receiver<EmuSnapshot>) -> Self {
         let vram_textures = [(); VRAMX * VRAMY].map(|()| {
             ctx.egui_ctx.load_texture(
                 "vram",

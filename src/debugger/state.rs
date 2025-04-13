@@ -3,7 +3,7 @@ use super::CPU_METRICS;
 use crate::cpu::cpu::{CPURegisters, LR35902CPU};
 use crate::cpu::interrupts::{INTERRUPT_ENABLE, INTERRUPT_FLAGS};
 
-pub struct EmulationState {
+pub struct EmuSnapshot {
     pub vram: [u8; 0x2000],
     pub cpu: CpuState,
 }

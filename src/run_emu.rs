@@ -1,5 +1,5 @@
 use crate::cpu::{CLOCK_SPEED, LR35902CPU};
-use crate::debugger::{Debugger, DebuggerCommand, EmulationState};
+use crate::debugger::{Debugger, DebuggerCommand, EmuSnapshot};
 use crate::io::video::ppu::Vbuf;
 use crate::io_event::{IOEvent, IOListener};
 use crate::mem::bus::Bus;
@@ -117,7 +117,7 @@ pub fn run_emu_thread(
     (
         Sender<IOEvent>,
         Sender<DebuggerCommand>,
-        Receiver<EmulationState>,
+        Receiver<EmuSnapshot>,
     ),
 ) {
     let (dbg_cmd_sd, dbg_cmd_rc) = unbounded();

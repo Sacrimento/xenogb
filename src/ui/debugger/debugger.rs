@@ -1,5 +1,5 @@
 use super::views::{cpu::CpuUi, vram::VramUi};
-use crate::debugger::{DebuggerCommand, EmulationState};
+use crate::debugger::{DebuggerCommand, EmuSnapshot};
 use crossbeam_channel::{Receiver, Sender};
 use eframe::egui;
 use egui_tiles;
@@ -25,7 +25,7 @@ impl DebuggerUi {
         ctx: &eframe::CreationContext<'_>,
         enabled: bool,
         dbg_commands_sd: Sender<DebuggerCommand>,
-        dbg_data_rc: Receiver<EmulationState>,
+        dbg_data_rc: Receiver<EmuSnapshot>,
     ) -> Self {
         let tabs = vec![Tabs::Vram, Tabs::Cpu];
         let vram = VramUi::new(ctx, dbg_data_rc.clone());

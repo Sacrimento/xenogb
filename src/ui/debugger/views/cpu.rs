@@ -9,15 +9,14 @@ use crate::cpu::{
     CLOCK_SPEED,
 };
 use crate::debugger::{
-    CpuMetrics, CpuState, DebuggerCommand, EmulationState, InterruptState, MetricType,
-    MetricsExport,
+    CpuMetrics, CpuState, DebuggerCommand, EmuSnapshot, InterruptState, MetricType, MetricsExport,
 };
 use crate::flag_set;
 
 const HISTORY_SIZE: usize = 60;
 
 pub struct CpuUi {
-    dbg_data_rc: Receiver<EmulationState>,
+    dbg_data_rc: Receiver<EmuSnapshot>,
     dbg_commands_sd: Sender<DebuggerCommand>,
 
     instructions_td: TimeData,
@@ -30,7 +29,7 @@ pub struct CpuUi {
 
 impl CpuUi {
     pub fn new(
-        dbg_data_rc: Receiver<EmulationState>,
+        dbg_data_rc: Receiver<EmuSnapshot>,
         dbg_commands_sd: Sender<DebuggerCommand>,
     ) -> Self {
         Self {

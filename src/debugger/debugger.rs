@@ -1,5 +1,5 @@
 use super::metrics::{CpuMetrics, MetricsHandler};
-use super::state::EmulationState;
+use super::state::EmuSnapshot;
 use super::{commands::DebuggerCommand, state::CpuState};
 use crossbeam_channel::{Receiver, Sender};
 use std::time::Duration;
@@ -17,14 +17,14 @@ pub struct Debugger {
     // stepping: bool,
     // breakpoints: Vec<u16>,
     ui_commands_rc: Receiver<DebuggerCommand>,
-    dbg_data_sd: Sender<EmulationState>,
+    dbg_data_sd: Sender<EmuSnapshot>,
 }
 
 impl Debugger {
     pub fn new(
         enabled: bool,
         ui_commands_rc: Receiver<DebuggerCommand>,
-        dbg_data_sd: Sender<EmulationState>,
+        dbg_data_sd: Sender<EmuSnapshot>,
     ) -> Self {
         CPU_METRICS.with_borrow_mut(|mh| mh.set_enabled(enabled));
 
@@ -63,7 +63,7 @@ impl Debugger {
 
         CPU_METRICS.with_borrow_mut(|mh| mh.update());
 
-        let state = EmulationState {
+        let state = EmuSnapshot {
             vram: cpu.bus.io.ppu.vram.clone(),
             cpu: CpuState::new(cpu),
         };
