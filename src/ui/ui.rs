@@ -1,20 +1,16 @@
 use super::debugger::DebuggerUi;
-use crate::cpu::cpu::LR35902CPU;
-use crate::cpu::CLOCK_SPEED;
-use crate::debugger::{Debugger, DebuggerCommand, EmulationState};
+use crate::debugger::{DebuggerCommand, EmulationState};
 use crate::io::joypad::JOYPAD_INPUT;
 use crate::io::video::ppu::{Vbuf, RESX, RESY};
 use crate::io_event::IOEvent;
-use crate::io_event::IOListener;
 use crate::mem::bus::Bus;
-use crate::playback::Playback;
-use crate::run;
+use crate::run_emu::{run_emu_thread, EmuState};
 use cphf::{phf_ordered_map, OrderedMap};
-use crossbeam_channel::{bounded, unbounded, Receiver, Sender};
-use eframe::egui::{self, Context, Id, Modal};
-use egui::{Key, ViewportBuilder, ViewportCommand};
+use crossbeam_channel::{Receiver, Sender};
+use eframe::egui;
+use egui::{Context, Id, Key, Modal, RichText, ScrollArea, ViewportBuilder, ViewportCommand};
+
 use std::path::PathBuf;
-use std::thread::JoinHandle;
 
 static KEYMAP: OrderedMap<u8, Key> = phf_ordered_map! {u8, Key;
     JOYPAD_INPUT::DOWN => Key::ArrowDown,
@@ -50,26 +46,16 @@ pub fn run_ui(
             ..Default::default()
         },
         Box::new(move |ctx| {
-            let (ui_debugger_commands_sd, ui_debugger_commands_rc) = unbounded();
-            let (dbg_data_sd, dbg_data_rc) = bounded(1);
-            let (io_events_sd, io_events_rc) = unbounded();
-
-            let thread = std::thread::spawn(move || {
-                run(
-                    LR35902CPU::new(bus, serial, CLOCK_SPEED),
-                    Debugger::new(debug, ui_debugger_commands_rc, dbg_data_sd),
-                    IOListener::new(io_events_rc),
-                    Playback::new(record_enabled, record_path, replay_path),
-                )
-            });
+            let (emu_state, channels) =
+                run_emu_thread(bus, debug, serial, record_enabled, record_path, replay_path);
 
             Ok(Box::new(XenoGBUI::new(
                 ctx,
-                Some(thread),
-                io_events_sd,
+                emu_state,
+                channels.0,
                 video_channel_rc,
-                ui_debugger_commands_sd,
-                dbg_data_rc,
+                channels.1,
+                channels.2,
                 debug,
             )))
         }),
@@ -83,13 +69,13 @@ struct XenoGBUI {
     video_channel_rc: Receiver<Vbuf>,
     events_sd: Sender<IOEvent>,
     dbg_commands_sd: Sender<DebuggerCommand>,
-    emu_thread: Option<JoinHandle<()>>,
+    emu_state: EmuState,
 }
 
 impl XenoGBUI {
     pub fn new(
         ctx: &eframe::CreationContext<'_>,
-        emu_thread: Option<JoinHandle<()>>,
+        emu_state: EmuState,
         events_sd: Sender<IOEvent>,
         video_channel_rc: Receiver<Vbuf>,
         dbg_commands_sd: Sender<DebuggerCommand>,
@@ -112,7 +98,7 @@ impl XenoGBUI {
             video_channel_rc,
             events_sd,
             dbg_commands_sd,
-            emu_thread,
+            emu_state,
         }
     }
 
@@ -133,19 +119,33 @@ impl XenoGBUI {
             );
         }
     }
+
+    fn emulation_crash(&self, ctx: &Context) {
+        let crash = self.emu_state.crash_info();
+
+        Modal::new(Id::new("crash-popup")).show(ctx, |ui| {
+            ui.label(format!("Emulation crashed: {}", crash.reason));
+            ui.collapsing("Backtrace", |ui| {
+                ScrollArea::vertical().max_height(200.0).show(ui, |ui| {
+                    ui.set_min_width(500.0);
+                    ui.code(RichText::from(crash.backtrace.clone()).monospace())
+                });
+            });
+            if ui.button("Ok").clicked() {
+                ctx.send_viewport_cmd(ViewportCommand::Close);
+            }
+        });
+    }
 }
 
 impl eframe::App for XenoGBUI {
     fn update(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
-        if self.emu_thread.as_ref().is_none_or(|t| t.is_finished()) {
-            emulation_died(self.emu_thread.take().map(|t| t.join()), ctx);
+        if self.emu_state.is_dead() {
+            self.emulation_crash(ctx);
+            return;
         }
 
         ctx.input(|inp| {
-            if self.emu_thread.is_none() {
-                return;
-            }
-
             for (emu_key, ui_key) in KEYMAP.entries() {
                 if inp.key_pressed(*ui_key) {
                     self.events_sd
@@ -190,20 +190,4 @@ impl eframe::App for XenoGBUI {
 
         ctx.request_repaint();
     }
-}
-
-fn emulation_died(res: Option<Result<(), Box<dyn std::any::Any + Send>>>, ctx: &Context) {
-    if let Some(res) = res {
-        println!(
-            "That sucks! {:#?}",
-            res.err().unwrap().downcast::<&'static str>().ok().unwrap()
-        );
-    }
-
-    Modal::new(Id::new("crash-popup")).show(ctx, |ui| {
-        ui.label("Emulation crashed :(");
-        if ui.button("Ok").clicked() {
-            ctx.send_viewport_cmd(ViewportCommand::Close);
-        }
-    });
 }

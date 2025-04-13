@@ -5,22 +5,22 @@ mod io;
 mod io_event;
 mod mem;
 mod playback;
+mod run_emu;
 mod ui;
 mod utils;
 
 use crate::cpu::cpu::LR35902CPU;
-use crate::debugger::Debugger;
-use crate::io::video::ppu::Vbuf;
+
 use crate::mem::boot::BootRom;
 use crate::mem::bus::Bus;
 use crate::mem::cartridge::parse_cartridge;
 use crate::playback::Playback;
+use crate::run_emu::run_headless;
+use crate::ui::run_ui;
 use clap::Parser;
-use crossbeam_channel::{bounded, Receiver};
-use io_event::IOListener;
-use std::path::PathBuf;
+use crossbeam_channel::bounded;
 
-use ui::run_ui;
+use std::path::PathBuf;
 
 #[derive(Debug)]
 struct XenoGBError;
@@ -51,55 +51,6 @@ struct Args {
 
     #[arg(long, default_value = None)]
     replay_path: Option<PathBuf>,
-}
-
-#[cfg(unix)]
-fn run_headless(mut cpu: LR35902CPU, video_channel_rc: Receiver<Vbuf>) {
-    use crate::io::video::ppu::{RESX, RESY};
-    use crate::utils::vbuf_snapshot;
-    use signal_hook::consts::SIGUSR1;
-    use std::sync::{
-        atomic::{AtomicBool, Ordering},
-        Arc,
-    };
-
-    let usr1 = Arc::new(AtomicBool::new(false));
-    let mut last_frame: Vbuf = [0; RESX * RESY];
-    signal_hook::flag::register(SIGUSR1, Arc::clone(&usr1)).unwrap();
-
-    loop {
-        cpu.step();
-        if usr1.load(Ordering::Relaxed) {
-            vbuf_snapshot(last_frame);
-            return;
-        }
-        if let Ok(frame) = video_channel_rc.try_recv() {
-            last_frame = frame;
-        }
-    }
-}
-
-#[cfg(windows)]
-fn run_headless(mut _cpu: LR35902CPU, _video_channel_rc: Receiver<Vbuf>) {
-    panic!("Running headless mode is not yet supported on windows")
-}
-
-fn run(
-    mut cpu: LR35902CPU,
-    mut debugger: Debugger,
-    io_listener: IOListener,
-    mut playback: Playback,
-) {
-    loop {
-        debugger.handle_events(&mut cpu);
-
-        if debugger.cpu_should_step(&cpu) {
-            io_listener.handle_events(&mut cpu, &mut playback);
-            cpu.step();
-        }
-
-        debugger.collect(&cpu);
-    }
 }
 
 fn main() -> Result<(), XenoGBError> {
