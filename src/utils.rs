@@ -2,13 +2,6 @@
 use crate::io::video::ppu::Vbuf;
 
 #[macro_export]
-macro_rules! between {
-    ( $x:expr, $l:expr, $h:expr ) => {
-        $x >= $l && $x <= $h
-    };
-}
-
-#[macro_export]
 macro_rules! flag_set {
     ( $x:expr, $flag: expr ) => {
         $x & $flag == $flag
@@ -17,11 +10,16 @@ macro_rules! flag_set {
 
 #[cfg(unix)]
 pub fn vbuf_snapshot(frame: Vbuf) {
+    use log::info;
+
     use crate::io::video::ppu::{RESX, RESY};
     use std::{fs, io::Write};
     // Output the current video buffer to a PGM formatted file
 
-    let mut file = fs::File::create("vbuf_snapshot.pgm").unwrap();
+    let fpath = "vbuf_snapshot.pgm";
+
+    info!("Video buffer snapshot saved to {}", fpath);
+    let mut file = fs::File::create(fpath).unwrap();
 
     file.write(format!("P5\n{RESX} {RESY}\n255\n").as_bytes())
         .unwrap();

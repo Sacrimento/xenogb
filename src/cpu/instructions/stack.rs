@@ -16,7 +16,7 @@ pub fn pop(cpu: &mut LR35902CPU) -> u8 {
         CPURegisterId::BC => regs = [&CPURegisterId::C, &CPURegisterId::B],
         CPURegisterId::DE => regs = [&CPURegisterId::E, &CPURegisterId::D],
         CPURegisterId::HL => regs = [&CPURegisterId::L, &CPURegisterId::H],
-        _ => panic!("Invalid register for pop"),
+        _ => unreachable!(),
     }
 
     for reg in regs {
@@ -43,7 +43,7 @@ pub fn push(cpu: &mut LR35902CPU) -> u8 {
         CPURegisterId::BC => regs = [&CPURegisterId::B, &CPURegisterId::C],
         CPURegisterId::DE => regs = [&CPURegisterId::D, &CPURegisterId::E],
         CPURegisterId::HL => regs = [&CPURegisterId::H, &CPURegisterId::L],
-        _ => panic!("Invalid register for pop"),
+        _ => unreachable!(),
     }
 
     for reg in regs {

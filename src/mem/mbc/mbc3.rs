@@ -1,4 +1,5 @@
 use chrono::{DateTime, Duration, TimeDelta, Utc};
+use log::warn;
 use std::path::PathBuf;
 
 use super::MemoryBankController;
@@ -123,7 +124,10 @@ impl MemoryBankController for MBC3 {
                 }
                 _ => unreachable!(),
             },
-            _ => unreachable!(),
+            _ => {
+                warn!("mbc3.read: unhandled address 0x{addr:04X}");
+                0xff
+            }
         }
     }
 
@@ -157,7 +161,7 @@ impl MemoryBankController for MBC3 {
                     }
                 }
             }
-            _ => unreachable!(),
+            _ => warn!("mbc3.write: unhandled address 0x{addr:04X}"),
         }
     }
 

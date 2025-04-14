@@ -12,11 +12,13 @@ use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
 
 use crossbeam_channel::{bounded, unbounded, Receiver, Sender};
+use log::info;
 
 #[cfg(unix)]
 pub fn run_headless(mut cpu: LR35902CPU, video_channel_rc: Receiver<Vbuf>) {
     use crate::io::video::ppu::{RESX, RESY};
     use crate::utils::vbuf_snapshot;
+    use log::info;
     use signal_hook::consts::SIGUSR1;
     use std::sync::{
         atomic::{AtomicBool, Ordering},
@@ -26,6 +28,8 @@ pub fn run_headless(mut cpu: LR35902CPU, video_channel_rc: Receiver<Vbuf>) {
     let usr1 = Arc::new(AtomicBool::new(false));
     let mut last_frame: Vbuf = [0; RESX * RESY];
     signal_hook::flag::register(SIGUSR1, Arc::clone(&usr1)).unwrap();
+
+    info!("Running in headless mode");
 
     loop {
         cpu.step();
@@ -145,6 +149,10 @@ pub fn run_emu_thread(
         }));
 
         let result = panic::catch_unwind(panic::AssertUnwindSafe(|| {
+            info!(
+                "Starting emulator with serial:{} debug:{} record:{} replay:{:?}",
+                serial, debug, record_enabled, replay_path
+            );
             run(
                 LR35902CPU::new(bus, serial, CLOCK_SPEED),
                 Debugger::new(debug, dbg_cmd_rc, dbg_data_sd),

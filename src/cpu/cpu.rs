@@ -189,7 +189,7 @@ impl LR35902CPU {
             CPURegisterId::E => self.registers.e,
             CPURegisterId::H => self.registers.h,
             CPURegisterId::L => self.registers.l,
-            _ => panic!("use cpu.get_register16 dummy"),
+            _ => unreachable!(),
         }
     }
 
@@ -201,7 +201,7 @@ impl LR35902CPU {
             CPURegisterId::HL => ((self.registers.h as u16) << 8) | self.registers.l as u16,
             CPURegisterId::PC => self.registers.pc,
             CPURegisterId::SP => self.registers.sp,
-            _ => panic!("use cpu.get_register dummy"),
+            _ => unreachable!(),
         }
     }
 

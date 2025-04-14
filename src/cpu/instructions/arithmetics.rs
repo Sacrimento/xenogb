@@ -64,7 +64,7 @@ pub fn add(cpu: &mut LR35902CPU) -> u8 {
             h = ((op1 ^ (op2 as u16) ^ ((result as u16) & 0xFFFF)) & 0x10) == 0x10;
             cycles = 4;
         }
-        _ => panic!("Unhandled addr mode for add"),
+        _ => unreachable!(),
     }
 
     cpu.set_register(instr.reg1.as_ref().unwrap(), result as u16);
@@ -99,7 +99,7 @@ pub fn adc(cpu: &mut LR35902CPU) -> u8 {
             result = op1 + op2 + c as u32;
             cycles = 1;
         }
-        _ => panic!("Unhandled addr mode for adc"),
+        _ => unreachable!(),
     }
 
     cpu.set_register(instr.reg1.as_ref().unwrap(), result as u16);
@@ -135,7 +135,7 @@ pub fn sub(cpu: &mut LR35902CPU) -> u8 {
             cpu.inc_pc(1);
             result = a as i16 - value as i16;
         }
-        _ => panic!("Unhandled addr mode for sub"),
+        _ => unreachable!(),
     }
 
     let h = ((a & 0xf) as i16 - (value & 0xf) as i16) < 0;
@@ -164,7 +164,7 @@ pub fn sbc(cpu: &mut LR35902CPU) -> u8 {
             value = cpu.bus.read(cpu.pc());
             cpu.inc_pc(1);
         }
-        _ => panic!("Unhandled addr mode for sub"),
+        _ => unreachable!(),
     }
 
     let result = a as i16 - value as i16 - c as i16;
@@ -195,7 +195,7 @@ pub fn inc(cpu: &mut LR35902CPU) -> u8 {
             cpu.set_register(instr.reg1.as_ref().unwrap(), result as u16);
             cycles = 2;
         }
-        _ => panic!("Unhandled addr mode for inc"),
+        _ => unreachable!(),
     }
 
     if !matches!(instr.addr_mode, AddrMode::R16) {
@@ -230,7 +230,7 @@ pub fn dec(cpu: &mut LR35902CPU) -> u8 {
             cpu.set_register(instr.reg1.as_ref().unwrap(), result as u16);
             cycles = 2;
         }
-        _ => panic!("Unhandled addr mode for inc"),
+        _ => unreachable!(),
     }
 
     if !matches!(instr.addr_mode, AddrMode::R16) {
@@ -263,7 +263,7 @@ pub fn cp(cpu: &mut LR35902CPU) -> u8 {
             value = cpu.bus.read(cpu.pc()) as i16;
             cpu.inc_pc(1);
         }
-        _ => panic!("Unhandled addr mode for sub"),
+        _ => unreachable!(),
     }
 
     let result = a - value;

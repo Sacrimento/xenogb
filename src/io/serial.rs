@@ -1,3 +1,5 @@
+use crate::flag_set;
+
 #[allow(nonstandard_style)]
 mod SerialTransferControlFlags {
     pub const _CLOCK_SELECT: u8 = 0x1;
@@ -16,7 +18,7 @@ impl Serial {
         match addr {
             0xff01 => self.transfer_data = value,
             0xff02 => self.transfer_control = value,
-            _ => panic!("Invalid addr for serial.write"),
+            _ => unreachable!(),
         }
     }
 
@@ -24,14 +26,15 @@ impl Serial {
         match addr {
             0xff01 => self.transfer_data,
             0xff02 => self.transfer_control,
-            _ => panic!("Invalid addr for serial.read"),
+            _ => unreachable!(),
         }
     }
 
     pub fn get_char(&mut self) -> u8 {
-        if self.transfer_control & SerialTransferControlFlags::TRANSFER_ENABLE
-            == SerialTransferControlFlags::TRANSFER_ENABLE
-        {
+        if flag_set!(
+            self.transfer_control,
+            SerialTransferControlFlags::TRANSFER_ENABLE
+        ) {
             self.transfer_control =
                 self.transfer_control & !(SerialTransferControlFlags::TRANSFER_ENABLE);
             return self.transfer_data;

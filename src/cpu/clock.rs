@@ -1,5 +1,7 @@
 use std::time::{Duration, Instant};
 
+use log::warn;
+
 use crate::io::video::ppu::TICKS_PER_FRAME;
 
 pub const CLOCK_SPEED: u32 = 4194304;
@@ -33,11 +35,12 @@ impl Clock {
             self.clock_ticks = 0;
             let elapsed = self.frame_start.elapsed();
             if self.frame_target_duration > elapsed {
-                // let target = self.frame_start + self.frame_target_duration;
-                // while Instant::now() < target {
-                //     std::hint::spin_loop();
-                // }
                 std::thread::sleep(self.frame_target_duration - elapsed);
+            } else {
+                let r = elapsed - self.frame_target_duration;
+                if r > Duration::from_millis(1) {
+                    warn!("CPU is behind by {:?}!", r);
+                }
             }
             self.frame_start = Instant::now();
         }

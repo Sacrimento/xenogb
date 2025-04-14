@@ -44,7 +44,7 @@ pub fn ldr(cpu: &mut LR35902CPU) -> u8 {
         AddrMode::R16_R16 => {
             value = cpu.get_register16(instr.reg2.as_ref().unwrap());
         }
-        _ => panic!("Unhandled addr mode for ldr"),
+        _ => unreachable!(),
     }
 
     cpu.set_register(instr.reg1.as_ref().unwrap(), value);
@@ -83,7 +83,7 @@ pub fn ldm(cpu: &mut LR35902CPU) -> u8 {
             cpu.inc_pc(1);
             cycles = 3;
         }
-        _ => panic!("Unhandled addr mode for ldm"),
+        _ => unreachable!(),
     }
 
     cpu.bus.write(addr, value);

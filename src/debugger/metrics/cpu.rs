@@ -1,4 +1,4 @@
-use super::metric_type::{Counter, MeanTime, MetricType, Time};
+use super::metric_type::{Counter, MeanTime, MetricType};
 use super::metrics::Metrics;
 
 #[allow(nonstandard_style)]

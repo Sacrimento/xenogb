@@ -1,5 +1,6 @@
 /target
 /roms
+/logs
 /**/*.xenogb
 /**/*.pgm
 /**/vbuf_snapshot.png

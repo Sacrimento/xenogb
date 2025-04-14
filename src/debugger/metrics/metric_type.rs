@@ -40,18 +40,3 @@ impl MetricType<Duration> for MeanTime {
         }
     }
 }
-
-#[derive(Default, Clone, Copy)]
-pub struct Time {
-    total: Duration,
-}
-
-impl MetricType<Duration> for Time {
-    fn register(&mut self, value: Duration) {
-        self.total += value;
-    }
-
-    fn get(&self) -> Duration {
-        self.total
-    }
-}

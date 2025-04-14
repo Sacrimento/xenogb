@@ -2,6 +2,7 @@ use super::metrics::{CpuMetrics, MetricsHandler};
 use super::state::EmuSnapshot;
 use super::{commands::DebuggerCommand, state::CpuState};
 use crossbeam_channel::{Receiver, Sender};
+use log::info;
 use std::time::Duration;
 
 use crate::cpu::cpu::LR35902CPU;
@@ -47,6 +48,7 @@ impl Debugger {
     }
 
     fn set_enabled(&mut self, enabled: bool) {
+        info!("Debugger is now enabled:{enabled}");
         self.enabled = enabled;
 
         CPU_METRICS.with_borrow_mut(|mh| mh.set_enabled(enabled));

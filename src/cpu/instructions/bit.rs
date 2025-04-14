@@ -20,7 +20,7 @@ pub fn and(cpu: &mut LR35902CPU) -> u8 {
             value = cpu.bus.read(cpu.pc());
             cpu.inc_pc(1);
         }
-        _ => panic!("Unhandled addr mode for and"),
+        _ => unreachable!(),
     }
 
     value &= a;
@@ -48,7 +48,7 @@ pub fn or(cpu: &mut LR35902CPU) -> u8 {
             value = cpu.bus.read(cpu.pc());
             cpu.inc_pc(1);
         }
-        _ => panic!("Unhandled addr mode for or"),
+        _ => unreachable!(),
     }
 
     value |= a;
@@ -76,7 +76,7 @@ pub fn xor(cpu: &mut LR35902CPU) -> u8 {
             value = cpu.bus.read(cpu.pc());
             cpu.inc_pc(1);
         }
-        _ => panic!("Unhandled addr mode for xor"),
+        _ => unreachable!(),
     }
 
     value ^= a;
@@ -99,7 +99,7 @@ pub fn bit(cpu: &mut LR35902CPU, nth_bit: u8) -> u8 {
             value = cpu.bus.read(addr);
             cycles = 3;
         }
-        _ => panic!("Unhandled addr mode for bit"),
+        _ => unreachable!(),
     }
 
     cpu.set_flags((((value >> nth_bit) & 1) == 0) as i8, 0, 1, -1);
@@ -124,7 +124,7 @@ pub fn res(cpu: &mut LR35902CPU, nth_bit: u8) -> u8 {
             cpu.bus.write(addr, value);
             cycles = 4;
         }
-        _ => panic!("Unhandled addr mode for res"),
+        _ => unreachable!(),
     }
 
     cycles
@@ -148,7 +148,7 @@ pub fn set(cpu: &mut LR35902CPU, nth_bit: u8) -> u8 {
             cpu.bus.write(addr, value);
             cycles = 4;
         }
-        _ => panic!("Unhandled addr mode for set"),
+        _ => unreachable!(),
     }
     cycles
 }
@@ -171,7 +171,7 @@ pub fn swap(cpu: &mut LR35902CPU) -> u8 {
             cpu.bus.write(addr, value);
             cycles = 4;
         }
-        _ => panic!("Unhandled addr mode for set"),
+        _ => unreachable!(),
     }
 
     cpu.set_flags((value == 0) as i8, 0, 0, 0);
@@ -200,7 +200,7 @@ pub fn rl(cpu: &mut LR35902CPU) -> u8 {
             cpu.bus.write(addr, value);
             cycles = 4;
         }
-        _ => panic!("Unhandled addr mode for set"),
+        _ => unreachable!(),
     }
 
     cpu.set_flags((value == 0) as i8, 0, 0, new_carry as i8);
@@ -239,7 +239,7 @@ pub fn rlc(cpu: &mut LR35902CPU) -> u8 {
             cpu.bus.write(addr, value);
             cycles = 4;
         }
-        _ => panic!("Unhandled addr mode for set"),
+        _ => unreachable!(),
     }
 
     cpu.set_flags((value == 0) as i8, 0, 0, new_carry as i8);
@@ -278,7 +278,7 @@ pub fn rr(cpu: &mut LR35902CPU) -> u8 {
             cpu.bus.write(addr, value);
             cycles = 4;
         }
-        _ => panic!("Unhandled addr mode for set"),
+        _ => unreachable!(),
     }
 
     cpu.set_flags((value == 0) as i8, 0, 0, new_carry as i8);
@@ -317,7 +317,7 @@ pub fn rrc(cpu: &mut LR35902CPU) -> u8 {
             cpu.bus.write(addr, value);
             cycles = 4;
         }
-        _ => panic!("Unhandled addr mode for set"),
+        _ => unreachable!(),
     }
 
     cpu.set_flags((value == 0) as i8, 0, 0, new_carry as i8);
@@ -355,7 +355,7 @@ pub fn sla(cpu: &mut LR35902CPU) -> u8 {
             cpu.bus.write(addr, value);
             cycles = 4;
         }
-        _ => panic!("Unhandled addr mode for set"),
+        _ => unreachable!(),
     }
 
     cpu.set_flags((value == 0) as i8, 0, 0, new_carry as i8);
@@ -383,7 +383,7 @@ pub fn sra(cpu: &mut LR35902CPU) -> u8 {
             cpu.bus.write(addr, value);
             cycles = 4;
         }
-        _ => panic!("Unhandled addr mode for set"),
+        _ => unreachable!(),
     }
 
     cpu.set_flags((value == 0) as i8, 0, 0, new_carry as i8);
@@ -411,7 +411,7 @@ pub fn srl(cpu: &mut LR35902CPU) -> u8 {
             cpu.bus.write(addr, value);
             cycles = 4;
         }
-        _ => panic!("Unhandled addr mode for set"),
+        _ => unreachable!(),
     }
 
     cpu.set_flags((value == 0) as i8, 0, 0, new_carry as i8);

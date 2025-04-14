@@ -10,13 +10,14 @@ mod ui;
 mod utils;
 
 use crate::cpu::cpu::LR35902CPU;
-
 use crate::mem::boot::BootRom;
 use crate::mem::bus::Bus;
 use crate::mem::cartridge::parse_cartridge;
 use crate::playback::Playback;
 use crate::run_emu::run_headless;
 use crate::ui::run_ui;
+
+use chrono::Local;
 use clap::Parser;
 use crossbeam_channel::bounded;
 
@@ -53,7 +54,25 @@ struct Args {
     replay_path: Option<PathBuf>,
 }
 
+fn setup_logger() -> String {
+    let file_path = format!(
+        "logs/{}.log",
+        Local::now().format("%Y-%m-%d_%H-%M-%S").to_string()
+    );
+
+    let config = include_str!("../logging.yml")
+        .to_string()
+        .replace("__LOG_FILE__", &file_path);
+
+    log4rs::init_raw_config(serde_yaml::from_str(&config).expect("Could not parse logging file"))
+        .unwrap();
+
+    file_path
+}
+
 fn main() -> Result<(), XenoGBError> {
+    setup_logger();
+
     let args = Args::parse();
 
     let cartridge = parse_cartridge(args.cartridge).expect("Could not load the cartrdige");

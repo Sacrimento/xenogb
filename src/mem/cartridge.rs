@@ -1,3 +1,5 @@
+use log::info;
+
 use super::mbc::{mbc, MemoryBankController};
 use std::{fs, path::PathBuf};
 
@@ -90,5 +92,6 @@ pub fn parse_cartridge(cartridge: PathBuf) -> Result<Cartridge, CartridgeError> 
         cartridge,
     );
 
+    info!("Cartridge successfully loaded");
     Ok(Cartridge { header, mbc })
 }

@@ -1,6 +1,6 @@
 use super::lcd::{PPUMode, LCD, LCDC_FLAGS, LCDS_FLAGS};
 use crate::cpu::interrupts::{request_interrupt, InterruptFlags};
-use crate::{between, flag_set};
+use crate::flag_set;
 use crossbeam_channel::Sender;
 
 const LINES_PER_FRAME: u8 = 154;
@@ -11,6 +11,12 @@ pub const RESX: usize = 160;
 pub const RESY: usize = 144;
 
 pub type Vbuf = [u8; RESX * RESY];
+
+macro_rules! between {
+    ( $x:expr, $l:expr, $h:expr ) => {
+        $x >= $l && $x <= $h
+    };
+}
 
 #[allow(nonstandard_style)]
 mod SpriteFlags {
@@ -414,10 +420,6 @@ impl PPU {
                 }
 
                 let now = std::time::Instant::now();
-                // println!(
-                //     "Avg framerate from PPU: {:#?} fps",
-                //     1000 / (now - self.last_frame).as_millis()
-                // );
                 self.last_frame = now;
             }
 

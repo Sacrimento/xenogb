@@ -37,7 +37,7 @@ impl Timer {
             0b01 => CLOCK_SPEED / 262144,
             0b10 => CLOCK_SPEED / 65536,
             0b11 => CLOCK_SPEED / 16384,
-            _ => panic!("Unreachable"),
+            _ => unreachable!(),
         };
 
         if self.ticks_since_inc >= ticks_per_inc {
@@ -58,7 +58,7 @@ impl Timer {
             0xff05 => self.tima,
             0xff06 => self.tma,
             0xff07 => self.tac,
-            _ => panic!("Unreachable"),
+            _ => unreachable!(),
         }
     }
 
@@ -68,7 +68,7 @@ impl Timer {
             0xff05 => self.tima = value,
             0xff06 => self.tma = value,
             0xff07 => self.tac = value,
-            _ => panic!("Unreachable"),
+            _ => unreachable!(),
         };
     }
 }

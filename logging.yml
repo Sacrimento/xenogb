@@ -1,0 +1,30 @@
+appenders:
+  console:
+    kind: console
+    encoder:
+      pattern: "{d(%+)(local)} [{t}] {h({l})} {M}:{m}{n}"
+    filters:
+      - kind: threshold
+        level: warn
+  file:
+    kind: file
+    path: __LOG_FILE__
+    encoder:
+      pattern: "{d(%+)(local)} [{t}] {h({l})} {M}:{m}{n}"
+
+root:
+  level: debug
+  appenders:
+    - console
+    - file
+
+loggers:
+  eframe:
+    level: off
+    additive: false
+  egui_glow:
+    level: off
+    additive: false
+  egui_winit:
+    level: off
+    additive: false

@@ -75,12 +75,6 @@ impl<T: Metrics + Default + Copy> MetricsHandler<T> {
             self.metrics.mean_time(field, value);
         }
     }
-
-    pub fn time(&mut self, field: T::Field, value: Duration) {
-        if self.enabled {
-            self.metrics.time(field, value);
-        }
-    }
 }
 
 pub trait Metrics {
@@ -91,10 +85,6 @@ pub trait Metrics {
     }
 
     fn mean_time(&mut self, _field: Self::Field, _value: Duration) {
-        unreachable!()
-    }
-
-    fn time(&mut self, _field: Self::Field, _value: Duration) {
         unreachable!()
     }
 }

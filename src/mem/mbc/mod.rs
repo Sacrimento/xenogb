@@ -7,6 +7,7 @@ use std::{
     path::PathBuf,
 };
 
+use log::info;
 use mbc1::MBC1;
 use mbc3::MBC3;
 use mbc5::MBC5;
@@ -43,6 +44,7 @@ pub trait MemoryBankController {
     where
         Self: Sized,
     {
+        info!("SRAM saved!");
         let mut file = File::create(save_fname).unwrap();
         for bank in sram.iter() {
             file.write(&bank[..]).unwrap();

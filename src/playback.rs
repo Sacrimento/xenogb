@@ -1,4 +1,5 @@
 use crate::io_event::IOEvent;
+use log::info;
 use std::fs::File;
 use std::io::BufReader;
 use std::io::{BufRead, Write};
@@ -108,7 +109,7 @@ impl Player {
                 .expect("Could not read line in replay file");
 
             if self.line_buffer.is_empty() {
-                println!("Replay finished!");
+                info!("Replay finished!");
                 return;
             }
 

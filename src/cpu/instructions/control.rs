@@ -53,7 +53,7 @@ pub fn jp(cpu: &mut LR35902CPU) -> u8 {
             pc = cpu.bus.read16(cpu.pc());
             cycles = 1;
         }
-        _ => panic!("Unhandled addr mode for jp"),
+        _ => unreachable!(),
     }
 
     cpu.set_register(&CPURegisterId::PC, pc);

@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use crate::between;
+use log::warn;
 
 use super::MemoryBankController;
 
@@ -43,39 +43,41 @@ impl MBC1 {
 
 impl MemoryBankController for MBC1 {
     fn read(&self, addr: u16) -> u8 {
-        if addr <= 0x3fff {
-            return self.rom[addr as usize];
-        } else if between!(addr, 0x4000, 0x7fff) {
-            let offset = if self.banking_mode == 1 {
-                ((self.ram_bank << 5) | self.rom_bank) * 0x4000
-            } else {
-                self.rom_bank * 0x4000
-            };
-            return self.rom[offset + (addr as usize - 0x4000)];
-        } else if between!(addr, 0xa000, 0xbfff) {
-            if !self.ram_enable {
-                return 0xff;
+        match addr {
+            0x0..=0x3fff => self.rom[addr as usize],
+            0x4000..=0x7fff => {
+                let offset = if self.banking_mode == 1 {
+                    ((self.ram_bank << 5) | self.rom_bank) * 0x4000
+                } else {
+                    self.rom_bank * 0x4000
+                };
+                return self.rom[offset + (addr as usize - 0x4000)];
             }
-            return self.sram[self.ram_bank][addr as usize - 0xa000];
+            0xa000..=0xbfff => {
+                if !self.ram_enable {
+                    return 0xff;
+                }
+                return self.sram[self.ram_bank][addr as usize - 0xa000];
+            }
+            _ => {
+                warn!("mbc1.read: unhandled address 0x{addr:04X}");
+                0xff
+            }
         }
-        panic!("Invalid addr for mbc1.read");
     }
 
     fn write(&mut self, addr: u16, value: u8) {
-        if addr <= 0x1fff {
-            self.ram_enable = value & 0xf == 0xa;
-        } else if between!(addr, 0x2000, 0x3fff) {
-            self.rom_bank = (value as usize & 0x1f).max(1) & self.rom_bank_mask;
-        } else if between!(addr, 0x4000, 0x5fff) {
-            self.ram_bank = value as usize & 0x3;
-        } else if between!(addr, 0x6000, 0x7fff) {
-            self.banking_mode = value & 0x1;
-        } else if between!(addr, 0xa000, 0xbfff) {
-            if self.ram_enable {
-                self.sram[self.ram_bank][addr as usize - 0xa000] = value;
+        match addr {
+            0x0..=0x1fff => self.ram_enable = value & 0xf == 0xa,
+            0x2000..=0x3fff => self.rom_bank = (value as usize & 0x1f).max(1) & self.rom_bank_mask,
+            0x4000..=0x5fff => self.ram_bank = value as usize & 0x3,
+            0x6000..=0x7fff => self.banking_mode = value & 0x1,
+            0xa000..=0xbfff => {
+                if self.ram_enable {
+                    self.sram[self.ram_bank][addr as usize - 0xa000] = value;
+                }
             }
-        } else {
-            panic!("Invalid addr for mbc1.write");
+            _ => warn!("mbc1.write: unhandled address 0x{addr:04X}"),
         }
     }
 
