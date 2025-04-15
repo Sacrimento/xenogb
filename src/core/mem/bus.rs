@@ -63,6 +63,7 @@ impl Bus {
             0x8000..=0x9fff => self.io.read(addr),
             0xa000..=0xbfff => self.cartridge.read(addr),
             0xc000..=0xdfff => self.ram.read(addr),
+            0xe000..=0xfdff => self.ram.read(addr - 0x2000),
             0xfe00..=0xfe9f => self.io.read(addr),
             0xff0f => INTERRUPT_FLAGS.get(),
             0xff46 => {
@@ -91,6 +92,7 @@ impl Bus {
             0x8000..=0x9fff => self.io.write(addr, value),
             0xa000..=0xbfff => self.cartridge.write(addr, value),
             0xc000..=0xdfff => self.ram.write(addr, value),
+            0xe000..=0xfdff => self.ram.write(addr - 0x2000, value),
             0xfe00..=0xfe9f => self.io.write(addr, value),
             0xff0f => INTERRUPT_FLAGS.set(value),
             0xff46 => self.dma_start(value),
