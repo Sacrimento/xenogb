@@ -24,8 +24,7 @@ pub trait MemoryBankController {
         Self: Sized,
     {
         let banks = match ram_banks_code {
-            0 | 1 => 0,
-            2 => 1,
+            0 | 1 | 2 => 1, // 0 | 1: Allocate some RAM even though the program should not require it
             3 => 4,
             4 => 16,
             5 => 8,
