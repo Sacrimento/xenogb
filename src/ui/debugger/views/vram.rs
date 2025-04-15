@@ -1,5 +1,5 @@
+use crate::core::io::video::lcd::LCD;
 use crate::debugger::EmuSnapshot;
-use crate::io::video::lcd::LCD;
 use crossbeam_channel::Receiver;
 use eframe::egui::{
     self, epaint, vec2, Align, Color32, ColorImage, CornerRadius, Image, Layout, Rect, Scene,

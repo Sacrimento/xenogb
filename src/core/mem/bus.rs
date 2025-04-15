@@ -1,9 +1,9 @@
 use super::boot::{boot_rom, BootRom};
 use super::cartridge::Cartridge;
 use super::ram::RAM;
-use crate::cpu::interrupts::{INTERRUPT_ENABLE, INTERRUPT_FLAGS};
-use crate::io::video::ppu::Vbuf;
-use crate::io::IOMMU;
+use crate::core::cpu::interrupts::{INTERRUPT_ENABLE, INTERRUPT_FLAGS};
+use crate::core::io::video::ppu::Vbuf;
+use crate::core::io::IOMMU;
 
 use crossbeam_channel::Sender;
 use log::{error, warn};

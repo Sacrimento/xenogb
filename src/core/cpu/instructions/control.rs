@@ -1,6 +1,6 @@
 use super::stack::{_pop, _push};
 use super::{AddrMode, CPURegisterId, CondType};
-use crate::cpu::cpu::{CPUFlags, LR35902CPU};
+use crate::core::cpu::cpu::{CPUFlags, LR35902CPU};
 
 fn check_cond(cpu: &mut LR35902CPU, cond: Option<&CondType>) -> bool {
     if cond.is_none() {

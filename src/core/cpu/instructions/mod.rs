@@ -14,7 +14,7 @@ use phf::phf_map;
 use stack::*;
 use std::fmt;
 
-use crate::cpu::cpu::LR35902CPU;
+use crate::core::cpu::cpu::LR35902CPU;
 
 #[allow(nonstandard_style)]
 pub enum AddrMode {

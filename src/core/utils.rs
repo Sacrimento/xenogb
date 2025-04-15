@@ -1,5 +1,5 @@
 #[cfg(unix)]
-use crate::io::video::ppu::Vbuf;
+use crate::core::io::video::ppu::Vbuf;
 
 #[macro_export]
 macro_rules! flag_set {
@@ -12,7 +12,7 @@ macro_rules! flag_set {
 pub fn vbuf_snapshot(frame: Vbuf) {
     use log::info;
 
-    use crate::io::video::ppu::{RESX, RESY};
+    use crate::core::io::video::ppu::{RESX, RESY};
     use std::{fs, io::Write};
     // Output the current video buffer to a PGM formatted file
 

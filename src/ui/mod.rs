@@ -1,4 +1,4 @@
 mod debugger;
-mod ui;
+mod main;
 
-pub use ui::run_ui;
+pub use main::run_ui;

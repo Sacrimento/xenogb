@@ -5,7 +5,7 @@ use crossbeam_channel::{Receiver, Sender};
 use log::info;
 use std::time::Duration;
 
-use crate::cpu::cpu::LR35902CPU;
+use crate::core::cpu::cpu::LR35902CPU;
 use std::cell::RefCell;
 
 thread_local! {

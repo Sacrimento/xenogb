@@ -1,4 +1,4 @@
-use crate::cpu::{
+use crate::core::cpu::{
     interrupts::{request_interrupt, InterruptFlags},
     CLOCK_SPEED,
 };

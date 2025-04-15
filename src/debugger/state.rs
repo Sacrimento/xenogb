@@ -1,7 +1,7 @@
 use super::metrics::{CpuMetrics, MetricsExport};
 use super::CPU_METRICS;
-use crate::cpu::cpu::{CPURegisters, LR35902CPU};
-use crate::cpu::interrupts::{INTERRUPT_ENABLE, INTERRUPT_FLAGS};
+use crate::core::cpu::cpu::{CPURegisters, LR35902CPU};
+use crate::core::cpu::interrupts::{INTERRUPT_ENABLE, INTERRUPT_FLAGS};
 
 pub struct EmuSnapshot {
     pub vram: [u8; 0x2000],

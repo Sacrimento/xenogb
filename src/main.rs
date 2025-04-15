@@ -1,21 +1,14 @@
-mod cpu;
+mod core;
 mod dbg;
 mod debugger;
-mod io;
-mod io_event;
-mod mem;
-mod playback;
-mod run_emu;
 mod ui;
-mod utils;
 
-use crate::cpu::cpu::LR35902CPU;
-use crate::mem::boot::BootRom;
-use crate::mem::bus::Bus;
-use crate::mem::cartridge::parse_cartridge;
-use crate::playback::Playback;
-use crate::run_emu::run_headless;
-use crate::ui::run_ui;
+use core::cpu::cpu::LR35902CPU;
+use core::mem::boot::BootRom;
+use core::mem::bus::Bus;
+use core::mem::cartridge::parse_cartridge;
+use core::run_emu::run_headless;
+use ui::run_ui;
 
 use chrono::Local;
 use clap::Parser;

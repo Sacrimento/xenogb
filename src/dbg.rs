@@ -1,5 +1,5 @@
-use super::cpu::cpu::{CPUFlags, LR35902CPU};
-use super::cpu::instructions::{AddrMode, CPURegisterId};
+use crate::core::cpu::cpu::{CPUFlags, LR35902CPU};
+use crate::core::cpu::instructions::{AddrMode, CPURegisterId};
 
 static mut SERIAL_BUFF: [u8; 0x100] = [0; 0x100];
 static mut SERIAL_IDX: u8 = 0;

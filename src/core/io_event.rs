@@ -1,5 +1,5 @@
-use crate::cpu::cpu::LR35902CPU;
-use crate::Playback;
+use super::cpu::cpu::LR35902CPU;
+use super::playback::Playback;
 
 use crossbeam_channel::Receiver;
 use std::fmt::Display;

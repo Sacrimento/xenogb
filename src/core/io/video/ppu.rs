@@ -1,5 +1,5 @@
 use super::lcd::{PPUMode, LCD, LCDC_FLAGS, LCDS_FLAGS};
-use crate::cpu::interrupts::{request_interrupt, InterruptFlags};
+use crate::core::cpu::interrupts::{request_interrupt, InterruptFlags};
 use crate::flag_set;
 use crossbeam_channel::Sender;
 

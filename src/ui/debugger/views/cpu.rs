@@ -3,7 +3,7 @@ use eframe::egui;
 use egui::{Align, Grid, Layout, Slider, Ui};
 
 use super::super::utils::timedata::TimeData;
-use crate::cpu::{
+use crate::core::cpu::{
     cpu::{CPUFlags, CPURegisters},
     interrupts::InterruptFlags,
     CLOCK_SPEED,

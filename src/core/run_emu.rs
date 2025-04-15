@@ -1,9 +1,9 @@
-use crate::cpu::{CLOCK_SPEED, LR35902CPU};
+use super::cpu::{CLOCK_SPEED, LR35902CPU};
+use super::io::video::ppu::Vbuf;
+use super::io_event::{IOEvent, IOListener};
+use super::mem::bus::Bus;
+use super::playback::Playback;
 use crate::debugger::{Debugger, DebuggerCommand, EmuSnapshot};
-use crate::io::video::ppu::Vbuf;
-use crate::io_event::{IOEvent, IOListener};
-use crate::mem::bus::Bus;
-use crate::Playback;
 
 use std::backtrace::Backtrace;
 use std::panic;
@@ -16,8 +16,8 @@ use log::info;
 
 #[cfg(unix)]
 pub fn run_headless(mut cpu: LR35902CPU, video_channel_rc: Receiver<Vbuf>) {
-    use crate::io::video::ppu::{RESX, RESY};
-    use crate::utils::vbuf_snapshot;
+    use crate::core::io::video::ppu::{RESX, RESY};
+    use crate::core::utils::vbuf_snapshot;
     use log::info;
     use signal_hook::consts::SIGUSR1;
     use std::sync::{

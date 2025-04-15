@@ -1,5 +1,5 @@
 use super::{AddrMode, CPURegisterId};
-use crate::cpu::cpu::{CPUFlags, LR35902CPU};
+use crate::core::cpu::cpu::{CPUFlags, LR35902CPU};
 
 pub fn and(cpu: &mut LR35902CPU) -> u8 {
     let instr = cpu.current_instruction;

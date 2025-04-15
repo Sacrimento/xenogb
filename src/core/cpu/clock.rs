@@ -2,7 +2,7 @@ use std::time::{Duration, Instant};
 
 use log::warn;
 
-use crate::io::video::ppu::TICKS_PER_FRAME;
+use crate::core::io::video::ppu::TICKS_PER_FRAME;
 
 pub const CLOCK_SPEED: u32 = 4194304;
 

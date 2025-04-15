@@ -1,12 +1,12 @@
 use std::time::Instant;
 
 use super::clock::Clock;
-use crate::cpu::instructions::{stack::_push, CPURegisterId, Instruction, INSTRUCTIONS};
-use crate::cpu::interrupts::{InterruptFlags, INTERRUPT_ENABLE, INTERRUPT_FLAGS};
+use super::instructions::{stack::_push, CPURegisterId, Instruction, INSTRUCTIONS};
+use super::interrupts::{InterruptFlags, INTERRUPT_ENABLE, INTERRUPT_FLAGS};
+use crate::core::mem::bus::Bus;
 use crate::dbg::print_serial;
 use crate::debugger::{CpuMetricFields, CPU_METRICS};
 use crate::flag_set;
-use crate::mem::bus::Bus;
 
 #[allow(nonstandard_style)]
 pub mod CPUFlags {

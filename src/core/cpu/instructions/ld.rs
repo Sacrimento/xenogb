@@ -1,5 +1,5 @@
 use super::AddrMode;
-use crate::cpu::cpu::LR35902CPU;
+use crate::core::cpu::cpu::LR35902CPU;
 
 pub fn ldr(cpu: &mut LR35902CPU) -> u8 {
     let instr = cpu.current_instruction;
