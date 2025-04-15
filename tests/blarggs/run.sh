@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 
 PROJECT=xenogb
 
@@ -7,16 +7,24 @@ ROOT=$TEST_DIR/../..
 EXEC=$ROOT/target/debug/$PROJECT
 
 failed=0
+tests=""
 
 echo "# Run blargg's tests"
 for file in $TEST_DIR/roms/*; do
     test_case=$(basename $file)
-    if timeout --foreground 10 $EXEC --headless -s -c "$file" 2>&1 | grep -q "Passed"; then
-        echo "$test_case --- OK";
-    else
-        echo "$test_case --- FAILED";
-        failed=1;
-    fi
+    (timeout --foreground 10 $EXEC --headless -s -c "$file" 2>&1 | grep -q "Passed") &
+    tests+=" $test_case:$!"
 done;
+
+for t in $tests; do
+    c=$(echo $t | cut -d : -f 1)
+    p=$(echo $t | cut -d : -f 2)
+    if wait $p; then
+        echo "$c --- OK"
+    else
+        failed=1
+        echo "$c --- FAILED"
+    fi
+done
 
 exit $failed
