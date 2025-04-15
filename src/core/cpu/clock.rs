@@ -36,7 +36,7 @@ impl Clock {
             let elapsed = self.frame_start.elapsed();
             if self.frame_target_duration > elapsed {
                 std::thread::sleep(self.frame_target_duration - elapsed);
-            } else {
+            } else if self.frame_target_duration > Duration::ZERO {
                 let r = elapsed - self.frame_target_duration;
                 if r > Duration::from_millis(1) {
                     warn!("CPU is behind by {:?}!", r);

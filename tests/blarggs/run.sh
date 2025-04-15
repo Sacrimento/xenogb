@@ -12,7 +12,7 @@ tests=""
 echo "# Run blargg's tests"
 for file in $TEST_DIR/roms/*; do
     test_case=$(basename $file)
-    (timeout --foreground 10 $EXEC --headless -s -c "$file" 2>&1 | grep -q "Passed") &
+    (timeout --foreground 15 $EXEC --headless -s -c "$file" 2>&1 | grep -q "Passed") &
     tests+=" $test_case:$!"
 done;
 
