@@ -21,15 +21,17 @@ impl Timer {
     }
 
     pub fn tick(&mut self, cycles: u8) {
-        self.div = self.div.wrapping_add((cycles as u16) * 4);
+        for _ in 0..cycles {
+            self.div = self.div.wrapping_add(4);
 
-        let current_bit = self.div_bit();
+            let current_bit = self.div_bit();
 
-        if self.timer_enabled() && self.prev_div_bit && !current_bit {
-            self.inc_tima();
+            if self.timer_enabled() && self.prev_div_bit && !current_bit {
+                self.inc_tima();
+            }
+
+            self.prev_div_bit = current_bit;
         }
-
-        self.prev_div_bit = current_bit;
     }
 
     fn div_bit(&self) -> bool {
