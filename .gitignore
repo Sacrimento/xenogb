@@ -3,4 +3,5 @@
 /logs
 /**/*.xenogb
 /**/*.pgm
+/**/*.gbsave
 /**/vbuf_snapshot.png

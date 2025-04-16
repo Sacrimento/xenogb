@@ -20,18 +20,20 @@ impl Timer {
         }
     }
 
-    pub fn tick(&mut self, cycles: u8) {
-        for _ in 0..cycles {
-            self.div = self.div.wrapping_add(4);
+    pub fn tick(&mut self) -> bool {
+        let div_apu_bit = self.div_apu_bit();
+        self.div = self.div.wrapping_add(4);
+        let div_apu = div_apu_bit && !self.div_apu_bit();
 
-            let current_bit = self.div_bit();
+        let current_bit = self.div_bit();
 
-            if self.timer_enabled() && self.prev_div_bit && !current_bit {
-                self.inc_tima();
-            }
-
-            self.prev_div_bit = current_bit;
+        if self.timer_enabled() && self.prev_div_bit && !current_bit {
+            self.inc_tima();
         }
+
+        self.prev_div_bit = current_bit;
+
+        div_apu
     }
 
     fn div_bit(&self) -> bool {
@@ -43,6 +45,11 @@ impl Timer {
             _ => unreachable!(),
         };
         (self.div >> bit_idx) & 1 == 1
+    }
+
+    #[inline]
+    fn div_apu_bit(&self) -> bool {
+        (self.div >> 12) & 1 == 1
     }
 
     fn inc_tima(&mut self) {
