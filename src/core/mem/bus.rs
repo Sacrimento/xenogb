@@ -117,23 +117,21 @@ impl Bus {
         });
     }
 
-    pub fn dma_tick(&mut self, cycles: u8) {
+    pub fn dma_tick(&mut self) {
         if self.dma.is_none() {
             return;
         }
 
         let mut dma = self.dma.as_mut().unwrap().clone();
 
-        for _ in 0..cycles {
-            let value = self.read(dma.src);
-            self.write(dma.dest, value);
-            dma.src += 1;
-            dma.dest += 1;
+        let value = self.read(dma.src);
+        self.write(dma.dest, value);
+        dma.src += 1;
+        dma.dest += 1;
 
-            if dma.dest > 0xfe9f {
-                self.dma = None;
-                return;
-            }
+        if dma.dest > 0xfe9f {
+            self.dma = None;
+            return;
         }
 
         self.dma = Some(dma);

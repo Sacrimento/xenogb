@@ -114,9 +114,12 @@ impl LR35902CPU {
     pub fn step(&mut self) {
         let start = Instant::now();
         let cycles = self.tick();
-        self.bus.io.timer.tick(cycles);
-        self.bus.dma_tick(cycles);
-        self.bus.io.ppu.tick(cycles);
+        for _ in 0..cycles {
+            let div_apu = self.bus.io.timer.tick();
+            self.bus.dma_tick();
+            self.bus.io.ppu.tick();
+            self.bus.io.apu.tick(div_apu);
+        }
 
         CPU_METRICS.with_borrow_mut(|mh| {
             mh.mean_time(

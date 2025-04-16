@@ -1,0 +1,153 @@
+use log::warn;
+
+use crate::core::io::audio::{envelope::Envelope, length_counter::LengthCounter, sweep::Sweep};
+
+const DUTY_TABLE: [[u8; 8]; 4] = [
+    [0, 1, 0, 0, 0, 0, 0, 0], // 12.5%
+    [0, 1, 1, 0, 0, 0, 0, 0], // 25%
+    [0, 1, 1, 1, 1, 0, 0, 0], // 50%
+    [1, 0, 0, 1, 1, 1, 1, 1], // 75%
+];
+
+#[derive(Default)]
+pub struct PulseChannel {
+    enabled: bool,
+    div: u16,
+
+    sweep: Option<Sweep>,
+    pub envelope: Envelope,
+    length_counter: LengthCounter,
+
+    duty_idx: u8,
+    wave_duty: u8,
+    period: u16,
+}
+
+impl PulseChannel {
+    pub fn new(sweep: bool) -> Self {
+        let sweep = if sweep { Some(Sweep::default()) } else { None };
+
+        Self {
+            sweep,
+            envelope: Envelope::default(),
+            length_counter: LengthCounter::new(64),
+            ..Default::default()
+        }
+    }
+
+    pub fn tick(&mut self) {
+        self.div += 1;
+
+        if self.div >= 0x800 {
+            self.div = self.period;
+            self.duty_idx = (self.duty_idx + 1) % 8;
+        }
+    }
+
+    pub fn freq_sweep(&mut self) {
+        if self.sweep.as_ref().is_some_and(|s| s.enabled()) {
+            if let Some(p) = self.sweep.as_mut().unwrap().tick(self.period) {
+                self.period = p;
+
+                if self.period > 2047 {
+                    self.enabled = false;
+                }
+            }
+        }
+    }
+
+    pub fn tick_length_timer(&mut self) {
+        if self.length_counter.tick() {
+            self.enabled = false;
+        }
+    }
+
+    pub fn reset(&mut self) {
+        self.enabled = false;
+        self.div = 0;
+
+        self.duty_idx = 0;
+        self.wave_duty = 0;
+        self.period = 0;
+
+        self.envelope = Envelope::default();
+        self.length_counter.reset();
+
+        if let Some(sweep) = &mut self.sweep {
+            *sweep = Sweep::default();
+        }
+    }
+
+    pub fn output(&self) -> u8 {
+        if !self.enabled || self.period < 8 {
+            return 0;
+        }
+
+        let signal = DUTY_TABLE[self.wave_duty as usize][self.duty_idx as usize];
+        let volume = self.envelope.volume();
+
+        signal * volume
+    }
+
+    fn trigger(&mut self) {
+        self.envelope.trigger();
+        self.enabled = self.envelope.dac_enabled();
+
+        self.length_counter.trigger();
+
+        self.div = self.period;
+        self.duty_idx = 0;
+
+        if let Some(sweep) = &mut self.sweep {
+            if sweep.sweep(self.period) > 2047 {
+                self.enabled = false;
+            } else {
+                sweep.trigger();
+            }
+        }
+    }
+
+    pub fn enabled(&self) -> bool {
+        self.enabled
+    }
+
+    pub fn write(&mut self, addr: u16, value: u8) {
+        match addr {
+            0xff10 => self.sweep.as_mut().unwrap().set(value),
+            0xff11 | 0xff16 => {
+                self.length_counter.set(value & 0x3f);
+                self.wave_duty = (value >> 6) & 0x3;
+            }
+            0xff12 | 0xff17 => {
+                let prev_dac_enabled = self.envelope.dac_enabled();
+                self.envelope.set(value);
+                if prev_dac_enabled && !self.envelope.dac_enabled() {
+                    self.enabled = false;
+                }
+            }
+            0xff13 | 0xff18 => self.period = (self.period & 0x700) | value as u16,
+            0xff14 | 0xff19 => {
+                self.period = (self.period & 0xff) | ((value as u16 & 0x7) << 8);
+                self.length_counter.set_enabled(value & 0x40 == 0x40);
+                if (value >> 7) & 1 == 1 {
+                    self.trigger();
+                }
+            }
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn read(&self, addr: u16) -> u8 {
+        match addr {
+            0xff10 => self.sweep.as_ref().unwrap().get() | 0x80,
+            0xff11 | 0xff16 => (self.wave_duty << 6) | 0x3f,
+            0xff12 | 0xff17 => self.envelope.get(),
+            0xff13 | 0xff18 => {
+                warn!("PulseChannel: tried to read a write only value at 0x{addr:04X}");
+                0xff
+            }
+            0xff14 | 0xff19 => ((self.length_counter.enabled() as u8) << 6) | 0xbf,
+            _ => unreachable!(),
+        }
+    }
+}

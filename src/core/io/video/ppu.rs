@@ -129,12 +129,12 @@ impl PPU {
         self.vram[(addr - 0x8000) as usize]
     }
 
-    pub fn tick(&mut self, cycles: u8) {
+    pub fn tick(&mut self) {
         if !flag_set!(self.lcd.lcdc, LCDC_FLAGS::LCD_PPU_ENABLE) {
             return;
         }
 
-        for _ in 0..(cycles * 4) {
+        for _ in 0..4 {
             self.line_ticks += 1;
             match self.lcd.get_ppu_mode() {
                 PPUMode::HBlank => self.hblank(),
