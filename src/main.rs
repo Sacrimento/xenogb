@@ -7,7 +7,7 @@ use core::cpu::cpu::LR35902CPU;
 use core::mem::boot::BootRom;
 use core::mem::bus::Bus;
 use core::mem::cartridge::parse_cartridge;
-use core::run_emu::run_headless;
+use core::run_emu::{run_headless, StopCondition};
 use ui::run_ui;
 
 use chrono::Local;
@@ -27,6 +27,9 @@ struct Args {
 
     #[arg(long, default_value_t = false)]
     headless: bool,
+
+    #[arg(long, default_value = None)]
+    stop_condition: Option<StopCondition>,
 
     #[arg(short, long, default_value_t = false)]
     serial: bool,
@@ -77,6 +80,7 @@ fn main() -> Result<(), XenoGBError> {
         return Ok(run_headless(
             LR35902CPU::new(bus, args.serial, u32::MAX),
             video_channel_rc,
+            args.stop_condition,
         ));
     }
 

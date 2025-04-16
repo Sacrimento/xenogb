@@ -1,8 +1,11 @@
+use super::cpu::instructions::CPURegisterId;
 use super::cpu::{CLOCK_SPEED, LR35902CPU};
 use super::io::video::ppu::Vbuf;
 use super::io_event::{IOEvent, IOListener};
 use super::mem::bus::Bus;
 use super::playback::Playback;
+use crate::core::io::video::ppu::{RESX, RESY};
+use crate::core::utils::{dump_regs, vbuf_snapshot};
 use crate::debugger::{Debugger, DebuggerCommand, EmuSnapshot};
 
 use std::backtrace::Backtrace;
@@ -10,42 +13,71 @@ use std::panic;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
+use std::time::{Duration, Instant};
 
 use crossbeam_channel::{bounded, unbounded, Receiver, Sender};
 use log::info;
 
-#[cfg(unix)]
-pub fn run_headless(mut cpu: LR35902CPU, video_channel_rc: Receiver<Vbuf>) {
-    use crate::core::io::video::ppu::{RESX, RESY};
-    use crate::core::utils::vbuf_snapshot;
-    use log::info;
-    use signal_hook::consts::SIGUSR1;
-    use std::sync::{
-        atomic::{AtomicBool, Ordering},
-        Arc,
-    };
+#[derive(Clone, Debug, Copy)]
+pub enum StopCondition {
+    LDBB,
+    TIMER(u32),
+}
 
-    let usr1 = Arc::new(AtomicBool::new(false));
-    let mut last_frame: Vbuf = [0; RESX * RESY];
-    signal_hook::flag::register(SIGUSR1, Arc::clone(&usr1)).unwrap();
+impl std::str::FromStr for StopCondition {
+    type Err = String;
 
-    info!("Running in headless mode");
-
-    loop {
-        cpu.step();
-        if usr1.load(Ordering::Relaxed) {
-            vbuf_snapshot(last_frame);
-            return;
-        }
-        if let Ok(frame) = video_channel_rc.try_recv() {
-            last_frame = frame;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_ascii_uppercase().as_str() {
+            "LDBB" => Ok(Self::LDBB),
+            _ if s.to_ascii_uppercase().starts_with("TIMER") => {
+                let inner = s.trim_start_matches("TIMER(").trim_end_matches(')');
+                inner
+                    .parse::<u32>()
+                    .map(Self::TIMER)
+                    .map_err(|_| "Invalid TIMER value".into())
+            }
+            _ => Err("Invalid stop condition".into()),
         }
     }
 }
 
-#[cfg(windows)]
-pub fn run_headless(mut _cpu: LR35902CPU, _video_channel_rc: Receiver<Vbuf>) {
-    panic!("Running headless mode is not yet supported on windows")
+pub fn run_headless(
+    mut cpu: LR35902CPU,
+    video_channel_rc: Receiver<Vbuf>,
+    sc: Option<StopCondition>,
+) {
+    let mut last_frame: Vbuf = [0; RESX * RESY];
+    let start = Instant::now();
+
+    loop {
+        if let Some(condition) = sc {
+            match condition {
+                StopCondition::LDBB => {
+                    let instr = cpu.current_instruction;
+                    if instr.name == "LD"
+                        && matches!(instr.reg1, Some(CPURegisterId::B))
+                        && matches!(instr.reg2, Some(CPURegisterId::B))
+                    {
+                        dump_regs(&cpu);
+                        return vbuf_snapshot(last_frame);
+                    }
+                }
+                StopCondition::TIMER(secs) => {
+                    if start.elapsed() > Duration::from_secs(secs as u64) {
+                        dump_regs(&cpu);
+                        return vbuf_snapshot(last_frame);
+                    }
+                }
+            }
+        }
+
+        cpu.step();
+
+        if let Ok(frame) = video_channel_rc.try_recv() {
+            last_frame = frame;
+        }
+    }
 }
 
 fn run(
