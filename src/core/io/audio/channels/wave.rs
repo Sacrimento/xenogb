@@ -75,14 +75,20 @@ impl WaveChannel {
         self.enabled
     }
 
-    fn trigger(&mut self) {
+    fn trigger(&mut self, div_apu: u8) {
         self.enabled = self.dac_enabled;
-        self.length_counter.trigger();
+
+        if self.length_counter.trigger() && div_apu % 2 == 0 {
+            if self.length_counter.tick() {
+                self.enabled = false;
+            }
+        }
+
         self.div = self.period;
         self.wave_ram_idx = 1;
     }
 
-    pub fn write(&mut self, addr: u16, value: u8) {
+    pub fn write(&mut self, addr: u16, value: u8, div_apu: u8) {
         match addr {
             0xff1a => {
                 let prev_dac_enabled = self.dac_enabled;
@@ -95,10 +101,23 @@ impl WaveChannel {
             0xff1c => self.volume = (value >> 5) & 0b11,
             0xff1d => self.period = (self.period & 0x700) | value as u16,
             0xff1e => {
-                self.period = (self.period & 0xff) | ((value as u16) << 8);
+                let lc_enabled = self.length_counter.enabled();
+
                 self.length_counter.set_enabled(value & 0x40 == 0x40);
+                if !lc_enabled
+                    && self.length_counter.enabled()
+                    && div_apu % 2 == 0
+                    && self.length_counter.value > 0
+                {
+                    if self.length_counter.tick() {
+                        self.enabled = false;
+                    }
+                }
+
+                self.period = (self.period & 0xff) | ((value as u16) << 8);
+
                 if (value >> 7) & 1 == 1 {
-                    self.trigger()
+                    self.trigger(div_apu);
                 }
             }
             0xff30..=0xff3f => self.wave_ram[addr as usize - 0xff30] = value,

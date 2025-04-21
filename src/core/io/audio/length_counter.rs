@@ -19,6 +19,7 @@ impl LengthCounter {
     }
 
     pub fn tick(&mut self) -> bool {
+        // Returns wether the parent channel should be disabled
         if self.enabled && self.value > 0 {
             self.value -= 1;
             if self.value == 0 {
@@ -28,10 +29,13 @@ impl LengthCounter {
         return false;
     }
 
-    pub fn trigger(&mut self) {
+    pub fn trigger(&mut self) -> bool {
+        // Returns wether the length counter was "unfrozen"
         if self.value == 0 {
             self.value = self.max;
+            return self.enabled;
         }
+        false
     }
 
     pub fn set_enabled(&mut self, enabled: bool) {

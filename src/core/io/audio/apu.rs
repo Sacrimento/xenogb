@@ -112,10 +112,10 @@ impl APU {
         }
 
         match addr {
-            0xff10..=0xff14 => self.channel1.write(addr, value),
-            0xff16..=0xff19 => self.channel2.write(addr, value),
-            0xff1a..=0xff1e => self.channel3.write(addr, value),
-            0xff20..=0xff23 => self.channel4.write(addr, value),
+            0xff10..=0xff14 => self.channel1.write(addr, value, self.div_apu),
+            0xff16..=0xff19 => self.channel2.write(addr, value, self.div_apu),
+            0xff1a..=0xff1e => self.channel3.write(addr, value, self.div_apu),
+            0xff20..=0xff23 => self.channel4.write(addr, value, self.div_apu),
             0xff24 => self.master_volume = value,
             0xff25 => self.panning = value,
             0xff26 => {
@@ -125,7 +125,7 @@ impl APU {
                     self.reset();
                 }
             }
-            0xff30..=0xff3f => self.channel3.write(addr, value),
+            0xff30..=0xff3f => self.channel3.write(addr, value, self.div_apu),
             _ => warn!("apu.write: unhandled address 0x{addr:04X}"),
         }
     }

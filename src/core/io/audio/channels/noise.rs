@@ -76,13 +76,17 @@ impl NoiseChannel {
         self.enabled
     }
 
-    fn trigger(&mut self) {
+    fn trigger(&mut self, div_apu: u8) {
         self.envelope.trigger();
         self.enabled = self.envelope.dac_enabled();
 
         self.lfsr = 0x7fff;
 
-        self.length_counter.trigger();
+        if self.length_counter.trigger() && div_apu % 2 == 0 {
+            if self.length_counter.tick() {
+                self.enabled = false;
+            }
+        }
 
         self.div = self.period();
     }
@@ -96,7 +100,7 @@ impl NoiseChannel {
         divisor << self.clock_shift
     }
 
-    pub fn write(&mut self, addr: u16, value: u8) {
+    pub fn write(&mut self, addr: u16, value: u8, div_apu: u8) {
         match addr {
             0xff20 => self.length_counter.set(value & 0x3f),
             0xff21 => {
@@ -112,9 +116,21 @@ impl NoiseChannel {
                 self.clock_shift = (value >> 4) & 0xf;
             }
             0xff23 => {
+                let lc_enabled = self.length_counter.enabled();
+
                 self.length_counter.set_enabled(value & 0x40 == 0x40);
+                if !lc_enabled
+                    && self.length_counter.enabled()
+                    && div_apu % 2 == 0
+                    && self.length_counter.value > 0
+                {
+                    if self.length_counter.tick() {
+                        self.enabled = false;
+                    }
+                }
+
                 if (value >> 7) & 0x1 == 1 {
-                    self.trigger();
+                    self.trigger(div_apu);
                 }
             }
             _ => unreachable!(),

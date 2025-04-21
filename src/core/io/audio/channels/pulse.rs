@@ -89,11 +89,15 @@ impl PulseChannel {
         signal * volume
     }
 
-    fn trigger(&mut self) {
+    fn trigger(&mut self, div_apu: u8) {
         self.envelope.trigger();
         self.enabled = self.envelope.dac_enabled();
 
-        self.length_counter.trigger();
+        if self.length_counter.trigger() && div_apu % 2 == 0 {
+            if self.length_counter.tick() {
+                self.enabled = false;
+            }
+        }
 
         self.div = self.period;
         self.duty_idx = 0;
@@ -111,7 +115,7 @@ impl PulseChannel {
         self.enabled
     }
 
-    pub fn write(&mut self, addr: u16, value: u8) {
+    pub fn write(&mut self, addr: u16, value: u8, div_apu: u8) {
         match addr {
             0xff10 => self.sweep.as_mut().unwrap().set(value),
             0xff11 | 0xff16 => {
@@ -127,10 +131,22 @@ impl PulseChannel {
             }
             0xff13 | 0xff18 => self.period = (self.period & 0x700) | value as u16,
             0xff14 | 0xff19 => {
-                self.period = (self.period & 0xff) | ((value as u16 & 0x7) << 8);
+                let lc_enabled = self.length_counter.enabled();
+
                 self.length_counter.set_enabled(value & 0x40 == 0x40);
+                if !lc_enabled
+                    && self.length_counter.enabled()
+                    && div_apu % 2 == 0
+                    && self.length_counter.value > 0
+                {
+                    if self.length_counter.tick() {
+                        self.enabled = false;
+                    }
+                }
+
+                self.period = (self.period & 0xff) | ((value as u16 & 0x7) << 8);
                 if (value >> 7) & 1 == 1 {
-                    self.trigger();
+                    self.trigger(div_apu);
                 }
             }
             _ => unreachable!(),
