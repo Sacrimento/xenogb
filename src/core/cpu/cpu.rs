@@ -118,7 +118,7 @@ impl LR35902CPU {
             let div_apu = self.bus.io.timer.tick();
             self.bus.dma_tick();
             self.bus.io.ppu.tick();
-            self.bus.io.apu.tick(div_apu);
+            // self.bus.io.apu.tick(div_apu);
         }
 
         CPU_METRICS.with_borrow_mut(|mh| {

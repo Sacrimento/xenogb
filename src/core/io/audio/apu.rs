@@ -69,7 +69,7 @@ impl APU {
     }
 
     pub fn read(&self, addr: u16) -> u8 {
-        let v = match addr {
+        match addr {
             0xff10..=0xff14 => self.channel1.read(addr),
             0xff16..=0xff19 => self.channel2.read(addr),
             0xff1a..=0xff1e => self.channel3.read(addr),
@@ -92,21 +92,10 @@ impl APU {
                 warn!("apu.write: unhandled address 0x{addr:04X}");
                 0xff
             }
-        };
-
-        println!(
-            "READ {addr:04X} GOT {v:02X} (APU {})",
-            if self.enabled() { "ON" } else { "OFF" }
-        );
-        v
+        }
     }
 
     pub fn write(&mut self, addr: u16, value: u8) {
-        println!(
-            "WRITE {addr:04X} = {value:02X} (APU {})",
-            if self.enabled() { "ON" } else { "OFF" }
-        );
-
         if !self.enabled() && !matches!(addr, 0xff20 | 0xff26 | 0xff30..=0xff3f) {
             return;
         }
