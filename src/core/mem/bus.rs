@@ -100,9 +100,7 @@ impl Bus {
             0xff00..=0xff7f => self.io.write(addr, value),
             0xff80..=0xfffe => self.ram.write(addr, value),
             0xffff => INTERRUPT_ENABLE.set(value),
-            _ => {
-                warn!("bus.write: unhandled address 0x{addr:04X}");
-            }
+            _ => warn!("bus.write: unhandled address 0x{addr:04X}"),
         }
     }
 

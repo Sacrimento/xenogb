@@ -1,6 +1,10 @@
 use log::warn;
 
-use crate::core::io::audio::{envelope::Envelope, length_counter::LengthCounter, sweep::Sweep};
+use crate::core::io::audio::{
+    envelope::Envelope,
+    length_counter::LengthCounter,
+    sweep::{FreqOverflow, Sweep},
+};
 
 const DUTY_TABLE: [[u8; 8]; 4] = [
     [0, 1, 0, 0, 0, 0, 0, 0], // 12.5%
@@ -46,12 +50,10 @@ impl PulseChannel {
 
     pub fn freq_sweep(&mut self) {
         if self.sweep.as_ref().is_some_and(|s| s.enabled()) {
-            if let Some(p) = self.sweep.as_mut().unwrap().tick(self.period) {
-                self.period = p;
-
-                if self.period > 2047 {
-                    self.enabled = false;
-                }
+            match self.sweep.as_mut().unwrap().tick() {
+                Ok(None) => (),
+                Ok(Some(p)) => self.period = p,
+                Err(FreqOverflow) => self.enabled = false,
             }
         }
     }
@@ -103,11 +105,15 @@ impl PulseChannel {
         self.duty_idx = 0;
 
         if let Some(sweep) = &mut self.sweep {
-            if sweep.sweep(self.period) > 2047 {
+            println!("{}", self.period);
+            if sweep.trigger(self.period).is_err() {
                 self.enabled = false;
-            } else {
-                sweep.trigger();
             }
+
+            // // Perform overflow check a second time
+            // if sweep.check_freq_overflow().is_err() {
+            //     self.enabled = false;
+            // }
         }
     }
 

@@ -4,8 +4,14 @@ pub struct Sweep {
     direction: u8,
     step: u8,
 
+    shadow: u16,
+    enabled: bool,
+
     count: u8,
 }
+
+#[derive(Debug)]
+pub struct FreqOverflow;
 
 impl Sweep {
     pub fn set(&mut self, value: u8) {
@@ -18,40 +24,53 @@ impl Sweep {
         (self.pace << 4) | (self.direction << 3) | self.step
     }
 
-    pub fn tick(&mut self, period: u16) -> Option<u16> {
+    pub fn tick(&mut self) -> Result<Option<u16>, FreqOverflow> {
         if !self.enabled() || self.pace == 0 {
-            return None;
+            return Ok(None);
         }
 
         self.count += 1;
 
         if self.count == self.pace {
             self.count = 0;
-            return Some(self.sweep(period));
+
+            let new = self.check_freq_overflow()?;
+            self.shadow = new;
+            return Ok(Some(new));
         }
-        None
+        Ok(None)
     }
 
-    pub fn sweep(&mut self, period: u16) -> u16 {
-        let delta = period >> self.step;
-        let result = if self.direction == 1 {
-            period + delta
-        } else {
-            period.saturating_sub(delta)
-        };
+    pub fn check_freq_overflow(&self) -> Result<u16, FreqOverflow> {
+        let new = self.sweep();
 
-        if result > 0x7ff {
-            0x800
+        if new > 0x7ff {
+            return Err(FreqOverflow);
+        }
+        Ok(new)
+    }
+
+    pub fn sweep(&self) -> u16 {
+        let delta = self.shadow >> self.step;
+        if self.direction == 1 {
+            self.shadow + delta
         } else {
-            result
+            self.shadow.saturating_sub(delta)
         }
     }
 
-    pub fn trigger(&mut self) {
+    pub fn trigger(&mut self, period: u16) -> Result<(), FreqOverflow> {
         self.count = 0;
+        self.shadow = period;
+        self.enabled = self.step != 0 || self.pace != 0;
+
+        if self.step > 0 {
+            self.check_freq_overflow()?;
+        }
+        Ok(())
     }
 
     pub fn enabled(&self) -> bool {
-        self.step != 0 || self.pace != 0
+        self.enabled
     }
 }
