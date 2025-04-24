@@ -75,12 +75,11 @@ impl ReplUi {
             ui.input(|i| {
                 if i.key_pressed(Key::Enter) {
                     self.repl_out.push(format!("> {}", self.repl.cmd));
-                    match self.repl.exec() {
-                        Ok(_) => (),
-                        Err(_) => self.repl_out.push(format!(
+                    if let Some(_) = self.repl.exec().err() {
+                        self.repl_out.push(format!(
                             "Invalid command: {}\nUse help to show available commands",
                             self.repl.cmd
-                        )),
+                        ));
                     }
                 }
                 if i.key_pressed(Key::ArrowUp) {

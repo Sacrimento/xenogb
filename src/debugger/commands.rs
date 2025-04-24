@@ -1,6 +1,33 @@
 use super::{Debugger, CPU_METRICS};
+use crate::core::cpu::{instructions::CPURegisterId, LR35902CPU};
 
 use log::info;
+
+#[derive(Clone, Copy, Debug, Default)]
+pub struct DynAddr {
+    addr: Option<u16>,
+    reg: Option<CPURegisterId>,
+}
+
+impl DynAddr {
+    pub fn new(addr: Option<u16>, reg: Option<CPURegisterId>) -> Self {
+        Self { addr, reg }
+    }
+
+    pub fn resolve(&self, cpu: &LR35902CPU) -> u16 {
+        if let Some(addr) = self.addr {
+            return addr;
+        }
+
+        if let Some(reg) = &self.reg {
+            if reg > &CPURegisterId::L {
+                return cpu.get_register16(reg);
+            }
+            return cpu.get_register(reg) as u16;
+        }
+        0
+    }
+}
 
 #[allow(nonstandard_style)]
 #[derive(Debug)]
@@ -11,7 +38,7 @@ pub enum DebuggerCommand {
 
     STEP,
     CONTINUE,
-    BREAKPOINT(u16),
+    BREAKPOINT(DynAddr),
 }
 
 impl Debugger {

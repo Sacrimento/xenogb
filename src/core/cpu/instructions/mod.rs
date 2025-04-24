@@ -45,7 +45,7 @@ pub enum CondType {
     C,
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, PartialOrd, Clone, Copy, Debug)]
 pub enum CPURegisterId {
     A,
     F,

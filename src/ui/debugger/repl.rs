@@ -3,28 +3,51 @@ use std::str::FromStr;
 use clap::{error::ErrorKind, Error, Parser};
 use crossbeam_channel::Sender;
 
-use crate::debugger::DebuggerCommand;
+use crate::core::cpu::instructions::CPURegisterId;
+use crate::debugger::{DebuggerCommand, DynAddr};
 
-#[derive(Clone, Copy, Debug)]
-struct ReplAddr(u16);
-
-impl FromStr for ReplAddr {
+impl FromStr for CPURegisterId {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if let Some(_) = s.strip_prefix("$") {
-            // Registers
-            todo!()
+        match s.to_uppercase().as_str() {
+            "A" => Ok(Self::A),
+            "F" => Ok(Self::F),
+            "B" => Ok(Self::B),
+            "C" => Ok(Self::C),
+            "D" => Ok(Self::D),
+            "E" => Ok(Self::E),
+            "H" => Ok(Self::H),
+            "L" => Ok(Self::L),
+            "AF" => Ok(Self::AF),
+            "BC" => Ok(Self::BC),
+            "DE" => Ok(Self::DE),
+            "HL" => Ok(Self::HL),
+            "SP" => Ok(Self::SP),
+            "PC" => Ok(Self::PC),
+            _ => Err(Error::new(ErrorKind::ValueValidation)),
+        }
+    }
+}
+
+impl FromStr for DynAddr {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if let Some(reg) = s.strip_prefix("$") {
+            return Ok(Self::new(None, Some(CPURegisterId::from_str(reg)?)));
         }
 
         if let Some(s) = s.strip_prefix("0x") {
-            return Ok(Self(
-                u16::from_str_radix(s, 16).map_err(|_| Error::new(ErrorKind::InvalidValue))?,
+            return Ok(Self::new(
+                Some(u16::from_str_radix(s, 16).map_err(|_| Error::new(ErrorKind::InvalidValue))?),
+                None,
             ));
         }
 
-        Ok(Self(
-            u16::from_str_radix(s, 10).map_err(|_| Error::new(ErrorKind::InvalidValue))?,
+        Ok(Self::new(
+            Some(u16::from_str_radix(s, 10).map_err(|_| Error::new(ErrorKind::InvalidValue))?),
+            None,
         ))
     }
 }
@@ -84,7 +107,7 @@ enum ReplCommand {
     Continue,
     Run,
     Step,
-    Breakpoint { addr: ReplAddr },
+    Breakpoint { addr: DynAddr },
 }
 
 pub struct Repl {
@@ -110,9 +133,7 @@ impl Repl {
             }
             ReplCommand::Step => self.sender.send(DebuggerCommand::STEP).unwrap(),
             ReplCommand::Breakpoint { addr } => {
-                self.sender
-                    .send(DebuggerCommand::BREAKPOINT(addr.0))
-                    .unwrap();
+                self.sender.send(DebuggerCommand::BREAKPOINT(addr)).unwrap();
             }
         }
 

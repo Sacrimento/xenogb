@@ -2,7 +2,7 @@ use super::metrics::{CpuMetrics, MetricsHandler};
 use super::state::EmuSnapshot;
 use super::{commands::DebuggerCommand, state::CpuState};
 use crossbeam_channel::{Receiver, Sender};
-use log::info;
+
 use std::time::Duration;
 
 use crate::core::cpu::cpu::LR35902CPU;
@@ -54,7 +54,7 @@ impl Debugger {
                         self.do_step = true;
                     }
                 }
-                DebuggerCommand::BREAKPOINT(addr) => self.breakpoint(addr),
+                DebuggerCommand::BREAKPOINT(addr) => self.breakpoint(addr.resolve(cpu)),
             }
         }
     }
