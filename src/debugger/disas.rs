@@ -168,7 +168,7 @@ fn disas_at(cpu: &LR35902CPU, addr: u16) -> (u16, GbAsm) {
             1,
             GbAsm {
                 addr,
-                asm: format!("{opcode:02X}"),
+                asm: String::from("??"),
             },
         );
     }
