@@ -5,16 +5,15 @@ mod ld;
 mod misc;
 pub mod stack;
 
+use crate::core::cpu::cpu::LR35902CPU;
 use arithmetics::*;
 use bit::*;
 use control::*;
 use ld::*;
 use misc::*;
-use phf::phf_map;
 use stack::*;
-use std::fmt;
 
-use crate::core::cpu::cpu::LR35902CPU;
+use phf::phf_map;
 
 #[allow(nonstandard_style)]
 pub enum AddrMode {
@@ -39,7 +38,7 @@ pub enum AddrMode {
     SIMM,
 }
 
-enum CondType {
+pub enum CondType {
     Nz,
     Z,
     Nc,
@@ -64,34 +63,13 @@ pub enum CPURegisterId {
     SP,
 }
 
-impl fmt::Display for CPURegisterId {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            CPURegisterId::A => write!(f, "A"),
-            CPURegisterId::F => write!(f, "F"),
-            CPURegisterId::B => write!(f, "B"),
-            CPURegisterId::C => write!(f, "C"),
-            CPURegisterId::D => write!(f, "D"),
-            CPURegisterId::E => write!(f, "E"),
-            CPURegisterId::H => write!(f, "H"),
-            CPURegisterId::L => write!(f, "L"),
-            CPURegisterId::PC => write!(f, "PC"),
-            CPURegisterId::SP => write!(f, "SP"),
-            CPURegisterId::AF => write!(f, "AF"),
-            CPURegisterId::BC => write!(f, "BC"),
-            CPURegisterId::DE => write!(f, "DE"),
-            CPURegisterId::HL => write!(f, "HL"),
-        }
-    }
-}
-
 type FnType = fn(&mut LR35902CPU) -> u8;
 
 pub struct Instruction {
     pub name: &'static str,
     pub addr_mode: AddrMode,
     pub func: FnType,
-    condition: Option<CondType>,
+    pub condition: Option<CondType>,
     pub reg1: Option<CPURegisterId>,
     pub reg2: Option<CPURegisterId>,
 }

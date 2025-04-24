@@ -1,5 +1,6 @@
 mod commands;
 mod debugger;
+mod disas;
 mod metrics;
 mod state;
 

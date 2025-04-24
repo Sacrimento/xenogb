@@ -15,6 +15,7 @@ impl DebuggerUi {
                     .frame(egui::Frame::NONE)
                     .show(ctx, |ui| {
                         let mut behavior = Behavior {
+                            repl: &mut self.repl,
                             vram: &mut self.vram,
                             cpu: &mut self.cpu,
                         };

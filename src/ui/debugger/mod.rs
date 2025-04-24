@@ -1,4 +1,5 @@
 pub mod debugger;
+mod repl;
 mod utils;
 pub mod views;
 

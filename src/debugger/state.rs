@@ -1,3 +1,4 @@
+use super::disas::{disas, GbAsm};
 use super::metrics::{CpuMetrics, MetricsExport};
 use super::CPU_METRICS;
 use crate::core::cpu::cpu::{CPURegisters, LR35902CPU};
@@ -6,6 +7,7 @@ use crate::core::cpu::interrupts::{INTERRUPT_ENABLE, INTERRUPT_FLAGS};
 pub struct EmuSnapshot {
     pub vram: [u8; 0x2000],
     pub cpu: CpuState,
+    pub breakpoints: Vec<u16>,
 }
 
 pub struct InterruptState {
@@ -19,6 +21,7 @@ pub struct CpuState {
     pub halt: bool,
     pub interrupts: InterruptState,
     pub metrics: MetricsExport<CpuMetrics>,
+    pub disas: Vec<GbAsm>,
 }
 
 impl CpuState {
@@ -32,6 +35,7 @@ impl CpuState {
                 interrupts: INTERRUPT_FLAGS.get(),
             },
             metrics: CPU_METRICS.with_borrow(|mh| mh.export()),
+            disas: disas(cpu, 30),
         }
     }
 }

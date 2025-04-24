@@ -13,10 +13,13 @@ thread_local! {
 }
 
 pub struct Debugger {
-    enabled: bool,
+    pub enabled: bool,
 
-    // stepping: bool,
-    // breakpoints: Vec<u16>,
+    pub breakpoints: Vec<u16>,
+    pub stepping: bool,
+    do_step: bool,
+    resume: bool,
+
     ui_commands_rc: Receiver<DebuggerCommand>,
     dbg_data_sd: Sender<EmuSnapshot>,
 }
@@ -31,8 +34,10 @@ impl Debugger {
 
         Self {
             enabled,
-            // stepping: false,
-            // breakpoints: vec![],
+            stepping: enabled,
+            do_step: false,
+            resume: false,
+            breakpoints: vec![],
             ui_commands_rc,
             dbg_data_sd,
         }
@@ -43,15 +48,15 @@ impl Debugger {
             match event {
                 DebuggerCommand::ENABLED(enabled) => self.set_enabled(enabled),
                 DebuggerCommand::CPU_CLOCK(clock_speed) => cpu.clock.set_speed(clock_speed),
+                DebuggerCommand::CONTINUE => self.resume = true,
+                DebuggerCommand::STEP => {
+                    if self.stepping {
+                        self.do_step = true;
+                    }
+                }
+                DebuggerCommand::BREAKPOINT(addr) => self.breakpoint(addr),
             }
         }
-    }
-
-    fn set_enabled(&mut self, enabled: bool) {
-        info!("Debugger is now enabled:{enabled}");
-        self.enabled = enabled;
-
-        CPU_METRICS.with_borrow_mut(|mh| mh.set_enabled(enabled));
     }
 
     pub fn collect(&self, cpu: &LR35902CPU) {
@@ -68,6 +73,7 @@ impl Debugger {
         let state = EmuSnapshot {
             vram: cpu.bus.io.ppu.vram.clone(),
             cpu: CpuState::new(cpu),
+            breakpoints: self.breakpoints.clone(),
         };
 
         self.dbg_data_sd
@@ -75,12 +81,29 @@ impl Debugger {
             .expect("Failed to send emulation state");
     }
 
-    pub fn cpu_should_step(&mut self, _cpu: &LR35902CPU) -> bool {
+    pub fn cpu_should_step(&mut self, cpu: &LR35902CPU) -> bool {
         if !self.enabled {
             return true;
         }
 
-        // Stepping conditions, breakpoints, etc
+        if self.resume {
+            self.resume = false;
+            self.stepping = false;
+            return true;
+        }
+
+        if self.stepping {
+            if self.do_step {
+                self.do_step = false;
+                return true;
+            }
+            return false;
+        }
+
+        if self.breakpoints.contains(&cpu.pc()) {
+            self.stepping = true;
+            return false;
+        }
 
         return true;
     }
