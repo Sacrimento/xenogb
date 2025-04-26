@@ -7,6 +7,16 @@ pub struct MetricsExport<T> {
     pub metrics: T,
 }
 
+impl<T: Default> Default for MetricsExport<T> {
+    fn default() -> Self {
+        Self {
+            at: Instant::now(),
+            duration: Duration::ZERO,
+            metrics: T::default(),
+        }
+    }
+}
+
 impl<T> MetricsExport<T> {
     pub fn new(interval: Duration, metrics: T) -> Self {
         Self {

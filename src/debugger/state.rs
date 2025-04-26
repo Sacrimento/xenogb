@@ -3,19 +3,34 @@ use super::metrics::{CpuMetrics, MetricsExport};
 use super::CPU_METRICS;
 use crate::core::cpu::cpu::{CPURegisters, LR35902CPU};
 use crate::core::cpu::interrupts::{INTERRUPT_ENABLE, INTERRUPT_FLAGS};
+use crate::core::run_emu::EmuCrash;
 
 pub struct EmuSnapshot {
     pub vram: [u8; 0x2000],
     pub cpu: CpuState,
     pub breakpoints: Vec<u16>,
+    pub crash: Option<EmuCrash>,
 }
 
+impl Default for EmuSnapshot {
+    fn default() -> Self {
+        Self {
+            vram: [0; 0x2000],
+            cpu: CpuState::default(),
+            breakpoints: Vec::new(),
+            crash: None,
+        }
+    }
+}
+
+#[derive(Default)]
 pub struct InterruptState {
     pub int_master: bool,
     pub int_enable: u8,
     pub interrupts: u8,
 }
 
+#[derive(Default)]
 pub struct CpuState {
     pub registers: CPURegisters,
     pub halt: bool,
@@ -25,7 +40,7 @@ pub struct CpuState {
 }
 
 impl CpuState {
-    pub fn new(cpu: &LR35902CPU) -> Self {
+    pub fn new(cpu: &LR35902CPU, last_pc: u16) -> Self {
         Self {
             registers: cpu.registers.clone(),
             halt: cpu.halt,
@@ -35,7 +50,7 @@ impl CpuState {
                 interrupts: INTERRUPT_FLAGS.get(),
             },
             metrics: CPU_METRICS.with_borrow(|mh| mh.export()),
-            disas: disas(cpu, 30),
+            disas: disas(cpu, last_pc, 30),
         }
     }
 }

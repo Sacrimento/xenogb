@@ -115,6 +115,8 @@ pub struct Repl {
 
     pub cmd: String,
     history: ReplHistory,
+
+    pub emu_died: bool,
 }
 
 impl Repl {
@@ -123,11 +125,19 @@ impl Repl {
             sender,
             history: ReplHistory::new(),
             cmd: String::new(),
+            emu_died: false,
         }
     }
 
-    pub fn exec(&mut self) -> Result<String, Error> {
-        match ReplCommand::try_parse_from(self.cmd.trim().split_whitespace())? {
+    pub fn exec(&mut self) -> Result<(), Error> {
+        let cmd = self.cmd.clone();
+        self.cmd.clear();
+
+        if self.emu_died {
+            return Err(Error::new(ErrorKind::ValueValidation));
+        }
+
+        match ReplCommand::try_parse_from(cmd.trim().split_whitespace())? {
             ReplCommand::Run | ReplCommand::Continue => {
                 self.sender.send(DebuggerCommand::CONTINUE).unwrap()
             }
@@ -137,11 +147,9 @@ impl Repl {
             }
         }
 
-        self.history.push(self.cmd.clone());
+        self.history.push(cmd);
 
-        self.cmd.clear();
-
-        Ok(self.history.history.last().unwrap().clone())
+        Ok(())
     }
 
     pub fn history_next(&mut self) {

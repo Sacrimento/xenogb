@@ -186,11 +186,20 @@ fn disas_at(cpu: &LR35902CPU, addr: u16) -> (u16, GbAsm) {
     )
 }
 
-pub fn disas(cpu: &LR35902CPU, size: usize) -> Vec<GbAsm> {
+pub fn disas(cpu: &LR35902CPU, mut addr: u16, size: usize) -> Vec<GbAsm> {
     let mut ret = Vec::with_capacity(size);
-    let mut addr = cpu.pc();
 
-    for _ in 0..size {
+    let mut start = 0;
+
+    if addr != cpu.pc() {
+        let (_, asm) = disas_at(cpu, addr);
+        ret.push(asm);
+        addr = cpu.pc();
+
+        start = 1;
+    }
+
+    for _ in start..size {
         let (instr_size, asm) = disas_at(cpu, addr);
         addr += instr_size;
 

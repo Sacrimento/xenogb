@@ -90,6 +90,10 @@ impl XenoGBUI {
 
 impl eframe::App for XenoGBUI {
     fn update(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
+        if self.debugger.enabled {
+            self.debugger.ui(ctx);
+        }
+
         if self.emu_state.is_dead() {
             return self.bsod_ui(ctx);
         }
@@ -130,10 +134,6 @@ impl eframe::App for XenoGBUI {
                 .maintain_aspect_ratio(true);
             ui.add(screen);
         });
-
-        if self.debugger.enabled {
-            self.debugger.ui(ctx);
-        }
 
         ctx.request_repaint();
     }

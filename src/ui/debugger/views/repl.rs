@@ -1,8 +1,11 @@
 use crossbeam_channel::{Receiver, Sender};
-use eframe::egui::{self, Color32};
-use egui::{Align, CentralPanel, Key, Layout, RichText, ScrollArea, SidePanel, TextEdit, Ui};
+use eframe::egui;
+use egui::{
+    Align, CentralPanel, Color32, Key, Layout, RichText, ScrollArea, SidePanel, TextEdit, Ui,
+};
 
-use crate::debugger::{CpuState, DebuggerCommand, EmuSnapshot};
+use crate::core::run_emu::EmuCrash;
+use crate::debugger::{DebuggerCommand, EmuSnapshot, GbAsm};
 use crate::ui::debugger::repl::Repl;
 
 pub struct ReplUi {
@@ -10,6 +13,10 @@ pub struct ReplUi {
 
     repl: Repl,
     repl_out: Vec<String>,
+
+    emu_crash: Option<EmuCrash>,
+
+    last_state: EmuSnapshot,
 }
 
 impl ReplUi {
@@ -23,30 +30,36 @@ impl ReplUi {
             dbg_data_rc,
             repl,
             repl_out: vec![],
+            emu_crash: None,
+            last_state: EmuSnapshot::default(),
         }
     }
 
     pub fn ui(&mut self, ui: &mut Ui) {
-        let cpu_data: CpuState;
-        let bp: Vec<u16>;
-
         if let Ok(data) = self.dbg_data_rc.try_recv() {
-            cpu_data = data.cpu;
-            bp = data.breakpoints;
-        } else {
-            return;
+            if let Some(crash) = &data.crash {
+                self.emu_died(&crash);
+            }
+            self.last_state = data;
         }
 
         SidePanel::right("data-panel")
             .min_width(200.0)
             .resizable(false)
             .show(ui.ctx(), |ui| {
-                self.disas_ui(ui, &cpu_data, bp);
+                self.disas_ui(ui);
             });
 
         CentralPanel::default().show(ui.ctx(), |ui| {
             self.repl_ui(ui);
         });
+    }
+
+    pub fn emu_died(&mut self, crash: &EmuCrash) {
+        self.repl_out
+            .push(format!("Emulator crashed at 0x{:04X}", crash.addr));
+        self.emu_crash = Some(crash.clone());
+        self.repl.emu_died = true;
     }
 
     fn repl_ui(&mut self, ui: &mut Ui) {
@@ -73,7 +86,7 @@ impl ReplUi {
                 res.response.request_focus();
             }
             ui.input(|i| {
-                if i.key_pressed(Key::Enter) {
+                if i.key_pressed(Key::Enter) && !self.repl.cmd.is_empty() {
                     self.repl_out.push(format!("> {}", self.repl.cmd));
                     if let Some(_) = self.repl.exec().err() {
                         self.repl_out.push(format!(
@@ -92,29 +105,48 @@ impl ReplUi {
         });
     }
 
-    fn disas_ui(&self, ui: &mut Ui, cpu_data: &CpuState, breakpoints: Vec<u16>) {
-        ui.vertical(|ui| {
-            for asm in &cpu_data.disas {
-                if breakpoints.contains(&cpu_data.registers.pc) && cpu_data.registers.pc == asm.addr
-                {
-                    ui.label(
-                        RichText::new(format!("{:04X} >>> {}", asm.addr, asm.asm))
-                            .monospace()
-                            .strong(),
-                    );
-                } else {
-                    let mut modifier = "   ";
+    fn asm_ui(&self, ui: &mut Ui, asm: &GbAsm) {
+        let cpu = &self.last_state.cpu;
+        let bp = &self.last_state.breakpoints;
 
-                    if cpu_data.registers.pc == asm.addr {
-                        modifier = " > ";
-                    } else if breakpoints.contains(&asm.addr) {
-                        modifier = " b ";
-                    }
-                    ui.label(
-                        RichText::new(format!("{:04X} {modifier} {}", asm.addr, asm.asm))
-                            .monospace(),
-                    );
+        if self.emu_crash.as_ref().is_some_and(|c| c.addr == asm.addr) {
+            ui.label(
+                RichText::new(format!("{:04X} >>> {}", asm.addr, asm.asm))
+                    .monospace()
+                    .color(Color32::RED)
+                    .strong(),
+            );
+        } else if bp.contains(&cpu.registers.pc) && cpu.registers.pc == asm.addr {
+            ui.label(
+                RichText::new(format!("{:04X} >>> {}", asm.addr, asm.asm))
+                    .monospace()
+                    .strong(),
+            );
+        } else {
+            let mut modifier = "   ";
+
+            if cpu.registers.pc == asm.addr {
+                modifier = " > ";
+            } else if bp.contains(&asm.addr) {
+                modifier = " b ";
+            }
+            ui.label(RichText::new(format!("{:04X} {modifier} {}", asm.addr, asm.asm)).monospace());
+        }
+    }
+
+    fn disas_ui(&self, ui: &mut Ui) {
+        let cpu = &self.last_state.cpu;
+
+        let last_exec = cpu.disas.first().map_or(0, |asm| asm.addr);
+        let next_exec = cpu.disas.get(1).map_or(0, |asm| asm.addr);
+        let jumped = last_exec.abs_diff(next_exec) > 3;
+
+        ui.vertical(|ui| {
+            for (idx, asm) in cpu.disas.iter().enumerate() {
+                if idx == 1 && jumped {
+                    ui.label(RichText::new("...").monospace());
                 }
+                self.asm_ui(ui, asm);
             }
         });
     }

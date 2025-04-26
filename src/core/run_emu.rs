@@ -81,26 +81,30 @@ pub fn run_headless(
 }
 
 fn run(
-    mut cpu: LR35902CPU,
-    mut debugger: Debugger,
+    cpu: &mut LR35902CPU,
+    debugger: &mut Debugger,
     io_listener: IOListener,
     mut playback: Playback,
 ) {
     loop {
-        debugger.handle_events(&mut cpu);
+        debugger.handle_events(cpu);
 
-        if debugger.cpu_should_step(&cpu) {
-            io_listener.handle_events(&mut cpu, &mut playback);
+        if debugger.cpu_should_step(cpu) {
+            io_listener.handle_events(cpu, &mut playback);
+
+            debugger.executing_pc = cpu.pc();
             cpu.step();
         }
 
-        debugger.collect(&cpu);
+        debugger.collect(cpu);
     }
 }
 
+#[derive(Clone)]
 pub struct EmuCrash {
     pub reason: String,
     pub backtrace: String,
+    pub addr: u16,
 }
 
 pub struct EmuState {
@@ -162,6 +166,9 @@ pub fn run_emu_thread(
 
     let crash_info = Arc::new(Mutex::new(None));
 
+    let mut cpu = LR35902CPU::new(bus, serial, CLOCK_SPEED);
+    let mut dbg = Debugger::new(debug, dbg_cmd_rc, dbg_data_sd);
+
     let thread = std::thread::spawn(move || {
         panic::set_hook(Box::new({
             let crash_info = crash_info.clone();
@@ -176,7 +183,11 @@ pub fn run_emu_thread(
 
                 let backtrace = Backtrace::force_capture().to_string();
 
-                *crash_info.lock().unwrap() = Some(EmuCrash { reason, backtrace })
+                *crash_info.lock().unwrap() = Some(EmuCrash {
+                    reason,
+                    backtrace,
+                    addr: 0, // addr is set afterwards by the debugger
+                })
             }
         }));
 
@@ -186,8 +197,8 @@ pub fn run_emu_thread(
                 serial, debug, record_enabled, replay_path
             );
             run(
-                LR35902CPU::new(bus, serial, CLOCK_SPEED),
-                Debugger::new(debug, dbg_cmd_rc, dbg_data_sd),
+                &mut cpu,
+                &mut dbg,
                 IOListener::new(io_events_rc),
                 Playback::new(record_enabled, record_path, replay_path),
             );
@@ -195,14 +206,23 @@ pub fn run_emu_thread(
 
         match result {
             Ok(_) => Ok(()),
-            Err(_) => Err(crash_info
-                .lock()
-                .unwrap()
-                .take()
-                .unwrap_or_else(|| EmuCrash {
-                    reason: "<unknown reason>".to_string(),
-                    backtrace: "<no backtrace>".to_string(),
-                })),
+            Err(_) => {
+                let mut crash_info =
+                    crash_info
+                        .lock()
+                        .unwrap()
+                        .take()
+                        .unwrap_or_else(|| EmuCrash {
+                            reason: "<unknown reason>".to_string(),
+                            backtrace: "<no backtrace>".to_string(),
+                            addr: 0,
+                        });
+
+                crash_info.addr = dbg.executing_pc;
+                dbg.died(&cpu, crash_info.clone());
+
+                Err(crash_info)
+            }
         }
     });
 

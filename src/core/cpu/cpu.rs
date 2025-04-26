@@ -16,7 +16,7 @@ pub mod CPUFlags {
     pub const C: u8 = 0x10;
 }
 
-#[derive(Clone)]
+#[derive(Default, Copy, Clone)]
 pub struct CPURegisters {
     pub a: u8,
     pub f: u8,

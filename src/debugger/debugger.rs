@@ -1,12 +1,12 @@
 use super::metrics::{CpuMetrics, MetricsHandler};
 use super::state::EmuSnapshot;
 use super::{commands::DebuggerCommand, state::CpuState};
+use crate::core::cpu::cpu::LR35902CPU;
+use crate::core::run_emu::EmuCrash;
 use crossbeam_channel::{Receiver, Sender};
 
-use std::time::Duration;
-
-use crate::core::cpu::cpu::LR35902CPU;
 use std::cell::RefCell;
+use std::time::Duration;
 
 thread_local! {
     pub static CPU_METRICS: RefCell<MetricsHandler<CpuMetrics>> = RefCell::new(MetricsHandler::<CpuMetrics>::new(Duration::from_millis(1000)));
@@ -19,6 +19,8 @@ pub struct Debugger {
     pub stepping: bool,
     do_step: bool,
     resume: bool,
+
+    pub executing_pc: u16,
 
     ui_commands_rc: Receiver<DebuggerCommand>,
     dbg_data_sd: Sender<EmuSnapshot>,
@@ -38,12 +40,17 @@ impl Debugger {
             do_step: false,
             resume: false,
             breakpoints: vec![],
+            executing_pc: 0,
             ui_commands_rc,
             dbg_data_sd,
         }
     }
 
     pub fn handle_events(&mut self, cpu: &mut LR35902CPU) {
+        if !self.enabled {
+            return;
+        }
+
         if let Ok(event) = self.ui_commands_rc.try_recv() {
             match event {
                 DebuggerCommand::ENABLED(enabled) => self.set_enabled(enabled),
@@ -72,8 +79,9 @@ impl Debugger {
 
         let state = EmuSnapshot {
             vram: cpu.bus.io.ppu.vram.clone(),
-            cpu: CpuState::new(cpu),
+            cpu: CpuState::new(cpu, self.executing_pc),
             breakpoints: self.breakpoints.clone(),
+            ..Default::default()
         };
 
         self.dbg_data_sd
@@ -106,5 +114,20 @@ impl Debugger {
         }
 
         return true;
+    }
+
+    pub fn died(&mut self, cpu: &LR35902CPU, emu_crash: EmuCrash) {
+        if !self.enabled {
+            return;
+        }
+
+        self.dbg_data_sd
+            .send(EmuSnapshot {
+                vram: cpu.bus.io.ppu.vram.clone(),
+                cpu: CpuState::new(cpu, self.executing_pc),
+                breakpoints: self.breakpoints.clone(),
+                crash: Some(emu_crash),
+            })
+            .expect("Failed to send emulation state");
     }
 }
