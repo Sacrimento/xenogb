@@ -47,10 +47,6 @@ impl Debugger {
     }
 
     pub fn handle_events(&mut self, cpu: &mut LR35902CPU) {
-        if !self.enabled {
-            return;
-        }
-
         if let Ok(event) = self.ui_commands_rc.try_recv() {
             match event {
                 DebuggerCommand::ENABLED(enabled) => self.set_enabled(enabled),
