@@ -5,3 +5,4 @@
 /**/*.pgm
 /**/*.gbsave
 /**/vbuf_snapshot.png
+/.cargo
