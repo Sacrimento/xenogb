@@ -3,6 +3,21 @@ name = "xenogb"
 license = "MIT"
 version = "0.1.0"
 edition = "2021"
+default-run = "xenogb"
+
+[[bench]]
+name = "benchmark"
+harness = false
+test = false
+
+[[bin]]
+name = "generate_bench_roms"
+path = "benches/bin/gen_bench_roms.rs"
+test = false
+bench = false
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
 
 [dependencies]
 chrono = "0.4.40"
@@ -19,4 +34,3 @@ log4rs = { version = "1.3.0", features = ["file_appender", "serde"] }
 phf = { version = "0.11.3", features = ["macros"] }
 serde = "1.0.219"
 serde_yaml = "0.9.34"
-signal-hook = "0.3.17"
