@@ -46,12 +46,12 @@ pub fn vbuf_snapshot(frame: Vbuf) {
     info!("Video buffer snapshot saved to {}", fpath);
     let mut file = fs::File::create(fpath).unwrap();
 
-    file.write(format!("P5\n{RESX} {RESY}\n255\n").as_bytes())
+    file.write_all(format!("P5\n{RESX} {RESY}\n255\n").as_bytes())
         .unwrap();
 
-    for y in 0..RESY as usize {
-        for x in 0..RESX as usize {
-            file.write(&[frame[(y * RESX as usize) + x]]).unwrap();
+    for y in 0..RESY {
+        for x in 0..RESX {
+            file.write_all(&[frame[(y * RESX) + x]]).unwrap();
         }
     }
 }

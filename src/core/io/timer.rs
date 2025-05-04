@@ -9,6 +9,7 @@ pub struct Timer {
     prev_div_bit: bool,
 }
 
+#[allow(clippy::new_without_default)]
 impl Timer {
     pub fn new() -> Self {
         Self {

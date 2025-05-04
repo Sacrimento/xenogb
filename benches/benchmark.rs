@@ -26,6 +26,7 @@ pub fn cpu_step_bench(c: &mut Criterion) {
         let mut cpu = setup_cpu(PathBuf::from("nop.gb"));
 
         b.iter(|| {
+            #[allow(clippy::unit_arg)]
             black_box(cpu.step());
         });
     });
@@ -34,6 +35,7 @@ pub fn cpu_step_bench(c: &mut Criterion) {
         let mut cpu = setup_cpu(PathBuf::from("inc_a.gb"));
 
         b.iter(|| {
+            #[allow(clippy::unit_arg)]
             black_box(cpu.step());
         });
     });
@@ -42,6 +44,7 @@ pub fn cpu_step_bench(c: &mut Criterion) {
         let mut cpu = setup_cpu(PathBuf::from("add_a_b.gb"));
 
         b.iter(|| {
+            #[allow(clippy::unit_arg)]
             black_box(cpu.step());
         });
     });

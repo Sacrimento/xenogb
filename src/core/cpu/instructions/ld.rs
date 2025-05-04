@@ -30,8 +30,8 @@ pub fn ldr(cpu: &mut LR35902CPU) -> u8 {
             cpu.inc_pc(1);
 
             value = sp.wrapping_add_signed(offset.into());
-            let h = ((sp ^ (offset as u16) ^ ((value as u16) & 0xFFFF)) & 0x10) == 0x10;
-            let c = ((sp ^ (offset as u16) ^ ((value as u16) & 0xFFFF)) & 0x100) == 0x100; // ????
+            let h = ((sp ^ (offset as u16) ^ value) & 0x10) == 0x10;
+            let c = ((sp ^ (offset as u16) ^ value) & 0x100) == 0x100; // ????
             cpu.set_flags(0, 0, h as i8, c as i8);
             cycles = 3;
         }

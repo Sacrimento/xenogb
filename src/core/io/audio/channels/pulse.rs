@@ -80,6 +80,7 @@ impl PulseChannel {
         }
     }
 
+    #[allow(dead_code)]
     pub fn output(&self) -> u8 {
         if !self.enabled || self.period < 8 {
             return 0;
@@ -95,10 +96,8 @@ impl PulseChannel {
         self.envelope.trigger();
         self.enabled = self.envelope.dac_enabled();
 
-        if self.length_counter.trigger() && div_apu % 2 == 0 {
-            if self.length_counter.tick() {
-                self.enabled = false;
-            }
+        if self.length_counter.trigger() && div_apu % 2 == 0 && self.length_counter.tick() {
+            self.enabled = false;
         }
 
         self.div = self.period;
@@ -143,10 +142,9 @@ impl PulseChannel {
                     && self.length_counter.enabled()
                     && div_apu % 2 == 0
                     && self.length_counter.value > 0
+                    && self.length_counter.tick()
                 {
-                    if self.length_counter.tick() {
-                        self.enabled = false;
-                    }
+                    self.enabled = false;
                 }
 
                 self.period = (self.period & 0xff) | ((value as u16 & 0x7) << 8);

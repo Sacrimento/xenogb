@@ -62,7 +62,7 @@ impl VramUi {
             });
     }
 
-    fn render_tile(&self, ui: &mut Ui, tile_idx: usize) -> () {
+    fn render_tile(&self, ui: &mut Ui, tile_idx: usize) {
         let vram: [u8; 0x2000];
 
         if let Ok(data) = self.dbg_data_rc.try_recv() {
@@ -90,7 +90,7 @@ impl VramUi {
         }
 
         ui.ctx().tex_manager().write().set(
-            self.vram_textures[tile_idx as usize].id(),
+            self.vram_textures[tile_idx].id(),
             epaint::ImageDelta::full(
                 ColorImage::from_gray([8, 8], &tile_buffer),
                 TextureOptions::NEAREST,
@@ -102,7 +102,7 @@ impl VramUi {
         let tile_idx = y * VRAMX + x;
         self.render_tile(ui, tile_idx);
 
-        let img = Image::from_texture(&self.vram_textures[tile_idx as usize])
+        let img = Image::from_texture(&self.vram_textures[tile_idx])
             .fit_to_original_size(VRAM_SCALE as f32)
             .sense(Sense::click());
         let resp = ui.add(img);

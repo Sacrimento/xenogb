@@ -15,16 +15,16 @@ use mbc5::MBC5;
 pub trait MemoryBankController {
     fn read(&self, addr: u16) -> u8;
 
-    fn write(&mut self, addr: u16, value: u8) -> ();
+    fn write(&mut self, addr: u16, value: u8);
 
-    fn save(&self) -> ();
+    fn save(&self);
 
     fn build_sram(ram_banks_code: u8) -> Vec<[u8; 0x2000]>
     where
         Self: Sized,
     {
         let banks = match ram_banks_code {
-            0 | 1 | 2 => 1, // 0 | 1: Allocate some RAM even though the program should not require it
+            0..=2 => 1, // 0 | 1: Allocate some RAM even though the program should not require it
             3 => 4,
             4 => 16,
             5 => 8,
@@ -39,15 +39,15 @@ pub trait MemoryBankController {
         vec
     }
 
-    fn save_sram(save_fname: &PathBuf, sram: &Vec<[u8; 0x2000]>)
+    fn save_sram(save_fname: &PathBuf, sram: &[[u8; 0x2000]])
     where
         Self: Sized,
     {
-        info!("SRAM saved!");
         let mut file = File::create(save_fname).unwrap();
         for bank in sram.iter() {
-            file.write(&bank[..]).unwrap();
+            file.write_all(&bank[..]).unwrap();
         }
+        info!("SRAM saved!");
     }
 
     fn load_sram(path: &PathBuf, has_save: bool, ram_banks_code: u8) -> Vec<[u8; 0x2000]>
@@ -80,7 +80,7 @@ impl NoMBC {
 }
 
 impl MemoryBankController for NoMBC {
-    fn write(&mut self, _: u16, _: u8) -> () {}
+    fn write(&mut self, _: u16, _: u8) {}
 
     fn read(&self, addr: u16) -> u8 {
         self.rom[addr as usize]

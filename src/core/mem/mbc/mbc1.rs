@@ -51,13 +51,13 @@ impl MemoryBankController for MBC1 {
                 } else {
                     self.rom_bank * 0x4000
                 };
-                return self.rom[offset + (addr as usize - 0x4000)];
+                self.rom[offset + (addr as usize - 0x4000)]
             }
             0xa000..=0xbfff => {
                 if !self.ram_enable {
                     return 0xff;
                 }
-                return self.sram[self.ram_bank][addr as usize - 0xa000];
+                self.sram[self.ram_bank][addr as usize - 0xa000]
             }
             _ => {
                 warn!("mbc1.read: unhandled address 0x{addr:04X}");

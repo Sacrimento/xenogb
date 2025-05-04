@@ -114,13 +114,13 @@ pub fn res(cpu: &mut LR35902CPU, nth_bit: u8) -> u8 {
     match instr.addr_mode {
         AddrMode::IMM_R => {
             value = cpu.get_register(instr.reg2.as_ref().unwrap());
-            value = value & !(1 << nth_bit);
+            value &= !(1 << nth_bit);
             cpu.set_register(instr.reg2.as_ref().unwrap(), value as u16);
         }
         AddrMode::IMM_RADDR => {
             let addr = cpu.get_register16(instr.reg2.as_ref().unwrap());
             value = cpu.bus.read(addr);
-            value = value & !(1 << nth_bit);
+            value &= !(1 << nth_bit);
             cpu.bus.write(addr, value);
             cycles = 4;
         }
@@ -138,13 +138,13 @@ pub fn set(cpu: &mut LR35902CPU, nth_bit: u8) -> u8 {
     match instr.addr_mode {
         AddrMode::IMM_R => {
             value = cpu.get_register(instr.reg2.as_ref().unwrap());
-            value = value | (1 << nth_bit);
+            value |= 1 << nth_bit;
             cpu.set_register(instr.reg2.as_ref().unwrap(), value as u16);
         }
         AddrMode::IMM_RADDR => {
             let addr = cpu.get_register16(instr.reg2.as_ref().unwrap());
             value = cpu.bus.read(addr);
-            value = value | (1 << nth_bit);
+            value |= 1 << nth_bit;
             cpu.bus.write(addr, value);
             cycles = 4;
         }

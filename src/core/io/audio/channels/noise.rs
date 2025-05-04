@@ -65,6 +65,7 @@ impl NoiseChannel {
         }
     }
 
+    #[allow(dead_code)]
     pub fn output(&self) -> u8 {
         if !self.enabled || self.lfsr & 0x1 == 1 {
             return 0;
@@ -82,10 +83,8 @@ impl NoiseChannel {
 
         self.lfsr = 0x7fff;
 
-        if self.length_counter.trigger() && div_apu % 2 == 0 {
-            if self.length_counter.tick() {
-                self.enabled = false;
-            }
+        if self.length_counter.trigger() && div_apu % 2 == 0 && self.length_counter.tick() {
+            self.enabled = false;
         }
 
         self.div = self.period();
@@ -123,10 +122,9 @@ impl NoiseChannel {
                     && self.length_counter.enabled()
                     && div_apu % 2 == 0
                     && self.length_counter.value > 0
+                    && self.length_counter.tick()
                 {
-                    if self.length_counter.tick() {
-                        self.enabled = false;
-                    }
+                    self.enabled = false;
                 }
 
                 if (value >> 7) & 0x1 == 1 {

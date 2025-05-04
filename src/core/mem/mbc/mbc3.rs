@@ -131,7 +131,7 @@ impl MemoryBankController for MBC3 {
         }
     }
 
-    fn write(&mut self, addr: u16, value: u8) -> () {
+    fn write(&mut self, addr: u16, value: u8) {
         match addr {
             0x0..=0x1fff => self.ram_rtc_enable = value == 0x0a,
             0x2000..=0x3fff => self.rom_bank = (value as usize & 0x7f).max(1),
@@ -165,7 +165,7 @@ impl MemoryBankController for MBC3 {
         }
     }
 
-    fn save(&self) -> () {
+    fn save(&self) {
         if self.has_save {
             Self::save_sram(&self.save_fname, &self.sram);
         }

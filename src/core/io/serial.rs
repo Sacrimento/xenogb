@@ -14,7 +14,7 @@ pub struct Serial {
 }
 
 impl Serial {
-    pub fn write(&mut self, addr: u16, value: u8) -> () {
+    pub fn write(&mut self, addr: u16, value: u8) {
         match addr {
             0xff01 => self.transfer_data = value,
             0xff02 => self.transfer_control = value,
@@ -35,8 +35,7 @@ impl Serial {
             self.transfer_control,
             SerialTransferControlFlags::TRANSFER_ENABLE
         ) {
-            self.transfer_control =
-                self.transfer_control & !(SerialTransferControlFlags::TRANSFER_ENABLE);
+            self.transfer_control &= !(SerialTransferControlFlags::TRANSFER_ENABLE);
             return self.transfer_data;
         }
         0

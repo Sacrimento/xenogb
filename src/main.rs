@@ -1,3 +1,5 @@
+#![allow(clippy::upper_case_acronyms)]
+
 mod core;
 mod dbg;
 mod debugger;
@@ -51,10 +53,7 @@ struct Args {
 }
 
 fn setup_logger() -> String {
-    let file_path = format!(
-        "logs/{}.log",
-        Local::now().format("%Y-%m-%d_%H-%M-%S").to_string()
-    );
+    let file_path = format!("logs/{}.log", Local::now().format("%Y-%m-%d_%H-%M-%S"));
 
     let config = include_str!("../logging.yml")
         .to_string()
@@ -76,6 +75,7 @@ fn main() -> Result<(), XenoGBError> {
     let (video_channel_sd, video_channel_rc) = bounded(1);
     let bus = Bus::new(cartridge, args.boot_rom, video_channel_sd);
 
+    #[allow(clippy::unit_arg)]
     if args.headless {
         return Ok(run_headless(
             LR35902CPU::new(bus, args.serial, u32::MAX),
@@ -84,6 +84,7 @@ fn main() -> Result<(), XenoGBError> {
         ));
     }
 
+    #[allow(clippy::unit_arg)]
     Ok(run_ui(
         bus,
         video_channel_rc,

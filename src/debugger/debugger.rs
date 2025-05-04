@@ -74,7 +74,7 @@ impl Debugger {
         CPU_METRICS.with_borrow_mut(|mh| mh.update());
 
         let state = EmuSnapshot {
-            vram: cpu.bus.io.ppu.vram.clone(),
+            vram: cpu.bus.io.ppu.vram,
             cpu: CpuState::new(cpu, self.executing_pc),
             breakpoints: self.breakpoints.clone(),
             ..Default::default()
@@ -109,7 +109,7 @@ impl Debugger {
             return false;
         }
 
-        return true;
+        true
     }
 
     pub fn died(&mut self, cpu: &LR35902CPU, emu_crash: EmuCrash) {
@@ -119,7 +119,7 @@ impl Debugger {
 
         self.dbg_data_sd
             .send(EmuSnapshot {
-                vram: cpu.bus.io.ppu.vram.clone(),
+                vram: cpu.bus.io.ppu.vram,
                 cpu: CpuState::new(cpu, self.executing_pc),
                 breakpoints: self.breakpoints.clone(),
                 crash: Some(emu_crash),

@@ -20,6 +20,7 @@ pub struct Joypad {
     selector: u8,
 }
 
+#[allow(clippy::new_without_default)]
 impl Joypad {
     pub fn new() -> Self {
         Self {

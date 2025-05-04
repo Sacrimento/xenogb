@@ -34,7 +34,7 @@ impl Recorder {
     pub fn record(&mut self, event: &IOEvent, frame: u64, tick: u32) {
         if let Some(file) = &mut self.file {
             if !matches!(event, &IOEvent::CLOSE) {
-                file.write(format!("{frame} {tick} {event}\n").as_bytes())
+                file.write_all(format!("{frame} {tick} {event}\n").as_bytes())
                     .expect("Could not record input");
             }
         }
@@ -47,6 +47,7 @@ pub struct EventIter<'a> {
     target_tick: u32,
 }
 
+#[allow(clippy::needless_lifetimes)]
 impl<'a> Iterator for EventIter<'a> {
     type Item = IOEvent;
 

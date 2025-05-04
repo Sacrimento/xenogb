@@ -48,6 +48,7 @@ pub struct Behavior<'a> {
     pub repl: &'a mut ReplUi,
 }
 
+#[allow(clippy::needless_lifetimes)]
 impl<'a> egui_tiles::Behavior<Tabs> for Behavior<'a> {
     fn tab_title_for_pane(&mut self, tab: &Tabs) -> egui::WidgetText {
         match tab {

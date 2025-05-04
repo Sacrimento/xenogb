@@ -1,8 +1,8 @@
 use std::cell::Cell;
 
 thread_local! {
-    pub static INTERRUPT_FLAGS: Cell<u8> = Cell::new(0);
-    pub static INTERRUPT_ENABLE: Cell<u8> = Cell::new(0);
+    pub static INTERRUPT_FLAGS: Cell<u8> = const { Cell::new(0) };
+    pub static INTERRUPT_ENABLE: Cell<u8> = const { Cell::new(0) };
 }
 
 #[allow(nonstandard_style)]

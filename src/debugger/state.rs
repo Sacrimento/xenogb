@@ -42,7 +42,7 @@ pub struct CpuState {
 impl CpuState {
     pub fn new(cpu: &LR35902CPU, last_pc: u16) -> Self {
         Self {
-            registers: cpu.registers.clone(),
+            registers: cpu.registers,
             halt: cpu.halt,
             interrupts: InterruptState {
                 int_master: cpu.int_master,

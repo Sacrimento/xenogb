@@ -57,7 +57,7 @@ impl XenoGBUI {
                             ui.add_space(10.0 * scale);
 
                             ui.label(
-                                RichText::new(format!("If you call a support person (please don't), give them this info:\n"))
+                                RichText::new("If you call a support person (please don't), give them this info:\n")
                                     .size(14.0 * scale)
                             );
 

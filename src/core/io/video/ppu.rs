@@ -14,7 +14,7 @@ pub type Vbuf = [u8; RESX * RESY];
 
 macro_rules! between {
     ( $x:expr, $l:expr, $h:expr ) => {
-        $x >= $l && $x <= $h
+        ($l..=$h).contains(&$x)
     };
 }
 
@@ -74,7 +74,7 @@ impl PPU {
         lcd.set_ppu_mode(PPUMode::OAMScan);
 
         Self {
-            oam: std::iter::repeat_with(|| Sprite::new())
+            oam: std::iter::repeat_with(Sprite::new)
                 .take(40)
                 .collect::<Vec<Sprite>>(),
             vram: [0; 0x2000],
@@ -215,8 +215,8 @@ impl PPU {
     ) -> Option<(bool, u8)> {
         let tile = &self.vram[tile_id as usize * 16..tile_id as usize * 16 + 16];
 
-        let tile_x = x as usize & 7;
-        let tile_y = y as usize & 7;
+        let tile_x = x & 7;
+        let tile_y = y & 7;
 
         let x_offset = if flag_set!(sprite.flags, SpriteFlags::X_FLIP) {
             tile_x
@@ -254,15 +254,9 @@ impl PPU {
 
         let cur_sprites = self.line_sprites.as_ref().unwrap();
 
-        let sprite_opt = cur_sprites
+        let sprite = cur_sprites
             .iter()
-            .find(|sprite| between!(x + 8, sprite.x as usize, sprite.x as usize + 7));
-
-        if sprite_opt.is_none() {
-            return None;
-        }
-
-        let sprite = sprite_opt.unwrap();
+            .find(|sprite| between!(x + 8, sprite.x as usize, sprite.x as usize + 7))?;
 
         let sprite_x = x as i16 - (sprite.x as i16 - 8);
         let sprite_y = y as i16 - (sprite.y as i16 - 16);
@@ -274,27 +268,27 @@ impl PPU {
         if flag_set!(self.lcd.lcdc, LCDC_FLAGS::OBJ_SIZE) {
             let is_flipped = flag_set!(sprite.flags, SpriteFlags::Y_FLIP);
             if (sprite_y < 8 && !is_flipped) || (sprite_y >= 8 && is_flipped) {
-                return self.render_sprite_from(
+                self.render_sprite_from(
                     sprite,
                     sprite.tile_idx & 0xfe,
                     sprite_x as usize,
                     sprite_y as usize,
-                );
+                )
             } else {
-                return self.render_sprite_from(
+                self.render_sprite_from(
                     sprite,
                     sprite.tile_idx | 1,
                     sprite_x as usize,
                     sprite_y as usize,
-                );
+                )
             }
         } else {
-            return self.render_sprite_from(
+            self.render_sprite_from(
                 sprite,
                 sprite.tile_idx,
                 sprite_x as usize,
                 sprite_y as usize,
-            );
+            )
         }
     }
 
@@ -312,7 +306,6 @@ impl PPU {
         oam.sort_unstable_by_key(|sprite| sprite.x);
         self.line_sprites = Some(
             oam.iter()
-                .cloned()
                 .filter(|sprite| {
                     between!(
                         self.lcd.ly + 16,
@@ -327,6 +320,7 @@ impl PPU {
                     )
                 })
                 .take(10)
+                .cloned()
                 .collect(),
         );
     }

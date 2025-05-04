@@ -60,15 +60,15 @@ pub fn add(cpu: &mut LR35902CPU) -> u8 {
             result = op1.wrapping_add_signed(op2.into()) as u32;
             cpu.inc_pc(1);
             z = 0;
-            c = ((op1 ^ (op2 as u16) ^ ((result as u16) & 0xFFFF)) & 0x100) == 0x100; // ????
-            h = ((op1 ^ (op2 as u16) ^ ((result as u16) & 0xFFFF)) & 0x10) == 0x10;
+            c = ((op1 ^ (op2 as u16) ^ result as u16) & 0x100) == 0x100; // ????
+            h = ((op1 ^ (op2 as u16) ^ result as u16) & 0x10) == 0x10;
             cycles = 4;
         }
         _ => unreachable!(),
     }
 
     cpu.set_register(instr.reg1.as_ref().unwrap(), result as u16);
-    cpu.set_flags(z as i8, 0, h as i8, c as i8);
+    cpu.set_flags(z, 0, h as i8, c as i8);
     cycles
 }
 
@@ -267,7 +267,7 @@ pub fn cp(cpu: &mut LR35902CPU) -> u8 {
     }
 
     let result = a - value;
-    let h = ((a & 0xf) as i16 - (value & 0xf) as i16) < 0;
+    let h = ((a & 0xf) - (value & 0xf)) < 0;
     cpu.set_flags(((result as u8) == 0) as i8, 1, h as i8, (result < 0) as i8);
     cycles
 }

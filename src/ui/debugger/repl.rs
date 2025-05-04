@@ -137,7 +137,7 @@ impl Repl {
             return Err(Error::new(ErrorKind::ValueValidation));
         }
 
-        match ReplCommand::try_parse_from(cmd.trim().split_whitespace())? {
+        match ReplCommand::try_parse_from(cmd.split_whitespace())? {
             ReplCommand::Run | ReplCommand::Continue => {
                 self.sender.send(DebuggerCommand::CONTINUE).unwrap()
             }

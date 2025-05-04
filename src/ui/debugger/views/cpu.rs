@@ -39,7 +39,7 @@ impl CpuUi {
             tick_td: TimeData::new(HISTORY_SIZE, "tick-dt".into()),
             cycles_td: TimeData::new(HISTORY_SIZE, "cycles-dt".into()),
             freq_td: TimeData::new(HISTORY_SIZE, "freq-dt".into()),
-            freq: CLOCK_SPEED as f64 / 1000000 as f64,
+            freq: CLOCK_SPEED as f64 / 1000000f64,
         }
     }
 

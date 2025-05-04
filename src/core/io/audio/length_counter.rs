@@ -26,7 +26,7 @@ impl LengthCounter {
                 return true;
             }
         }
-        return false;
+        false
     }
 
     pub fn trigger(&mut self) -> bool {

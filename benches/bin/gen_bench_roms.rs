@@ -13,6 +13,7 @@ fn generate_loop(instr: u8) -> [u8; 256] {
 
     l[0..2].copy_from_slice(&RESET_A);
 
+    #[allow(clippy::needless_range_loop)]
     for i in 2..CODE_SIZE - 3 {
         l[i] = instr;
     }

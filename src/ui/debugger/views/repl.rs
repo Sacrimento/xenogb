@@ -38,7 +38,7 @@ impl ReplUi {
     pub fn ui(&mut self, ui: &mut Ui) {
         if let Ok(data) = self.dbg_data_rc.try_recv() {
             if let Some(crash) = &data.crash {
-                self.emu_died(&crash);
+                self.emu_died(crash);
             }
             self.last_state = data;
         }
@@ -88,7 +88,7 @@ impl ReplUi {
             ui.input(|i| {
                 if i.key_pressed(Key::Enter) && !self.repl.cmd.is_empty() {
                     self.repl_out.push(format!("> {}", self.repl.cmd));
-                    if let Some(_) = self.repl.exec().err() {
+                    if self.repl.exec().err().is_some() {
                         self.repl_out.push(format!(
                             "Invalid command: {}\nUse help to show available commands",
                             self.repl.cmd

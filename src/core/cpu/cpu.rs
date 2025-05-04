@@ -118,7 +118,7 @@ impl LR35902CPU {
             let div_apu = self.bus.io.timer.tick();
             self.bus.dma_tick();
             self.bus.io.ppu.tick();
-            // self.bus.io.apu.tick(div_apu);
+            self.bus.io.apu.tick(div_apu);
         }
 
         CPU_METRICS.with_borrow_mut(|mh| {
@@ -283,7 +283,7 @@ impl LR35902CPU {
             (InterruptFlags::SERIAL, 0x58),
             (InterruptFlags::JOYPAD, 0x60),
         ] {
-            if handle_int(int as u8, addr) {
+            if handle_int(int, addr) {
                 return;
             }
         }

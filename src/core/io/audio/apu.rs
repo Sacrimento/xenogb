@@ -3,7 +3,7 @@ use log::warn;
 
 use super::channels::{NoiseChannel, PulseChannel, WaveChannel};
 
-#[allow(nonstandard_style)]
+#[allow(nonstandard_style, dead_code)]
 pub mod APU_AMC_FLAGS {
     pub const CH1_ON: u8 = 0x1;
     pub const CH2_ON: u8 = 0x2;
@@ -12,7 +12,7 @@ pub mod APU_AMC_FLAGS {
     pub const AUDIO_ON: u8 = 0x80;
 }
 
-#[allow(nonstandard_style)]
+#[allow(nonstandard_style, dead_code)]
 pub mod APU_SP_FLAGS {
     pub const CH1_RIGHT: u8 = 0x1;
     pub const CH2_RIGHT: u8 = 0x2;
@@ -24,7 +24,7 @@ pub mod APU_SP_FLAGS {
     pub const CH4_LEFT: u8 = 0x80;
 }
 
-#[allow(nonstandard_style)]
+#[allow(nonstandard_style, dead_code)]
 pub mod APU_MVVP_FLAGS {
     pub const VOLUME_RIGHT: u8 = 0x7;
     pub const VIN_RIGHT: u8 = 0x8;

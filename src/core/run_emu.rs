@@ -145,6 +145,12 @@ impl EmuState {
     }
 }
 
+type EmuChannels = (
+    Sender<IOEvent>,
+    Sender<DebuggerCommand>,
+    Receiver<EmuSnapshot>,
+);
+
 pub fn run_emu_thread(
     bus: Bus,
     debug: bool,
@@ -152,14 +158,7 @@ pub fn run_emu_thread(
     record_enabled: bool,
     record_path: Option<PathBuf>,
     replay_path: Option<PathBuf>,
-) -> (
-    EmuState,
-    (
-        Sender<IOEvent>,
-        Sender<DebuggerCommand>,
-        Receiver<EmuSnapshot>,
-    ),
-) {
+) -> (EmuState, EmuChannels) {
     let (dbg_cmd_sd, dbg_cmd_rc) = unbounded();
     let (dbg_data_sd, dbg_data_rc) = bounded(1);
     let (io_events_sd, io_events_rc) = unbounded();

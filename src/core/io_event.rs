@@ -4,6 +4,9 @@ use super::playback::Playback;
 use crossbeam_channel::Receiver;
 use std::fmt::Display;
 
+#[derive(Debug)]
+pub struct IOEventError;
+
 #[allow(nonstandard_style)]
 #[derive(Debug, Clone, Copy)]
 pub enum IOEvent {
@@ -23,7 +26,7 @@ impl Display for IOEvent {
 }
 
 impl IOEvent {
-    pub fn from_strs(s: &str, k: Option<&str>) -> Result<Self, ()> {
+    pub fn from_strs(s: &str, k: Option<&str>) -> Result<Self, IOEventError> {
         match s {
             "PRESS" => {
                 if let Some(k) = k {
@@ -31,7 +34,7 @@ impl IOEvent {
                         k.parse().expect("Could not parse press input"),
                     ));
                 }
-                Err(())
+                Err(IOEventError)
             }
             "RELEASE" => {
                 if let Some(k) = k {
@@ -39,10 +42,10 @@ impl IOEvent {
                         k.parse().expect("Could not parse release input"),
                     ));
                 }
-                Err(())
+                Err(IOEventError)
             }
             "CLOSE" => Ok(Self::CLOSE),
-            _ => Err(()),
+            _ => Err(IOEventError),
         }
     }
 }

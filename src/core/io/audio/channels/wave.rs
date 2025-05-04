@@ -47,6 +47,7 @@ impl WaveChannel {
         self.wave_ram_idx = 1;
     }
 
+    #[allow(dead_code)]
     pub fn output(&self) -> u8 {
         let nibble = if self.wave_ram_idx % 2 == 0 { 4 } else { 0 };
         let sample = (self.wave_ram[self.wave_ram_idx / 2] >> nibble) & 0xf;
@@ -78,10 +79,8 @@ impl WaveChannel {
     fn trigger(&mut self, div_apu: u8) {
         self.enabled = self.dac_enabled;
 
-        if self.length_counter.trigger() && div_apu % 2 == 0 {
-            if self.length_counter.tick() {
-                self.enabled = false;
-            }
+        if self.length_counter.trigger() && div_apu % 2 == 0 && self.length_counter.tick() {
+            self.enabled = false;
         }
 
         self.div = self.period;
@@ -108,10 +107,9 @@ impl WaveChannel {
                     && self.length_counter.enabled()
                     && div_apu % 2 == 0
                     && self.length_counter.value > 0
+                    && self.length_counter.tick()
                 {
-                    if self.length_counter.tick() {
-                        self.enabled = false;
-                    }
+                    self.enabled = false;
                 }
 
                 self.period = (self.period & 0xff) | ((value as u16) << 8);

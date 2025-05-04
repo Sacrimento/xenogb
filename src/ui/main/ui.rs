@@ -71,10 +71,10 @@ impl XenoGBUI {
 
     fn render_vbuf(&mut self, ctx: &Context) {
         if let Ok(vbuf) = self.video_channel_rc.try_recv() {
-            for i in 0..vbuf.len() {
-                self.screen_buffer[i * 4] = vbuf[i];
-                self.screen_buffer[i * 4 + 1] = vbuf[i];
-                self.screen_buffer[i * 4 + 2] = vbuf[i];
+            for (i, pixel) in vbuf.iter().enumerate() {
+                self.screen_buffer[i * 4] = *pixel;
+                self.screen_buffer[i * 4 + 1] = *pixel;
+                self.screen_buffer[i * 4 + 2] = *pixel;
             }
 
             ctx.tex_manager().write().set(
