@@ -81,7 +81,7 @@ impl APU {
     }
 
     pub fn read(&self, addr: u16) -> u8 {
-        let v = match addr {
+        match addr {
             0xff10..=0xff14 => self.channel1.read(addr),
             0xff16..=0xff19 => self.channel2.read(addr),
             0xff1a..=0xff1e => self.channel3.read(addr),
@@ -104,16 +104,10 @@ impl APU {
                 warn!("apu.read: unhandled address 0x{addr:04X}");
                 0xff
             }
-        };
-
-        // println!("APU.READ: {:04X} {:02X}", addr, v);
-
-        v
+        }
     }
 
     pub fn write(&mut self, addr: u16, value: u8) {
-        // println!("APU.WRITE: {:04X} {:02X}", addr, value);
-
         if !self.enabled() && !matches!(addr, 0xff20 | 0xff26 | 0xff30..=0xff3f) {
             return;
         }
@@ -186,21 +180,26 @@ impl APU {
 
     fn mix(&self) -> f32 {
         let mut sample = 0.0;
+        let mut channels = 0;
 
         if self.channel1.enabled() {
             sample += self.channel1.sample();
+            channels += 1;
         }
         if self.channel2.enabled() {
             sample += self.channel2.sample();
+            channels += 1;
         }
         if self.channel3.enabled() {
             sample += self.channel3.sample();
+            channels += 1;
         }
         if self.channel4.enabled() {
             sample += self.channel4.sample();
+            channels += 1;
         }
 
-        sample /= 4.0;
+        sample /= channels as f32;
         sample
     }
 }

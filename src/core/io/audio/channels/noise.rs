@@ -84,11 +84,7 @@ impl NoiseChannel {
 
         self.lfsr = 0x7fff;
 
-        if self.length_counter.enabled()
-            && self.length_counter.trigger()
-            && div_apu % 2 == 0
-            && self.length_counter.tick()
-        {
+        if self.length_counter.trigger() && div_apu % 2 == 0 && self.length_counter.tick() {
             self.enabled = false;
         }
 

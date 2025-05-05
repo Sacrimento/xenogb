@@ -98,11 +98,7 @@ impl PulseChannel {
         self.envelope.trigger();
         self.enabled = self.envelope.dac_enabled();
 
-        if self.length_counter.enabled()
-            && self.length_counter.trigger()
-            && div_apu % 2 == 0
-            && self.length_counter.tick()
-        {
+        if self.length_counter.trigger() && div_apu % 2 == 0 && self.length_counter.tick() {
             self.enabled = false;
         }
 
