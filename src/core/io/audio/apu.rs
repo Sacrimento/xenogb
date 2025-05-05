@@ -1,7 +1,12 @@
-use crate::flag_set;
+use crossbeam_channel::Sender;
 use log::warn;
 
 use super::channels::{NoiseChannel, PulseChannel, WaveChannel};
+use crate::core::cpu::CLOCK_SPEED;
+use crate::flag_set;
+
+const SAMPLE_RATE: f32 = 44100.0;
+const TICKS_PER_SAMPLE: f32 = CLOCK_SPEED as f32 / SAMPLE_RATE as f32;
 
 #[allow(nonstandard_style, dead_code)]
 pub mod APU_AMC_FLAGS {
@@ -32,7 +37,6 @@ pub mod APU_MVVP_FLAGS {
     pub const VIN_LEFT: u8 = 0x80;
 }
 
-#[derive(Default)]
 pub struct APU {
     master_control: u8,
     panning: u8,
@@ -44,16 +48,24 @@ pub struct APU {
     channel2: PulseChannel,
     channel3: WaveChannel,
     channel4: NoiseChannel,
+
+    ticks_since_sample: f32,
+    audio_channel_sd: Sender<f32>,
 }
 
 impl APU {
-    pub fn new() -> Self {
+    pub fn new(audio_channel_sd: Sender<f32>) -> Self {
         Self {
+            master_control: 0,
+            master_volume: 0,
+            panning: 0,
+            div_apu: 0,
             channel1: PulseChannel::new(true),
             channel2: PulseChannel::new(false),
             channel3: WaveChannel::new(),
             channel4: NoiseChannel::new(),
-            ..Default::default()
+            ticks_since_sample: 0.0,
+            audio_channel_sd,
         }
     }
 
@@ -69,7 +81,7 @@ impl APU {
     }
 
     pub fn read(&self, addr: u16) -> u8 {
-        match addr {
+        let v = match addr {
             0xff10..=0xff14 => self.channel1.read(addr),
             0xff16..=0xff19 => self.channel2.read(addr),
             0xff1a..=0xff1e => self.channel3.read(addr),
@@ -89,13 +101,19 @@ impl APU {
             }
             0xff30..=0xff3f => self.channel3.read(addr),
             _ => {
-                warn!("apu.write: unhandled address 0x{addr:04X}");
+                warn!("apu.read: unhandled address 0x{addr:04X}");
                 0xff
             }
-        }
+        };
+
+        // println!("APU.READ: {:04X} {:02X}", addr, v);
+
+        v
     }
 
     pub fn write(&mut self, addr: u16, value: u8) {
+        // println!("APU.WRITE: {:04X} {:02X}", addr, value);
+
         if !self.enabled() && !matches!(addr, 0xff20 | 0xff26 | 0xff30..=0xff3f) {
             return;
         }
@@ -125,7 +143,6 @@ impl APU {
     }
 
     pub fn tick(&mut self, div_apu: bool) {
-        // 512 Hz
         if div_apu {
             self.div_apu = (self.div_apu + 1) % 8;
 
@@ -154,10 +171,36 @@ impl APU {
         if !self.enabled() {
             return;
         }
+        self.ticks_since_sample += 4.0;
 
         self.channel1.tick();
         self.channel2.tick();
         self.channel3.tick();
         self.channel4.tick();
+
+        if self.ticks_since_sample >= TICKS_PER_SAMPLE {
+            self.ticks_since_sample -= TICKS_PER_SAMPLE;
+            _ = self.audio_channel_sd.send(self.mix());
+        }
+    }
+
+    fn mix(&self) -> f32 {
+        let mut sample = 0.0;
+
+        if self.channel1.enabled() {
+            sample += self.channel1.sample();
+        }
+        if self.channel2.enabled() {
+            sample += self.channel2.sample();
+        }
+        if self.channel3.enabled() {
+            sample += self.channel3.sample();
+        }
+        if self.channel4.enabled() {
+            sample += self.channel4.sample();
+        }
+
+        sample /= 4.0;
+        sample
     }
 }

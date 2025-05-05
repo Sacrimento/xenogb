@@ -19,8 +19,8 @@ jobs:
     outputs:
       release_built: ${{ steps.set-output.outputs.release_built }}
     steps:
-      - name: Install linking & testing dependencies
-        run: sudo apt install -y clang mold imagemagick
+      - name: Install dependencies
+        run: sudo apt update && sudo apt install -y clang mold imagemagick libasound2-dev
       - uses: actions/checkout@v4
       - uses: actions/cache@v4
         with:

@@ -47,16 +47,17 @@ impl WaveChannel {
         self.wave_ram_idx = 1;
     }
 
-    #[allow(dead_code)]
-    pub fn output(&self) -> u8 {
+    pub fn sample(&self) -> f32 {
         let nibble = if self.wave_ram_idx % 2 == 0 { 4 } else { 0 };
         let sample = (self.wave_ram[self.wave_ram_idx / 2] >> nibble) & 0xf;
 
         if self.volume == 0 {
-            return 0;
+            return 0.0;
         }
 
-        sample >> (self.volume - 1)
+        let digital = sample >> (self.volume - 1);
+        let analogic = digital as f32 / 16.0 * 2.0 - 1.0;
+        analogic
     }
 
     pub fn tick(&mut self) {

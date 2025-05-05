@@ -42,11 +42,12 @@ impl Bus {
         cartridge: Cartridge,
         boot_rom_name: BootRom,
         video_channel_sd: Sender<Vbuf>,
+        audio_channel_sd: Sender<f32>,
     ) -> Self {
         Self {
             cartridge,
             ram: RAM::new(),
-            io: IOMMU::new(video_channel_sd),
+            io: IOMMU::new(video_channel_sd, audio_channel_sd),
             dma: None,
             booting: !matches!(boot_rom_name, BootRom::NONE),
             boot_rom: boot_rom(boot_rom_name),

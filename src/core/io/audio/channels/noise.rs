@@ -65,12 +65,13 @@ impl NoiseChannel {
         }
     }
 
-    #[allow(dead_code)]
-    pub fn output(&self) -> u8 {
-        if !self.enabled || self.lfsr & 0x1 == 1 {
-            return 0;
+    pub fn sample(&self) -> f32 {
+        if !self.enabled || self.lfsr & 0x1 == 0 {
+            return 0.0;
         }
-        self.envelope.volume()
+        let digital = self.envelope.volume();
+        let analogic = digital as f32 / 16.0 * 2.0 - 1.0;
+        analogic
     }
 
     pub fn enabled(&self) -> bool {
@@ -83,7 +84,11 @@ impl NoiseChannel {
 
         self.lfsr = 0x7fff;
 
-        if self.length_counter.trigger() && div_apu % 2 == 0 && self.length_counter.tick() {
+        if self.length_counter.enabled()
+            && self.length_counter.trigger()
+            && div_apu % 2 == 0
+            && self.length_counter.tick()
+        {
             self.enabled = false;
         }
 

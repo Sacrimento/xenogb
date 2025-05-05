@@ -1,4 +1,5 @@
 use super::ui::{XenoGBUI, WINDOW_SIZE};
+use crate::audio::run_audio::run_audio;
 use crate::core::io::video::ppu::Vbuf;
 use crate::core::mem::bus::Bus;
 use crate::core::run_emu::run_emu_thread;
@@ -11,6 +12,7 @@ use std::path::PathBuf;
 pub fn run_ui(
     bus: Bus,
     video_channel_rc: Receiver<Vbuf>,
+    audio_channel_rc: Receiver<f32>,
     debug: bool,
     serial: bool,
     record_enabled: bool,
@@ -26,6 +28,8 @@ pub fn run_ui(
             ..Default::default()
         },
         Box::new(move |ctx| {
+            run_audio(audio_channel_rc);
+
             let (emu_state, channels) =
                 run_emu_thread(bus, debug, serial, record_enabled, record_path, replay_path);
 

@@ -80,23 +80,29 @@ impl PulseChannel {
         }
     }
 
-    #[allow(dead_code)]
-    pub fn output(&self) -> u8 {
+    pub fn sample(&self) -> f32 {
         if !self.enabled || self.period < 8 {
-            return 0;
+            return 0.0;
         }
 
         let signal = DUTY_TABLE[self.wave_duty as usize][self.duty_idx as usize];
         let volume = self.envelope.volume();
 
-        signal * volume
+        let digital = signal * volume;
+
+        let analogic = (digital as f32 / 16.0) * 2.0 - 1.0;
+        analogic
     }
 
     fn trigger(&mut self, div_apu: u8) {
         self.envelope.trigger();
         self.enabled = self.envelope.dac_enabled();
 
-        if self.length_counter.trigger() && div_apu % 2 == 0 && self.length_counter.tick() {
+        if self.length_counter.enabled()
+            && self.length_counter.trigger()
+            && div_apu % 2 == 0
+            && self.length_counter.tick()
+        {
             self.enabled = false;
         }
 

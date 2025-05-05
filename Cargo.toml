@@ -22,6 +22,7 @@ criterion = { version = "0.5", features = ["html_reports"] }
 [dependencies]
 chrono = "0.4.40"
 clap = { version = "4.5.32", features = ["derive"] }
+cpal = "0.15.3"
 cphf = "1.0.0"
 crossbeam-channel = "0.5.14"
 eframe = { version = "0.31.1", features = ["glow"] }
