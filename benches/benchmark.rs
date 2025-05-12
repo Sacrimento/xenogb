@@ -9,12 +9,14 @@ use xenogb::core::{
 
 fn setup_cpu(cartridge: PathBuf) -> LR35902CPU {
     let (vcs, _) = unbounded();
+    let (acs, _) = unbounded();
 
     LR35902CPU::new(
         Bus::new(
             parse_cartridge(PathBuf::from("benches/roms").join(cartridge)).unwrap(),
             BootRom::NONE,
             vcs,
+            acs,
         ),
         false,
         u32::MAX,
