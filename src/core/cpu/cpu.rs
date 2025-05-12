@@ -119,6 +119,7 @@ impl LR35902CPU {
             self.bus.dma_tick();
             self.bus.io.ppu.tick();
             self.bus.io.apu.tick(div_apu);
+            self.clock.tick();
         }
 
         CPU_METRICS.with_borrow_mut(|mh| {
@@ -127,8 +128,6 @@ impl LR35902CPU {
                 (Instant::now() - start) / (cycles as u32 * 4),
             )
         });
-
-        self.clock.tick(cycles as u32 * 4);
     }
 
     pub fn set_register(&mut self, register: &CPURegisterId, value: u16) {

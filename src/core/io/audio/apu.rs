@@ -6,7 +6,7 @@ use crate::core::cpu::CLOCK_SPEED;
 use crate::flag_set;
 
 const SAMPLE_RATE: f32 = 44100.0;
-const TICKS_PER_SAMPLE: f32 = CLOCK_SPEED as f32 / SAMPLE_RATE as f32;
+const TICKS_PER_SAMPLE: f32 = CLOCK_SPEED as f32 / SAMPLE_RATE;
 
 #[allow(nonstandard_style, dead_code)]
 pub mod APU_AMC_FLAGS {
@@ -50,6 +50,7 @@ pub struct APU {
     channel4: NoiseChannel,
 
     ticks_since_sample: f32,
+    prev_sample: f32,
     audio_channel_sd: Sender<f32>,
 }
 
@@ -65,6 +66,7 @@ impl APU {
             channel3: WaveChannel::new(),
             channel4: NoiseChannel::new(),
             ticks_since_sample: 0.0,
+            prev_sample: 0.0,
             audio_channel_sd,
         }
     }
@@ -174,32 +176,35 @@ impl APU {
 
         if self.ticks_since_sample >= TICKS_PER_SAMPLE {
             self.ticks_since_sample -= TICKS_PER_SAMPLE;
-            _ = self.audio_channel_sd.send(self.mix());
+            let s = self.mix();
+            _ = self.audio_channel_sd.send(s);
         }
     }
 
-    fn mix(&self) -> f32 {
+    fn hpf(&mut self, sample: f32) {
+        let alpha = 0.8;
+        self.prev_sample = alpha * self.prev_sample + (1.0 - alpha) * sample;
+    }
+
+    fn mix(&mut self) -> f32 {
         let mut sample = 0.0;
-        let mut channels = 0;
 
         if self.channel1.enabled() {
             sample += self.channel1.sample();
-            channels += 1;
         }
         if self.channel2.enabled() {
             sample += self.channel2.sample();
-            channels += 1;
         }
         if self.channel3.enabled() {
             sample += self.channel3.sample();
-            channels += 1;
         }
         if self.channel4.enabled() {
             sample += self.channel4.sample();
-            channels += 1;
         }
 
-        sample /= channels as f32;
+        sample /= 4.0 as f32;
+        // self.hpf(sample);
+        // self.prev_sample
         sample
     }
 }

@@ -3,7 +3,6 @@ use std::time::{Duration, Instant};
 use log::warn;
 
 use crate::core::io::video::ppu::TICKS_PER_FRAME;
-
 pub const CLOCK_SPEED: u32 = 4194304;
 
 // CPU Clock based on ticks per frames instead of tick duration
@@ -28,8 +27,8 @@ impl Clock {
         }
     }
 
-    pub fn tick(&mut self, clock_ticks: u32) {
-        self.clock_ticks += clock_ticks;
+    pub fn tick(&mut self) {
+        self.clock_ticks += 4;
 
         if self.clock_ticks >= TICKS_PER_FRAME {
             self.clock_ticks = 0;
