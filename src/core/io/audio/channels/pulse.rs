@@ -24,7 +24,7 @@ pub struct PulseChannel {
 
     duty_idx: u8,
     wave_duty: u8,
-    period: u16,
+    pub period: u16,
 }
 
 impl PulseChannel {

@@ -44,10 +44,10 @@ pub struct APU {
 
     div_apu: u8,
 
-    channel1: PulseChannel,
-    channel2: PulseChannel,
-    channel3: WaveChannel,
-    channel4: NoiseChannel,
+    pub channel1: PulseChannel,
+    pub channel2: PulseChannel,
+    pub channel3: WaveChannel,
+    pub channel4: NoiseChannel,
 
     ticks_since_sample: f32,
     prev_sample: f32,

@@ -1,4 +1,4 @@
-mod audio;
+pub mod audio;
 pub mod joypad;
 mod serial;
 mod timer;

@@ -1,4 +1,4 @@
-use super::views::{cpu::CpuUi, repl::ReplUi, vram::VramUi};
+use super::views::{apu::ApuUi, cpu::CpuUi, repl::ReplUi, vram::VramUi};
 use crate::debugger::{DebuggerCommand, EmuSnapshot};
 use crossbeam_channel::{Receiver, Sender};
 use eframe::egui;
@@ -8,6 +8,7 @@ pub enum Tabs {
     ReplUi,
     Cpu,
     Vram,
+    Apu,
 }
 
 pub struct DebuggerUi {
@@ -18,6 +19,7 @@ pub struct DebuggerUi {
     pub vram: VramUi,
     pub cpu: CpuUi,
     pub repl: ReplUi,
+    pub apu: ApuUi,
 }
 
 impl DebuggerUi {
@@ -27,10 +29,11 @@ impl DebuggerUi {
         dbg_commands_sd: Sender<DebuggerCommand>,
         dbg_data_rc: Receiver<EmuSnapshot>,
     ) -> Self {
-        let tabs = vec![Tabs::ReplUi, Tabs::Vram, Tabs::Cpu];
+        let tabs = vec![Tabs::Apu, Tabs::ReplUi, Tabs::Vram, Tabs::Cpu];
         let vram = VramUi::new(ctx, dbg_data_rc.clone());
         let cpu = CpuUi::new(dbg_data_rc.clone(), dbg_commands_sd.clone());
         let repl = ReplUi::new(dbg_data_rc.clone(), dbg_commands_sd.clone());
+        let apu = ApuUi::new(dbg_data_rc.clone(), dbg_commands_sd.clone());
 
         Self {
             enabled,
@@ -38,6 +41,7 @@ impl DebuggerUi {
             vram,
             cpu,
             repl,
+            apu,
         }
     }
 }
@@ -46,6 +50,7 @@ pub struct Behavior<'a> {
     pub vram: &'a mut VramUi,
     pub cpu: &'a mut CpuUi,
     pub repl: &'a mut ReplUi,
+    pub apu: &'a mut ApuUi,
 }
 
 #[allow(clippy::needless_lifetimes)]
@@ -55,6 +60,7 @@ impl<'a> egui_tiles::Behavior<Tabs> for Behavior<'a> {
             Tabs::ReplUi => "REPL".into(),
             Tabs::Vram => "VRAM".into(),
             Tabs::Cpu => "CPU".into(),
+            Tabs::Apu => "APU".into(),
         }
     }
 
@@ -68,6 +74,7 @@ impl<'a> egui_tiles::Behavior<Tabs> for Behavior<'a> {
             Tabs::ReplUi => self.repl.ui(ui),
             Tabs::Vram => self.vram.ui(ui),
             Tabs::Cpu => self.cpu.ui(ui),
+            Tabs::Apu => self.apu.ui(ui),
         }
 
         Default::default()

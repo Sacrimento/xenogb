@@ -1,6 +1,6 @@
 use super::metrics::{CpuMetrics, MetricsHandler};
 use super::state::EmuSnapshot;
-use super::{commands::DebuggerCommand, state::CpuState};
+use super::{commands::DebuggerCommand, state::ApuState, state::CpuState};
 use crate::core::cpu::cpu::LR35902CPU;
 use crate::core::run_emu::EmuCrash;
 use crossbeam_channel::{Receiver, Sender};
@@ -36,7 +36,7 @@ impl Debugger {
 
         Self {
             enabled,
-            stepping: enabled,
+            stepping: false,
             do_step: false,
             resume: false,
             breakpoints: vec![],
@@ -76,6 +76,7 @@ impl Debugger {
         let state = EmuSnapshot {
             vram: cpu.bus.io.ppu.vram,
             cpu: CpuState::new(cpu, self.executing_pc),
+            apu: ApuState::new(&cpu.bus.io.apu),
             breakpoints: self.breakpoints.clone(),
             ..Default::default()
         };
@@ -121,6 +122,7 @@ impl Debugger {
             .send(EmuSnapshot {
                 vram: cpu.bus.io.ppu.vram,
                 cpu: CpuState::new(cpu, self.executing_pc),
+                apu: ApuState::new(&cpu.bus.io.apu),
                 breakpoints: self.breakpoints.clone(),
                 crash: Some(emu_crash),
             })

@@ -12,7 +12,7 @@ pub struct WaveChannel {
     div: u16,
 
     volume: u8,
-    period: u16,
+    pub period: u16,
 
     wave_ram_idx: usize,
     wave_ram: [u8; 0x10],

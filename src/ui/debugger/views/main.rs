@@ -18,6 +18,7 @@ impl DebuggerUi {
                             repl: &mut self.repl,
                             vram: &mut self.vram,
                             cpu: &mut self.cpu,
+                            apu: &mut self.apu,
                         };
                         self.tree.ui(&mut behavior, ui);
                     });

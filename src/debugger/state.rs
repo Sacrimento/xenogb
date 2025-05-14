@@ -3,12 +3,14 @@ use super::metrics::{CpuMetrics, MetricsExport};
 use super::CPU_METRICS;
 use crate::core::cpu::cpu::{CPURegisters, LR35902CPU};
 use crate::core::cpu::interrupts::{INTERRUPT_ENABLE, INTERRUPT_FLAGS};
+use crate::core::io::audio::apu::APU;
 use crate::core::run_emu::EmuCrash;
 
 pub struct EmuSnapshot {
     pub vram: [u8; 0x2000],
     pub cpu: CpuState,
     pub breakpoints: Vec<u16>,
+    pub apu: ApuState,
     pub crash: Option<EmuCrash>,
 }
 
@@ -17,6 +19,7 @@ impl Default for EmuSnapshot {
         Self {
             vram: [0; 0x2000],
             cpu: CpuState::default(),
+            apu: ApuState::default(),
             breakpoints: Vec::new(),
             crash: None,
         }
@@ -51,6 +54,43 @@ impl CpuState {
             },
             metrics: CPU_METRICS.with_borrow(|mh| mh.export()),
             disas: disas(cpu, last_pc, 30),
+        }
+    }
+}
+
+#[derive(Default)]
+pub struct ChannelState {
+    pub enabled: bool,
+    pub freq: f32,
+}
+
+#[derive(Default)]
+pub struct ApuState {
+    pub channel1: ChannelState,
+    pub channel2: ChannelState,
+    pub channel3: ChannelState,
+    pub channel4: ChannelState,
+}
+
+impl ApuState {
+    pub fn new(apu: &APU) -> Self {
+        Self {
+            channel1: ChannelState {
+                enabled: apu.channel1.enabled(),
+                freq: 131072f32 / (2048f32 - apu.channel1.period as f32),
+            },
+            channel2: ChannelState {
+                enabled: apu.channel2.enabled(),
+                freq: 131072f32 / (2048f32 - apu.channel2.period as f32),
+            },
+            channel3: ChannelState {
+                enabled: apu.channel3.enabled(),
+                freq: 65536f32 / (2048f32 - apu.channel3.period as f32),
+            },
+            channel4: ChannelState {
+                enabled: apu.channel4.enabled(),
+                freq: 0f32,
+            },
         }
     }
 }
