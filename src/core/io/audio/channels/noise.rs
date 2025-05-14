@@ -39,7 +39,7 @@ impl NoiseChannel {
         self.lfsr_width = false;
         self.clock_shift = 0;
 
-        self.lfsr = 0x7fff;
+        self.lfsr = 0;
         self.div = 0;
 
         self.envelope = Envelope::default();
@@ -56,11 +56,11 @@ impl NoiseChannel {
         } else {
             self.div = self.period();
 
-            let xor = (self.lfsr & 0x1) ^ ((self.lfsr >> 1) & 0x1);
+            let xor = (self.lfsr & 0x1) ^ (self.lfsr & 0x2);
             self.lfsr = (self.lfsr >> 1) | (xor << 14);
 
             if self.lfsr_width {
-                self.lfsr = (self.lfsr & !(1 << 6)) | ((xor & 1) << 6);
+                self.lfsr = (self.lfsr & !(1 << 6)) | (xor << 6);
             }
         }
     }
