@@ -61,7 +61,7 @@ impl CpuState {
 #[derive(Default)]
 pub struct ChannelState {
     pub enabled: bool,
-    pub freq: f32,
+    pub freq: u32,
 }
 
 #[derive(Default)]
@@ -77,19 +77,19 @@ impl ApuState {
         Self {
             channel1: ChannelState {
                 enabled: apu.channel1.enabled(),
-                freq: 131072f32 / (2048f32 - apu.channel1.period as f32),
+                freq: 131072u32 / (2048u32 - apu.channel1.period as u32),
             },
             channel2: ChannelState {
                 enabled: apu.channel2.enabled(),
-                freq: 131072f32 / (2048f32 - apu.channel2.period as f32),
+                freq: 131072u32 / (2048u32 - apu.channel2.period as u32),
             },
             channel3: ChannelState {
                 enabled: apu.channel3.enabled(),
-                freq: 65536f32 / (2048f32 - apu.channel3.period as f32),
+                freq: 65536u32 / (2048u32 - apu.channel3.period as u32),
             },
             channel4: ChannelState {
                 enabled: apu.channel4.enabled(),
-                freq: 0f32,
+                freq: 0,
             },
         }
     }

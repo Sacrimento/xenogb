@@ -51,6 +51,13 @@ impl Debugger {
             match event {
                 DebuggerCommand::ENABLED(enabled) => self.set_enabled(enabled),
                 DebuggerCommand::CPU_CLOCK(clock_speed) => cpu.clock.set_speed(clock_speed),
+                DebuggerCommand::APU_MUTE_CHANNEL(ch_num) => match ch_num {
+                    1 => cpu.bus.io.apu.channel1.mute(),
+                    2 => cpu.bus.io.apu.channel2.mute(),
+                    3 => cpu.bus.io.apu.channel3.mute(),
+                    4 => cpu.bus.io.apu.channel4.mute(),
+                    _ => unreachable!(),
+                },
                 DebuggerCommand::CONTINUE => self.resume = true,
                 DebuggerCommand::STEP => {
                     if self.stepping {

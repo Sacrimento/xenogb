@@ -36,6 +36,8 @@ pub enum DebuggerCommand {
 
     CPU_CLOCK(u32),
 
+    APU_MUTE_CHANNEL(u8),
+
     STEP,
     CONTINUE,
     BREAKPOINT(DynAddr),
