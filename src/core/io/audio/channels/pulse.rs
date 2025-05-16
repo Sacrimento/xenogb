@@ -16,7 +16,7 @@ const DUTY_TABLE: [[u8; 8]; 4] = [
 #[derive(Default)]
 pub struct PulseChannel {
     enabled: bool,
-    muted: bool,
+    pub muted: bool,
 
     div: u16,
 

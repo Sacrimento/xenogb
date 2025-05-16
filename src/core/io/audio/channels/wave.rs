@@ -6,13 +6,13 @@ use crate::core::io::audio::length_counter::LengthCounter;
 pub struct WaveChannel {
     enabled: bool,
     dac_enabled: bool,
-    muted: bool,
+    pub muted: bool,
 
     length_counter: LengthCounter,
 
     div: u16,
 
-    volume: u8,
+    pub volume: u8,
     pub period: u16,
 
     wave_ram_idx: usize,

@@ -6,7 +6,7 @@ use log::warn;
 #[derive(Default)]
 pub struct NoiseChannel {
     enabled: bool,
-    muted: bool,
+    pub muted: bool,
 
     length_counter: LengthCounter,
 

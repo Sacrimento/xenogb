@@ -30,6 +30,7 @@ egui_extras = { version = "0.31.1", features = ["image"] }
 egui_plot = "0.31.0"
 egui_tiles = "0.12.0"
 image = { version = "0.25.6", features = ["png"] }
+itertools = "0.14.0"
 log = "0.4.27"
 log4rs = { version = "1.3.0", features = ["file_appender", "serde"] }
 phf = { version = "0.11.3", features = ["macros"] }

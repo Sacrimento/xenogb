@@ -61,6 +61,8 @@ impl CpuState {
 #[derive(Default)]
 pub struct ChannelState {
     pub enabled: bool,
+    pub muted: bool,
+    pub volume: u8,
     pub freq: u32,
 }
 
@@ -74,21 +76,31 @@ pub struct ApuState {
 
 impl ApuState {
     pub fn new(apu: &APU) -> Self {
+        let ch3_vol = [0, 15, 11, 4][apu.channel3.volume as usize];
+
         Self {
             channel1: ChannelState {
                 enabled: apu.channel1.enabled(),
+                muted: apu.channel1.muted,
+                volume: apu.channel1.envelope.volume(),
                 freq: 131072u32 / (2048u32 - apu.channel1.period as u32),
             },
             channel2: ChannelState {
                 enabled: apu.channel2.enabled(),
+                muted: apu.channel2.muted,
+                volume: apu.channel2.envelope.volume(),
                 freq: 131072u32 / (2048u32 - apu.channel2.period as u32),
             },
             channel3: ChannelState {
                 enabled: apu.channel3.enabled(),
+                muted: apu.channel3.muted,
+                volume: ch3_vol,
                 freq: 65536u32 / (2048u32 - apu.channel3.period as u32),
             },
             channel4: ChannelState {
                 enabled: apu.channel4.enabled(),
+                muted: apu.channel4.muted,
+                volume: apu.channel4.envelope.volume(),
                 freq: 0,
             },
         }
