@@ -1,9 +1,12 @@
+use core::panic;
+
 use crate::core::io::audio::{envelope::Envelope, length_counter::LengthCounter};
 use log::warn;
 
 #[derive(Default)]
 pub struct NoiseChannel {
     enabled: bool,
+    muted: bool,
 
     length_counter: LengthCounter,
 
@@ -52,11 +55,11 @@ impl NoiseChannel {
         }
 
         if self.div > 0 {
-            self.div -= 1;
+            self.div -= 4;
         } else {
             self.div = self.period();
 
-            let xor = (self.lfsr & 0x1) ^ (self.lfsr & 0x2);
+            let xor = (self.lfsr & 0x1) ^ ((self.lfsr & 0x2) >> 1);
             self.lfsr = (self.lfsr >> 1) | (xor << 14);
 
             if self.lfsr_width {
@@ -66,11 +69,16 @@ impl NoiseChannel {
     }
 
     pub fn sample(&self) -> f32 {
-        if !self.enabled || self.lfsr & 0x1 == 0 {
+        if self.muted {
             return 0.0;
         }
-        let digital = self.envelope.volume();
-        let analogic = digital as f32 / 16.0 * 2.0 - 1.0;
+
+        if !self.enabled {
+            return 0.0;
+        }
+
+        let digital = (!self.lfsr as u8 & 0x1) * self.envelope.volume();
+        let analogic = digital as f32 / 15.0 * 2.0 - 1.0;
         analogic
     }
 
@@ -147,5 +155,9 @@ impl NoiseChannel {
             0xff23 => ((self.length_counter.enabled() as u8) << 6) | 0xbf,
             _ => unreachable!(),
         }
+    }
+
+    pub fn mute(&mut self) {
+        self.muted = !self.muted;
     }
 }

@@ -189,18 +189,10 @@ impl APU {
     fn mix(&mut self) -> f32 {
         let mut sample = 0.0;
 
-        if self.channel1.enabled() {
-            sample += self.channel1.sample();
-        }
-        if self.channel2.enabled() {
-            sample += self.channel2.sample();
-        }
-        if self.channel3.enabled() {
-            sample += self.channel3.sample();
-        }
-        if self.channel4.enabled() {
-            sample += self.channel4.sample();
-        }
+        sample += self.channel1.sample();
+        sample += self.channel2.sample();
+        sample += self.channel3.sample();
+        sample += self.channel4.sample();
 
         sample /= 4.0 as f32;
         // self.hpf(sample);

@@ -16,6 +16,8 @@ const DUTY_TABLE: [[u8; 8]; 4] = [
 #[derive(Default)]
 pub struct PulseChannel {
     enabled: bool,
+    muted: bool,
+
     div: u16,
 
     sweep: Option<Sweep>,
@@ -49,7 +51,8 @@ impl PulseChannel {
     }
 
     pub fn freq_sweep(&mut self) {
-        if self.sweep.as_ref().is_some_and(|s| s.enabled()) {
+        // if self.sweep.as_ref().is_some_and(|s| s.enabled()) {
+        if self.sweep.is_some() {
             match self.sweep.as_mut().unwrap().tick() {
                 Ok(None) => (),
                 Ok(Some(p)) => self.period = p,
@@ -81,6 +84,10 @@ impl PulseChannel {
     }
 
     pub fn sample(&self) -> f32 {
+        if self.muted {
+            return 0.0;
+        }
+
         if !self.enabled || self.period < 8 {
             return 0.0;
         }
@@ -90,7 +97,7 @@ impl PulseChannel {
 
         let digital = signal * volume;
 
-        let analogic = (digital as f32 / 16.0) * 2.0 - 1.0;
+        let analogic = (digital as f32 / 15.0) * 2.0 - 1.0;
         analogic
     }
 
@@ -170,5 +177,9 @@ impl PulseChannel {
             0xff14 | 0xff19 => ((self.length_counter.enabled() as u8) << 6) | 0xbf,
             _ => unreachable!(),
         }
+    }
+
+    pub fn mute(&mut self) {
+        self.muted = !self.muted;
     }
 }

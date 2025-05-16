@@ -6,6 +6,7 @@ use crate::core::io::audio::length_counter::LengthCounter;
 pub struct WaveChannel {
     enabled: bool,
     dac_enabled: bool,
+    muted: bool,
 
     length_counter: LengthCounter,
 
@@ -44,10 +45,18 @@ impl WaveChannel {
 
         self.length_counter.reset();
 
-        self.wave_ram_idx = 1;
+        self.wave_ram_idx = 0;
     }
 
     pub fn sample(&self) -> f32 {
+        if self.muted {
+            return 0.0;
+        }
+
+        if !self.enabled || !self.dac_enabled {
+            return 0.0;
+        }
+
         let nibble = if self.wave_ram_idx % 2 == 0 { 4 } else { 0 };
         let sample = (self.wave_ram[self.wave_ram_idx / 2] >> nibble) & 0xf;
 
@@ -56,7 +65,7 @@ impl WaveChannel {
         }
 
         let digital = sample >> (self.volume - 1);
-        let analogic = digital as f32 / 16.0 * 2.0 - 1.0;
+        let analogic = digital as f32 / 15.0 * 2.0 - 1.0;
         analogic
     }
 
@@ -65,10 +74,10 @@ impl WaveChannel {
             return;
         }
 
-        self.div -= 1;
+        self.div = self.div.saturating_sub(2);
 
         if self.div == 0 {
-            self.div = self.period;
+            self.div = (2048 - self.period) * 2;
             self.wave_ram_idx = (self.wave_ram_idx + 1) % 32;
         }
     }
@@ -84,7 +93,7 @@ impl WaveChannel {
             self.enabled = false;
         }
 
-        self.div = self.period;
+        self.div = (2048 - self.period) * 2;
         self.wave_ram_idx = 1;
     }
 
@@ -113,7 +122,7 @@ impl WaveChannel {
                     self.enabled = false;
                 }
 
-                self.period = (self.period & 0xff) | ((value as u16) << 8);
+                self.period = (self.period & 0xff) | ((value as u16 & 0x7) << 8);
 
                 if (value >> 7) & 1 == 1 {
                     self.trigger(div_apu);
@@ -143,5 +152,9 @@ impl WaveChannel {
             }
             _ => unreachable!(),
         }
+    }
+
+    pub fn mute(&mut self) {
+        self.muted = !self.muted;
     }
 }
