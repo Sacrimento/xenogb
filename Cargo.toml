@@ -34,5 +34,6 @@ itertools = "0.14.0"
 log = "0.4.27"
 log4rs = { version = "1.3.0", features = ["file_appender", "serde"] }
 phf = { version = "0.11.3", features = ["macros"] }
+ringbuf = "0.4.8"
 serde = "1.0.219"
 serde_yaml = "0.9.34"
