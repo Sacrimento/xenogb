@@ -1,11 +1,11 @@
 use super::super::utils::timedata::TimeData;
-use crate::core::io::video::lcd::LCD;
-use crate::debugger::{EmuSnapshot, MetricType};
+use crate::core::io::video::{lcd::LCD, ppu::PPU_LAYER};
+use crate::debugger::{DebuggerCommand, EmuSnapshot, MetricType};
 
-use crossbeam_channel::Receiver;
+use crossbeam_channel::{Receiver, Sender};
 use eframe::egui::{
-    self, epaint, vec2, Align, Color32, ColorImage, CornerRadius, Image, Layout, Rect, Scene,
-    Sense, Stroke, StrokeKind, TextureHandle, TextureOptions, Ui,
+    self, epaint, vec2, Align, Color32, ColorImage, CornerRadius, Image, Layout, Rect, RichText,
+    Scene, Sense, Stroke, StrokeKind, TextureHandle, TextureOptions, Ui,
 };
 
 const VRAM_SCALE: usize = 5;
@@ -17,13 +17,22 @@ pub struct PpuUi {
     vram_selected_tile_idx: Option<usize>,
     vram_selected_tile_scene_rect: Rect,
 
+    draw_background_cb: bool,
+    draw_window_cb: bool,
+    draw_sprites_cb: bool,
+
     framerate_td: TimeData,
 
     dbg_data_rc: Receiver<EmuSnapshot>,
+    dbg_commands_sd: Sender<DebuggerCommand>,
 }
 
 impl PpuUi {
-    pub fn new(ctx: &eframe::CreationContext<'_>, dbg_data_rc: Receiver<EmuSnapshot>) -> Self {
+    pub fn new(
+        ctx: &eframe::CreationContext<'_>,
+        dbg_data_rc: Receiver<EmuSnapshot>,
+        dbg_commands_sd: Sender<DebuggerCommand>,
+    ) -> Self {
         let vram_textures = [(); VRAMX * VRAMY].map(|()| {
             ctx.egui_ctx.load_texture(
                 "vram",
@@ -37,7 +46,11 @@ impl PpuUi {
             vram_selected_tile_idx: None,
             vram_selected_tile_scene_rect: Rect::ZERO,
             framerate_td: TimeData::new(60, "framerate-dt".into()),
+            draw_background_cb: true,
+            draw_window_cb: true,
+            draw_sprites_cb: true,
             dbg_data_rc,
+            dbg_commands_sd,
         }
     }
 
@@ -53,10 +66,43 @@ impl PpuUi {
 
         self.framerate_td.ui(ui, "FPS".into());
 
+        self.draw_layer_ui(ui);
+
         ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
             self.vram_grid_ui(ui, &ppu_data.vram);
             ui.separator();
             self.selected_tile_ui(ui);
+        });
+    }
+
+    fn draw_layer_ui(&mut self, ui: &mut Ui) {
+        ui.label("Draw Layers");
+        ui.horizontal(|ui| {
+            let mut cb_callback = |layer_b: &mut bool, layer_s: RichText, layer| {
+                let res = ui.checkbox(layer_b, layer_s);
+                if res.changed() {
+                    _ = self
+                        .dbg_commands_sd
+                        .send(DebuggerCommand::PPU_HIDE_LAYER(layer))
+                        .unwrap();
+                }
+            };
+
+            cb_callback(
+                &mut self.draw_background_cb,
+                RichText::new("Background"),
+                PPU_LAYER::BACKGROUND,
+            );
+            cb_callback(
+                &mut self.draw_window_cb,
+                RichText::new("Window"),
+                PPU_LAYER::WINDOW,
+            );
+            cb_callback(
+                &mut self.draw_sprites_cb,
+                RichText::new("Sprites"),
+                PPU_LAYER::SPRITE,
+            );
         });
     }
 

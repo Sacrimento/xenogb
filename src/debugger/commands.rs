@@ -1,7 +1,7 @@
-use super::{Debugger, CPU_METRICS};
-use crate::{
-    core::cpu::{instructions::CPURegisterId, LR35902CPU},
-    debugger::PPU_METRICS,
+use super::{Debugger, CPU_METRICS, PPU_METRICS};
+use crate::core::{
+    cpu::{instructions::CPURegisterId, LR35902CPU},
+    io::video::ppu::PPU_LAYER,
 };
 
 use log::info;
@@ -37,10 +37,16 @@ impl DynAddr {
 pub enum DebuggerCommand {
     ENABLED(bool),
 
+    // CPU
     CPU_CLOCK(u32),
 
+    // APU
     APU_MUTE_CHANNEL(u8),
 
+    //PPU
+    PPU_HIDE_LAYER(PPU_LAYER),
+
+    // REPL
     STEP,
     CONTINUE,
     BREAKPOINT(DynAddr),

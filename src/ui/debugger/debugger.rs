@@ -30,7 +30,7 @@ impl DebuggerUi {
         dbg_data_rc: Receiver<EmuSnapshot>,
     ) -> Self {
         let tabs = vec![Tabs::Apu, Tabs::ReplUi, Tabs::Vram, Tabs::Cpu];
-        let ppu = PpuUi::new(ctx, dbg_data_rc.clone());
+        let ppu = PpuUi::new(ctx, dbg_data_rc.clone(), dbg_commands_sd.clone());
         let cpu = CpuUi::new(dbg_data_rc.clone(), dbg_commands_sd.clone());
         let repl = ReplUi::new(dbg_data_rc.clone(), dbg_commands_sd.clone());
         let apu = ApuUi::new(dbg_data_rc.clone(), dbg_commands_sd.clone());

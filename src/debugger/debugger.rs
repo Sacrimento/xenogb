@@ -63,6 +63,7 @@ impl Debugger {
                     4 => cpu.bus.io.apu.channel4.mute(),
                     _ => unreachable!(),
                 },
+                DebuggerCommand::PPU_HIDE_LAYER(layer) => cpu.bus.io.ppu.hide_layer(layer),
                 DebuggerCommand::CONTINUE => self.resume = true,
                 DebuggerCommand::STEP => {
                     if self.stepping {

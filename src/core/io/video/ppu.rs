@@ -14,6 +14,13 @@ pub const RESY: usize = 144;
 
 pub type Vbuf = [u8; RESX * RESY];
 
+#[derive(Debug)]
+pub enum PPU_LAYER {
+    BACKGROUND,
+    WINDOW,
+    SPRITE,
+}
+
 macro_rules! between {
     ( $x:expr, $l:expr, $h:expr ) => {
         ($l..=$h).contains(&$x)
@@ -68,6 +75,10 @@ pub struct PPU {
     video_channel_sd: Sender<Vbuf>,
 
     pub frames: u64,
+
+    draw_background: bool,
+    draw_window: bool,
+    draw_sprites: bool,
 }
 
 impl PPU {
@@ -90,6 +101,9 @@ impl PPU {
             vbuf: [0xff; RESX * RESY],
             video_channel_sd,
             frames: 0,
+            draw_background: true,
+            draw_window: true,
+            draw_sprites: true,
         }
     }
 
@@ -338,9 +352,21 @@ impl PPU {
             return;
         }
 
-        let bg_pixel = self.render_bg(self.line_x as usize, self.lcd.ly as usize);
-        let win_pixel = self.render_window(self.line_x as usize, self.lcd.ly as usize);
-        let s_pixel = self.render_sprite(self.line_x as usize, self.lcd.ly as usize);
+        let bg_pixel = if self.draw_background {
+            self.render_bg(self.line_x as usize, self.lcd.ly as usize)
+        } else {
+            None
+        };
+        let win_pixel = if self.draw_window {
+            self.render_window(self.line_x as usize, self.lcd.ly as usize)
+        } else {
+            None
+        };
+        let s_pixel = if self.draw_sprites {
+            self.render_sprite(self.line_x as usize, self.lcd.ly as usize)
+        } else {
+            None
+        };
 
         let (bg_prio, background_pixel) = match (bg_pixel, win_pixel) {
             (None, None) => (false, 0xff),
@@ -426,6 +452,14 @@ impl PPU {
             self.line_x = 0;
             self.window_line = 0;
             self.window_drawn = false;
+        }
+    }
+
+    pub fn hide_layer(&mut self, layer: PPU_LAYER) {
+        match layer {
+            PPU_LAYER::BACKGROUND => self.draw_background = !self.draw_background,
+            PPU_LAYER::WINDOW => self.draw_window = !self.draw_window,
+            PPU_LAYER::SPRITE => self.draw_sprites = !self.draw_sprites,
         }
     }
 }
