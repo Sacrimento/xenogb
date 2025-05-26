@@ -1,11 +1,12 @@
 use crossbeam_channel::Sender;
 use log::warn;
+use std::time::Instant;
 
 use super::channels::{NoiseChannel, PulseChannel, WaveChannel};
 use crate::core::cpu::CLOCK_SPEED;
 use crate::flag_set;
 
-const SAMPLE_RATE: f32 = 44100.0;
+pub const SAMPLE_RATE: f32 = 44100.0;
 const TICKS_PER_SAMPLE: f32 = CLOCK_SPEED as f32 / SAMPLE_RATE;
 
 #[allow(nonstandard_style, dead_code)]
@@ -50,7 +51,8 @@ pub struct APU {
     pub channel4: NoiseChannel,
 
     ticks_since_sample: f32,
-    prev_sample: f32,
+    pub last_sample: f32,
+    pub last_sample_at: Instant,
     audio_channel_sd: Sender<f32>,
 }
 
@@ -66,7 +68,8 @@ impl APU {
             channel3: WaveChannel::new(),
             channel4: NoiseChannel::new(),
             ticks_since_sample: 0.0,
-            prev_sample: 0.0,
+            last_sample: 0.0,
+            last_sample_at: Instant::now(),
             audio_channel_sd,
         }
     }
@@ -183,7 +186,7 @@ impl APU {
 
     fn hpf(&mut self, sample: f32) {
         let alpha = 0.8;
-        self.prev_sample = alpha * self.prev_sample + (1.0 - alpha) * sample;
+        self.last_sample = alpha * self.last_sample + (1.0 - alpha) * sample;
     }
 
     fn mix(&mut self) -> f32 {
@@ -195,8 +198,8 @@ impl APU {
         sample += self.channel4.sample();
 
         sample /= 4.0 as f32;
-        // self.hpf(sample);
-        // self.prev_sample
-        sample
+        self.hpf(sample);
+        self.last_sample_at = Instant::now();
+        self.last_sample
     }
 }

@@ -5,6 +5,8 @@ use crossbeam_channel::Receiver;
 use ringbuf::traits::{Consumer, Producer, Split};
 use ringbuf::{HeapCons, HeapRb};
 
+use crate::core::io::audio::apu::SAMPLE_RATE;
+
 struct AudioConsumer {
     consumer: HeapCons<f32>,
     last_sample: f32,
@@ -35,7 +37,7 @@ pub fn run_audio(sample_rx: Receiver<f32>) {
 
         let config = StreamConfig {
             channels: 1,
-            sample_rate: SampleRate(44100),
+            sample_rate: SampleRate(SAMPLE_RATE as u32),
             buffer_size: BufferSize::Default,
         };
 

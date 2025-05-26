@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use super::disas::{disas, GbAsm};
 use super::metrics::{CpuMetrics, MetricsExport};
 use super::CPU_METRICS;
@@ -66,12 +68,27 @@ pub struct ChannelState {
     pub freq: u32,
 }
 
+pub struct Sample {
+    pub sample: f32,
+    pub at: Instant,
+}
+
+impl Default for Sample {
+    fn default() -> Self {
+        Self {
+            sample: 0.0,
+            at: Instant::now(),
+        }
+    }
+}
+
 #[derive(Default)]
 pub struct ApuState {
     pub channel1: ChannelState,
     pub channel2: ChannelState,
     pub channel3: ChannelState,
     pub channel4: ChannelState,
+    pub sample: Sample,
 }
 
 impl ApuState {
@@ -102,6 +119,10 @@ impl ApuState {
                 muted: apu.channel4.muted,
                 volume: apu.channel4.envelope.volume(),
                 freq: 0,
+            },
+            sample: Sample {
+                sample: apu.last_sample,
+                at: apu.last_sample_at,
             },
         }
     }

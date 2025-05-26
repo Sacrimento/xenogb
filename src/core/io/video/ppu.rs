@@ -345,16 +345,17 @@ impl PPU {
             (Some((prio, bg_pxl)), None) => (prio, bg_pxl),
             (None, Some((prio, win_pxl))) => (prio, win_pxl),
             (Some(_), Some((prio, win_pxl))) => (prio, win_pxl),
+            // (Some((prio, bg_pxl)), Some(_)) => (prio, bg_pxl),
         };
 
         let pixel;
 
         if s_pixel.is_some() {
             let (has_prio, s_pixel) = s_pixel.unwrap();
-            if has_prio || !bg_prio {
-                pixel = s_pixel;
-            } else {
+            if !has_prio && bg_prio {
                 pixel = background_pixel;
+            } else {
+                pixel = s_pixel;
             }
         } else {
             pixel = background_pixel;

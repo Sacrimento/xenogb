@@ -9,7 +9,7 @@ use std::time::{Duration, Instant};
 use crate::debugger::{ApuState, DebuggerCommand, EmuSnapshot};
 
 const CHANNEL_FREQS_UPDATE_INTERVAL: Duration = Duration::from_millis(5);
-const CHANNEL_TIME_HISTORY: Duration = Duration::from_secs(15);
+const CHANNEL_TIME_HISTORY: Duration = Duration::from_secs(3);
 const CHANNEL_COLORS: [Color32; 4] = [Color32::RED, Color32::YELLOW, Color32::GREEN, Color32::GRAY];
 const NOTE_NAMES: [&str; 12] = [
     "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B",
