@@ -1,31 +1,21 @@
 use std::time::Instant;
 
 use super::disas::{disas, GbAsm};
-use super::metrics::{CpuMetrics, MetricsExport};
-use super::CPU_METRICS;
+use super::metrics::{CpuMetrics, MetricsExport, PpuMetrics};
+use super::{CPU_METRICS, PPU_METRICS};
 use crate::core::cpu::cpu::{CPURegisters, LR35902CPU};
 use crate::core::cpu::interrupts::{INTERRUPT_ENABLE, INTERRUPT_FLAGS};
 use crate::core::io::audio::apu::APU;
+use crate::core::io::video::ppu::PPU;
 use crate::core::run_emu::EmuCrash;
 
+#[derive(Default)]
 pub struct EmuSnapshot {
-    pub vram: [u8; 0x2000],
+    pub ppu: PpuState,
     pub cpu: CpuState,
     pub breakpoints: Vec<u16>,
     pub apu: ApuState,
     pub crash: Option<EmuCrash>,
-}
-
-impl Default for EmuSnapshot {
-    fn default() -> Self {
-        Self {
-            vram: [0; 0x2000],
-            cpu: CpuState::default(),
-            apu: ApuState::default(),
-            breakpoints: Vec::new(),
-            crash: None,
-        }
-    }
 }
 
 #[derive(Default)]
@@ -124,6 +114,29 @@ impl ApuState {
                 sample: apu.last_sample,
                 at: apu.last_sample_at,
             },
+        }
+    }
+}
+
+pub struct PpuState {
+    pub vram: [u8; 0x2000],
+    pub metrics: MetricsExport<PpuMetrics>,
+}
+
+impl Default for PpuState {
+    fn default() -> Self {
+        Self {
+            vram: [0; 0x2000],
+            metrics: MetricsExport::default(),
+        }
+    }
+}
+
+impl PpuState {
+    pub fn new(ppu: &PPU) -> Self {
+        Self {
+            vram: ppu.vram,
+            metrics: PPU_METRICS.with_borrow(|mh| mh.export()),
         }
     }
 }

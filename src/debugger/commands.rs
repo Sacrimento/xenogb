@@ -1,5 +1,8 @@
 use super::{Debugger, CPU_METRICS};
-use crate::core::cpu::{instructions::CPURegisterId, LR35902CPU};
+use crate::{
+    core::cpu::{instructions::CPURegisterId, LR35902CPU},
+    debugger::PPU_METRICS,
+};
 
 use log::info;
 
@@ -58,5 +61,6 @@ impl Debugger {
         self.enabled = enabled;
 
         CPU_METRICS.with_borrow_mut(|mh| mh.set_enabled(enabled));
+        PPU_METRICS.with_borrow_mut(|mh| mh.set_enabled(enabled));
     }
 }

@@ -1,6 +1,9 @@
-use super::metrics::{CpuMetrics, MetricsHandler};
+use super::metrics::{CpuMetrics, MetricsHandler, PpuMetrics};
 use super::state::EmuSnapshot;
-use super::{commands::DebuggerCommand, state::ApuState, state::CpuState};
+use super::{
+    commands::DebuggerCommand,
+    state::{ApuState, CpuState, PpuState},
+};
 use crate::core::cpu::cpu::LR35902CPU;
 use crate::core::run_emu::EmuCrash;
 use crossbeam_channel::{Receiver, Sender};
@@ -10,6 +13,7 @@ use std::time::Duration;
 
 thread_local! {
     pub static CPU_METRICS: RefCell<MetricsHandler<CpuMetrics>> = RefCell::new(MetricsHandler::<CpuMetrics>::new(Duration::from_millis(1000)));
+    pub static PPU_METRICS: RefCell<MetricsHandler<PpuMetrics>> = RefCell::new(MetricsHandler::<PpuMetrics>::new(Duration::from_millis(1000)));
 }
 
 pub struct Debugger {
@@ -33,6 +37,7 @@ impl Debugger {
         dbg_data_sd: Sender<EmuSnapshot>,
     ) -> Self {
         CPU_METRICS.with_borrow_mut(|mh| mh.set_enabled(enabled));
+        PPU_METRICS.with_borrow_mut(|mh| mh.set_enabled(enabled));
 
         Self {
             enabled,
@@ -74,14 +79,15 @@ impl Debugger {
             return;
         }
 
+        CPU_METRICS.with_borrow_mut(|mh| mh.update());
+        PPU_METRICS.with_borrow_mut(|mh| mh.update());
+
         if self.dbg_data_sd.is_full() {
             return;
         }
 
-        CPU_METRICS.with_borrow_mut(|mh| mh.update());
-
         let state = EmuSnapshot {
-            vram: cpu.bus.io.ppu.vram,
+            ppu: PpuState::new(&cpu.bus.io.ppu),
             cpu: CpuState::new(cpu, self.executing_pc),
             apu: ApuState::new(&cpu.bus.io.apu),
             breakpoints: self.breakpoints.clone(),
@@ -127,7 +133,7 @@ impl Debugger {
 
         self.dbg_data_sd
             .send(EmuSnapshot {
-                vram: cpu.bus.io.ppu.vram,
+                ppu: PpuState::new(&cpu.bus.io.ppu),
                 cpu: CpuState::new(cpu, self.executing_pc),
                 apu: ApuState::new(&cpu.bus.io.apu),
                 breakpoints: self.breakpoints.clone(),

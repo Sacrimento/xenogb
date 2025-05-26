@@ -1,6 +1,8 @@
 use super::lcd::{PPUMode, LCD, LCDC_FLAGS, LCDS_FLAGS};
 use crate::core::cpu::interrupts::{request_interrupt, InterruptFlags};
+use crate::debugger::{PpuMetricFields, PPU_METRICS};
 use crate::flag_set;
+
 use crossbeam_channel::Sender;
 
 const LINES_PER_FRAME: u8 = 154;
@@ -409,6 +411,7 @@ impl PPU {
                 }
 
                 self.frames += 1;
+                PPU_METRICS.with_borrow_mut(|mh| mh.count(PpuMetricFields::FRAME_RATE, 1));
 
                 if flag_set!(self.lcd.lcds, LCDS_FLAGS::MODE_OAM_STAT) {
                     request_interrupt(InterruptFlags::STAT);

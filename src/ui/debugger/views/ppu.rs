@@ -1,5 +1,7 @@
+use super::super::utils::timedata::TimeData;
 use crate::core::io::video::lcd::LCD;
-use crate::debugger::EmuSnapshot;
+use crate::debugger::{EmuSnapshot, MetricType};
+
 use crossbeam_channel::Receiver;
 use eframe::egui::{
     self, epaint, vec2, Align, Color32, ColorImage, CornerRadius, Image, Layout, Rect, Scene,
@@ -12,9 +14,10 @@ const VRAMY: usize = 24;
 
 pub struct PpuUi {
     vram_textures: [TextureHandle; VRAMX * VRAMY],
+    vram_selected_tile_idx: Option<usize>,
+    vram_selected_tile_scene_rect: Rect,
 
-    selected_tile_idx: Option<usize>,
-    selected_tile_scene_rect: Rect,
+    framerate_td: TimeData,
 
     dbg_data_rc: Receiver<EmuSnapshot>,
 }
@@ -31,21 +34,33 @@ impl PpuUi {
 
         Self {
             vram_textures,
-            selected_tile_idx: None,
-            selected_tile_scene_rect: Rect::ZERO,
+            vram_selected_tile_idx: None,
+            vram_selected_tile_scene_rect: Rect::ZERO,
+            framerate_td: TimeData::new(60, "framerate-dt".into()),
             dbg_data_rc,
         }
     }
 
     pub fn ui(&mut self, ui: &mut Ui) {
+        let Some(ppu_data) = self.dbg_data_rc.try_iter().last().and_then(|d| Some(d.ppu)) else {
+            return;
+        };
+
+        self.framerate_td.update(
+            ppu_data.metrics.at,
+            ppu_data.metrics.metrics.frame_rate.get() as f64,
+        );
+
+        self.framerate_td.ui(ui, "FPS".into());
+
         ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
-            self.vram_grid_ui(ui);
+            self.vram_grid_ui(ui, &ppu_data.vram);
             ui.separator();
             self.selected_tile_ui(ui);
         });
     }
 
-    fn vram_grid_ui(&mut self, ui: &mut Ui) {
+    fn vram_grid_ui(&mut self, ui: &mut Ui, vram: &[u8; 8192]) {
         egui::ScrollArea::vertical()
             .drag_to_scroll(false)
             .show(ui, |ui| {
@@ -54,7 +69,7 @@ impl PpuUi {
                     .show(ui, |ui| {
                         for y in 0..VRAMY {
                             for x in 0..VRAMX {
-                                self.tile_ui(ui, x, y);
+                                self.tile_ui(ui, x, y, vram);
                             }
                             ui.end_row();
                         }
@@ -62,16 +77,7 @@ impl PpuUi {
             });
     }
 
-    fn render_tile(&self, ui: &mut Ui, tile_idx: usize) {
-        let Some(vram) = self
-            .dbg_data_rc
-            .try_iter()
-            .last()
-            .and_then(|d| Some(d.vram))
-        else {
-            return;
-        };
-
+    fn render_tile(&self, ui: &mut Ui, tile_idx: usize, vram: &[u8; 8192]) {
         let mut tile_buffer: [u8; 64] = [0; 64];
         let mut tile_buffer_idx: usize = 0;
 
@@ -97,9 +103,9 @@ impl PpuUi {
         );
     }
 
-    fn tile_ui(&mut self, ui: &mut Ui, x: usize, y: usize) {
+    fn tile_ui(&mut self, ui: &mut Ui, x: usize, y: usize, vram: &[u8; 8192]) {
         let tile_idx = y * VRAMX + x;
-        self.render_tile(ui, tile_idx);
+        self.render_tile(ui, tile_idx, vram);
 
         let img = Image::from_texture(&self.vram_textures[tile_idx])
             .fit_to_original_size(VRAM_SCALE as f32)
@@ -120,7 +126,7 @@ impl PpuUi {
             );
         }
 
-        if let Some(selected_idx) = self.selected_tile_idx {
+        if let Some(selected_idx) = self.vram_selected_tile_idx {
             if tile_idx == selected_idx {
                 ui.painter().rect_stroke(
                     tile_rect,
@@ -133,15 +139,15 @@ impl PpuUi {
     }
 
     fn tile_clicked(&mut self, tile_idx: usize) {
-        match self.selected_tile_idx {
+        match self.vram_selected_tile_idx {
             Some(idx) => {
                 if idx == tile_idx {
-                    self.selected_tile_idx = None
+                    self.vram_selected_tile_idx = None
                 } else {
-                    self.selected_tile_idx = Some(tile_idx)
+                    self.vram_selected_tile_idx = Some(tile_idx)
                 }
             }
-            None => self.selected_tile_idx = Some(tile_idx),
+            None => self.vram_selected_tile_idx = Some(tile_idx),
         };
     }
 
@@ -150,10 +156,10 @@ impl PpuUi {
             .max_inner_size([350.0, 1000.0])
             .zoom_range(0.1..=2.0);
 
-        scene.show(ui, &mut self.selected_tile_scene_rect, |ui| {
-            if let Some(selected_tile_idx) = self.selected_tile_idx {
+        scene.show(ui, &mut self.vram_selected_tile_scene_rect, |ui| {
+            if let Some(vram_selected_tile_idx) = self.vram_selected_tile_idx {
                 ui.add(
-                    Image::from_texture(&self.vram_textures[selected_tile_idx])
+                    Image::from_texture(&self.vram_textures[vram_selected_tile_idx])
                         .fit_to_original_size((VRAM_SCALE * 4) as f32),
                 );
             }
