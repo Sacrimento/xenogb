@@ -36,7 +36,7 @@ impl ReplUi {
     }
 
     pub fn ui(&mut self, ui: &mut Ui) {
-        if let Ok(data) = self.dbg_data_rc.try_recv() {
+        if let Some(data) = self.dbg_data_rc.try_iter().last() {
             if let Some(crash) = &data.crash {
                 self.emu_died(crash);
             }

@@ -63,13 +63,14 @@ impl VramUi {
     }
 
     fn render_tile(&self, ui: &mut Ui, tile_idx: usize) {
-        let vram: [u8; 0x2000];
-
-        if let Ok(data) = self.dbg_data_rc.try_recv() {
-            vram = data.vram;
-        } else {
+        let Some(vram) = self
+            .dbg_data_rc
+            .try_iter()
+            .last()
+            .and_then(|d| Some(d.vram))
+        else {
             return;
-        }
+        };
 
         let mut tile_buffer: [u8; 64] = [0; 64];
         let mut tile_buffer_idx: usize = 0;
@@ -77,8 +78,6 @@ impl VramUi {
         for tile_y in (0..16).step_by(2) {
             let b1 = vram[(tile_idx * 16) + tile_y];
             let b2 = vram[(tile_idx * 16) + tile_y + 1];
-            // let b1 = cpu.bus.read((0x8000 + (tile_idx * 16) + tile_y) as u16);
-            // let b2 = cpu.bus.read((0x8000 + (tile_idx * 16) + tile_y + 1) as u16);
 
             for bit in (0..8).rev().step_by(1) {
                 let hi = ((b2 >> bit) & 1) << 1;

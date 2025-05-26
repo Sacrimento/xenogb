@@ -48,13 +48,9 @@ impl ApuUi {
     }
 
     pub fn ui(&mut self, ui: &mut Ui) {
-        let apu_data: ApuState;
-
-        if let Ok(data) = self.dbg_data_rc.try_recv() {
-            apu_data = data.apu;
-        } else {
+        let Some(apu_data) = self.dbg_data_rc.try_iter().last().and_then(|d| Some(d.apu)) else {
             return;
-        }
+        };
 
         self.channel_freqs.update(&apu_data);
 

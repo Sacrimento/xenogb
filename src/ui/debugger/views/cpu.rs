@@ -44,13 +44,9 @@ impl CpuUi {
     }
 
     pub fn ui(&mut self, ui: &mut Ui) {
-        let cpu_data: CpuState;
-
-        if let Ok(data) = self.dbg_data_rc.try_recv() {
-            cpu_data = data.cpu;
-        } else {
+        let Some(cpu_data) = self.dbg_data_rc.try_iter().last().and_then(|d| Some(d.cpu)) else {
             return;
-        }
+        };
 
         self.update_td(cpu_data.metrics);
 
