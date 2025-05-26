@@ -1,4 +1,4 @@
-use super::views::{apu::ApuUi, cpu::CpuUi, repl::ReplUi, vram::VramUi};
+use super::views::{apu::ApuUi, cpu::CpuUi, ppu::PpuUi, repl::ReplUi};
 use crate::debugger::{DebuggerCommand, EmuSnapshot};
 use crossbeam_channel::{Receiver, Sender};
 use eframe::egui;
@@ -16,7 +16,7 @@ pub struct DebuggerUi {
 
     pub tree: egui_tiles::Tree<Tabs>,
 
-    pub vram: VramUi,
+    pub ppu: PpuUi,
     pub cpu: CpuUi,
     pub repl: ReplUi,
     pub apu: ApuUi,
@@ -30,7 +30,7 @@ impl DebuggerUi {
         dbg_data_rc: Receiver<EmuSnapshot>,
     ) -> Self {
         let tabs = vec![Tabs::Apu, Tabs::ReplUi, Tabs::Vram, Tabs::Cpu];
-        let vram = VramUi::new(ctx, dbg_data_rc.clone());
+        let ppu = PpuUi::new(ctx, dbg_data_rc.clone());
         let cpu = CpuUi::new(dbg_data_rc.clone(), dbg_commands_sd.clone());
         let repl = ReplUi::new(dbg_data_rc.clone(), dbg_commands_sd.clone());
         let apu = ApuUi::new(dbg_data_rc.clone(), dbg_commands_sd.clone());
@@ -38,7 +38,7 @@ impl DebuggerUi {
         Self {
             enabled,
             tree: egui_tiles::Tree::new_tabs("debugger", tabs),
-            vram,
+            ppu,
             cpu,
             repl,
             apu,
@@ -47,7 +47,7 @@ impl DebuggerUi {
 }
 
 pub struct Behavior<'a> {
-    pub vram: &'a mut VramUi,
+    pub ppu: &'a mut PpuUi,
     pub cpu: &'a mut CpuUi,
     pub repl: &'a mut ReplUi,
     pub apu: &'a mut ApuUi,
@@ -72,7 +72,7 @@ impl<'a> egui_tiles::Behavior<Tabs> for Behavior<'a> {
     ) -> egui_tiles::UiResponse {
         match tab {
             Tabs::ReplUi => self.repl.ui(ui),
-            Tabs::Vram => self.vram.ui(ui),
+            Tabs::Vram => self.ppu.ui(ui),
             Tabs::Cpu => self.cpu.ui(ui),
             Tabs::Apu => self.apu.ui(ui),
         }

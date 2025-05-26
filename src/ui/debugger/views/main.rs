@@ -16,7 +16,7 @@ impl DebuggerUi {
                     .show(ctx, |ui| {
                         let mut behavior = Behavior {
                             repl: &mut self.repl,
-                            vram: &mut self.vram,
+                            ppu: &mut self.ppu,
                             cpu: &mut self.cpu,
                             apu: &mut self.apu,
                         };
