@@ -14,6 +14,7 @@ pub const RESY: usize = 144;
 
 pub type Vbuf = [u8; RESX * RESY];
 
+#[allow(nonstandard_style)]
 #[derive(Debug)]
 pub enum PPU_LAYER {
     BACKGROUND,
@@ -39,7 +40,7 @@ mod SpriteFlags {
     pub const PRIORITY: u8 = 0x80;
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 struct Sprite {
     pub y: u8,
     pub x: u8,
@@ -270,42 +271,53 @@ impl PPU {
 
         let cur_sprites = self.line_sprites.as_ref().unwrap();
 
-        let sprite = cur_sprites
+        for sprite in cur_sprites
             .iter()
-            .find(|sprite| between!(x + 8, sprite.x as usize, sprite.x as usize + 7))?;
+            .filter(|sprite| between!(x + 8, sprite.x as usize, sprite.x as usize + 7))
+        {
+            let sprite_x = x as i16 - (sprite.x as i16 - 8);
+            let sprite_y = y as i16 - (sprite.y as i16 - 16);
 
-        let sprite_x = x as i16 - (sprite.x as i16 - 8);
-        let sprite_y = y as i16 - (sprite.y as i16 - 16);
-
-        if !between!(sprite_x, 0, RESX as i16 - 1) || !between!(sprite_y, 0, RESY as i16 - 1) {
-            return None;
-        }
-
-        if flag_set!(self.lcd.lcdc, LCDC_FLAGS::OBJ_SIZE) {
-            let is_flipped = flag_set!(sprite.flags, SpriteFlags::Y_FLIP);
-            if (sprite_y < 8 && !is_flipped) || (sprite_y >= 8 && is_flipped) {
-                self.render_sprite_from(
-                    sprite,
-                    sprite.tile_idx & 0xfe,
-                    sprite_x as usize,
-                    sprite_y as usize,
-                )
-            } else {
-                self.render_sprite_from(
-                    sprite,
-                    sprite.tile_idx | 1,
-                    sprite_x as usize,
-                    sprite_y as usize,
-                )
+            if !between!(sprite_x, 0, RESX as i16 - 1) || !between!(sprite_y, 0, RESY as i16 - 1) {
+                return None;
             }
-        } else {
-            self.render_sprite_from(
-                sprite,
-                sprite.tile_idx,
-                sprite_x as usize,
-                sprite_y as usize,
-            )
+
+            if flag_set!(self.lcd.lcdc, LCDC_FLAGS::OBJ_SIZE) {
+                let is_flipped = flag_set!(sprite.flags, SpriteFlags::Y_FLIP);
+                if (sprite_y < 8 && !is_flipped) || (sprite_y >= 8 && is_flipped) {
+                    match self.render_sprite_from(
+                        sprite,
+                        sprite.tile_idx & 0xfe,
+                        sprite_x as usize,
+                        sprite_y as usize,
+                    ) {
+                        Some(pix) => return Some(pix),
+                        None => continue,
+                    }
+                } else {
+                    match self.render_sprite_from(
+                        sprite,
+                        sprite.tile_idx | 1,
+                        sprite_x as usize,
+                        sprite_y as usize,
+                    ) {
+                        Some(pix) => return Some(pix),
+                        None => continue,
+                    }
+                }
+            } else {
+                match self.render_sprite_from(
+                    sprite,
+                    sprite.tile_idx,
+                    sprite_x as usize,
+                    sprite_y as usize,
+                ) {
+                    Some(pix) => return Some(pix),
+                    None => continue,
+                }
+            }
         }
+        None
     }
 
     fn oam_scan(&mut self) {
@@ -319,7 +331,7 @@ impl PPU {
         }
 
         let mut oam = self.oam.clone();
-        oam.sort_unstable_by_key(|sprite| sprite.x);
+        oam.sort_by_key(|sprite| sprite.x);
         self.line_sprites = Some(
             oam.iter()
                 .filter(|sprite| {
