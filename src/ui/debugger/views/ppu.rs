@@ -21,8 +21,6 @@ pub struct PpuUi {
     draw_window_cb: bool,
     draw_sprites_cb: bool,
 
-    framerate_td: TimeData,
-
     dbg_data_rc: Receiver<EmuSnapshot>,
     dbg_commands_sd: Sender<DebuggerCommand>,
 }
@@ -45,7 +43,6 @@ impl PpuUi {
             vram_textures,
             vram_selected_tile_idx: None,
             vram_selected_tile_scene_rect: Rect::ZERO,
-            framerate_td: TimeData::new(60, "framerate-dt".into()),
             draw_background_cb: true,
             draw_window_cb: true,
             draw_sprites_cb: true,
@@ -58,13 +55,6 @@ impl PpuUi {
         let Some(ppu_data) = self.dbg_data_rc.try_iter().last().and_then(|d| Some(d.ppu)) else {
             return;
         };
-
-        self.framerate_td.update(
-            ppu_data.metrics.at,
-            ppu_data.metrics.metrics.frame_rate.get() as f64,
-        );
-
-        self.framerate_td.ui(ui, "FPS".into());
 
         self.draw_layer_ui(ui);
 

@@ -207,7 +207,6 @@ impl PPU {
         if !flag_set!(self.lcd.lcdc, LCDC_FLAGS::WINDOW_BG_ENABLE)
             || !flag_set!(self.lcd.lcdc, LCDC_FLAGS::WINDOW_ENABLE)
             || self.lcd.wx > 166
-            || self.lcd.wx < 7
             || self.lcd.wy > 143
         {
             return None;
@@ -217,7 +216,7 @@ impl PPU {
             return None;
         }
 
-        let scx = (x - (self.lcd.wx as usize - 7)) % 256;
+        let scx = (x - self.lcd.wx.saturating_sub(7) as usize) % 256;
 
         self.window_drawn = true;
         self.render_tile(scx, self.window_line as usize, LCDC_FLAGS::WINDOW_TILE_MAP)
@@ -353,17 +352,7 @@ impl PPU {
         );
     }
 
-    fn draw(&mut self) {
-        if self.line_x as usize >= RESX {
-            self.lcd.set_ppu_mode(PPUMode::HBlank);
-
-            if flag_set!(self.lcd.lcds, LCDS_FLAGS::MODE_HBLANK_STAT) {
-                request_interrupt(InterruptFlags::STAT);
-            }
-
-            return;
-        }
-
+    fn get_pixel(&mut self) -> u8 {
         let bg_pixel = if self.draw_background {
             self.render_bg(self.line_x as usize, self.lcd.ly as usize)
         } else {
@@ -401,7 +390,21 @@ impl PPU {
             pixel = background_pixel;
         }
 
-        self.vbuf[self.lcd.ly as usize * RESX + self.line_x as usize] = pixel;
+        pixel
+    }
+
+    fn draw(&mut self) {
+        if self.line_x as usize >= RESX {
+            self.lcd.set_ppu_mode(PPUMode::HBlank);
+
+            if flag_set!(self.lcd.lcds, LCDS_FLAGS::MODE_HBLANK_STAT) {
+                request_interrupt(InterruptFlags::STAT);
+            }
+
+            return;
+        }
+
+        self.vbuf[self.lcd.ly as usize * RESX + self.line_x as usize] = self.get_pixel();
 
         self.line_x += 1;
     }
