@@ -6,10 +6,12 @@ use egui::{
     Color32, ComboBox, Slider, TopBottomPanel, Ui,
 };
 
+#[allow(nonstandard_style)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GraphicsMode {
     NORMAL,
-    TINT(Color32),
+    TINT_TO_WHITE(Color32),
+    TINT_TO_BLACK(Color32),
     RAINBOW,
 }
 
@@ -17,7 +19,8 @@ impl Display for GraphicsMode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             GraphicsMode::NORMAL => write!(f, "Normal"),
-            GraphicsMode::TINT(_) => write!(f, "Tinted"),
+            GraphicsMode::TINT_TO_WHITE(_) => write!(f, "Tinted whites"),
+            GraphicsMode::TINT_TO_BLACK(_) => write!(f, "Tinted blacks"),
             GraphicsMode::RAINBOW => write!(f, "Rainbow"),
         }
     }
@@ -77,8 +80,14 @@ impl Settings {
                         );
                         ui.selectable_value(
                             &mut self.graphics_mode,
-                            GraphicsMode::TINT(Color32::WHITE),
-                            GraphicsMode::TINT(Color32::WHITE).to_string(),
+                            GraphicsMode::TINT_TO_WHITE(Color32::WHITE),
+                            GraphicsMode::TINT_TO_WHITE(Color32::WHITE).to_string(),
+                        );
+
+                        ui.selectable_value(
+                            &mut self.graphics_mode,
+                            GraphicsMode::TINT_TO_BLACK(Color32::BLACK),
+                            GraphicsMode::TINT_TO_BLACK(Color32::BLACK).to_string(),
                         );
                         ui.selectable_value(
                             &mut self.graphics_mode,
@@ -87,10 +96,18 @@ impl Settings {
                         );
                     });
 
-                if let GraphicsMode::TINT(c) = self.graphics_mode {
-                    let mut c = c;
-                    color_picker_color32(ui, &mut c, Alpha::Opaque);
-                    self.graphics_mode = GraphicsMode::TINT(c);
+                match self.graphics_mode {
+                    GraphicsMode::TINT_TO_BLACK(c) => {
+                        let mut c = c;
+                        color_picker_color32(ui, &mut c, Alpha::Opaque);
+                        self.graphics_mode = GraphicsMode::TINT_TO_BLACK(c);
+                    }
+                    GraphicsMode::TINT_TO_WHITE(c) => {
+                        let mut c = c;
+                        color_picker_color32(ui, &mut c, Alpha::Opaque);
+                        self.graphics_mode = GraphicsMode::TINT_TO_WHITE(c);
+                    }
+                    _ => (),
                 }
             });
         });

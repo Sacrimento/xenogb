@@ -12,7 +12,7 @@ use cphf::{phf_ordered_map, OrderedMap};
 use crossbeam_channel::{Receiver, Sender};
 use eframe::egui;
 use egui::{
-    epaint, CentralPanel, Color32, ColorImage, Context, Frame, Image, Key, Pos2, Rect, Sense,
+    epaint, CentralPanel, Color32, ColorImage, Context, Frame, Image, Key, Pos2, Rect,
     TextureOptions, Vec2,
 };
 use egui_extras::install_image_loaders;
@@ -34,7 +34,7 @@ const SCALE: usize = 4;
 pub const WINDOW_SIZE: [f32; 2] = [(RESX * SCALE) as f32, (RESY * SCALE) as f32];
 
 pub struct XenoGBUI {
-    screen_buffer: [u8; RESX * RESY * 4],
+    screen_buffer: [u8; RESX * RESY * 3],
     screen_texture: egui::TextureHandle,
 
     debugger: DebuggerUi,
@@ -60,10 +60,10 @@ impl XenoGBUI {
         dbg_data_rc: Receiver<EmuSnapshot>,
         debug: bool,
     ) -> Self {
-        let screen_buffer = [0xff; RESX * RESY * 4];
+        let screen_buffer = [0xff; RESX * RESY * 3];
         let screen_texture = ctx.egui_ctx.load_texture(
             "screen",
-            ColorImage::from_rgba_unmultiplied([RESX, RESY], &screen_buffer),
+            ColorImage::from_rgb([RESX, RESY], &screen_buffer),
             TextureOptions::NEAREST,
         );
 
@@ -87,18 +87,52 @@ impl XenoGBUI {
     fn render_vbuf(&mut self, ctx: &Context) {
         if let Ok(vbuf) = self.video_channel_rc.try_recv() {
             for (i, pixel) in vbuf.iter().enumerate() {
-                self.screen_buffer[i * 4] = *pixel;
-                self.screen_buffer[i * 4 + 1] = *pixel;
-                self.screen_buffer[i * 4 + 2] = *pixel;
+                self.screen_buffer[i * 3] = *pixel;
+                self.screen_buffer[i * 3 + 1] = *pixel;
+                self.screen_buffer[i * 3 + 2] = *pixel;
+            }
+
+            match self.settings.graphics_mode {
+                GraphicsMode::NORMAL => (),
+                GraphicsMode::TINT_TO_WHITE(c) => self.apply_tint(c, true),
+                GraphicsMode::TINT_TO_BLACK(c) => self.apply_tint(c, false),
+                GraphicsMode::RAINBOW => self.apply_rainbow(),
             }
 
             ctx.tex_manager().write().set(
                 self.screen_texture.id(),
                 epaint::ImageDelta::full(
-                    ColorImage::from_rgba_unmultiplied([RESX, RESY], &self.screen_buffer),
+                    ColorImage::from_rgb([RESX, RESY], &self.screen_buffer),
                     TextureOptions::NEAREST,
                 ),
             );
+        }
+    }
+
+    fn apply_tint(&mut self, tint: Color32, to_white: bool) {
+        if to_white {
+            for pixel in self.screen_buffer.chunks_exact_mut(3) {
+                pixel[0] = (pixel[0] as u32 * tint.r() as u32 / 255) as u8;
+                pixel[1] = (pixel[1] as u32 * tint.g() as u32 / 255) as u8;
+                pixel[2] = (pixel[2] as u32 * tint.b() as u32 / 255) as u8;
+            }
+        } else {
+            for pixel in self.screen_buffer.chunks_exact_mut(3) {
+                pixel[0] =
+                    (tint.r() as f32 + (255 - tint.r()) as f32 * (pixel[0] as f32 / 255.0)) as u8;
+                pixel[1] =
+                    (tint.g() as f32 + (255 - tint.g()) as f32 * (pixel[1] as f32 / 255.0)) as u8;
+                pixel[2] =
+                    (tint.b() as f32 + (255 - tint.b()) as f32 * (pixel[2] as f32 / 255.0)) as u8;
+            }
+        }
+    }
+
+    fn apply_rainbow(&mut self) {
+        for _ in self.screen_buffer.chunks_exact_mut(4) {
+            // pixel[0] = (pixel[0] as u32 * 4 as u32 / 255) as u8;
+            // pixel[1] = (pixel[1] as u32 * 4 as u32 / 255) as u8;
+            // pixel[2] = (pixel[2] as u32 * 4 as u32 / 255) as u8;
         }
     }
 }
@@ -144,28 +178,9 @@ impl eframe::App for XenoGBUI {
         self.render_vbuf(ctx);
 
         CentralPanel::default().frame(Frame::NONE).show(ctx, |ui| {
-            let mut screen = Image::from_texture(&self.screen_texture)
+            let screen = Image::from_texture(&self.screen_texture)
                 .fit_to_original_size(SCALE as f32)
-                .maintain_aspect_ratio(true)
-                .sense(Sense::hover());
-
-            match self.settings.graphics_mode {
-                GraphicsMode::NORMAL => (),
-                GraphicsMode::TINT(c) => {
-                    screen = screen.tint(c);
-                }
-                GraphicsMode::RAINBOW => {
-                    // let dir: f32 = if self.frame / 64 % 2 == 0 { 1.0 } else { -1.0 };
-                    // screen =
-                    //     screen.rotate(self.frame as f32 % 64.0 * dir * 0.005, Vec2::splat(0.5));
-
-                    // screen = screen.tint(Color32::from_rgb(
-                    //     (self.frame % 256) as u8,
-                    //     ((self.frame + 85) % 256) as u8,
-                    //     ((self.frame + 170) % 256) as u8,
-                    // ));
-                }
-            }
+                .maintain_aspect_ratio(true);
 
             let res = ui.add(screen);
 
