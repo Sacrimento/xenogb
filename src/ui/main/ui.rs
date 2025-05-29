@@ -3,12 +3,18 @@ use crate::core::io::video::ppu::{Vbuf, RESX, RESY};
 use crate::core::io_event::IOEvent;
 use crate::core::run_emu::EmuState;
 use crate::debugger::{DebuggerCommand, EmuSnapshot};
-use crate::ui::debugger::DebuggerUi;
+use crate::ui::{
+    debugger::DebuggerUi,
+    main::settings::{GraphicsMode, Settings},
+};
 
 use cphf::{phf_ordered_map, OrderedMap};
 use crossbeam_channel::{Receiver, Sender};
 use eframe::egui;
-use egui::{epaint, CentralPanel, ColorImage, Context, Frame, Image, Key, TextureOptions};
+use egui::{
+    epaint, CentralPanel, Color32, ColorImage, Context, Frame, Image, Key, Pos2, Rect, Sense,
+    TextureOptions, Vec2,
+};
 use egui_extras::install_image_loaders;
 
 static KEYMAP: OrderedMap<u8, Key> = phf_ordered_map! {u8, Key;
@@ -30,10 +36,17 @@ pub const WINDOW_SIZE: [f32; 2] = [(RESX * SCALE) as f32, (RESY * SCALE) as f32]
 pub struct XenoGBUI {
     screen_buffer: [u8; RESX * RESY * 4],
     screen_texture: egui::TextureHandle,
+
     debugger: DebuggerUi,
+
     video_channel_rc: Receiver<Vbuf>,
     events_sd: Sender<IOEvent>,
     dbg_commands_sd: Sender<DebuggerCommand>,
+
+    settings: Settings,
+
+    frame: u64,
+
     pub emu_state: EmuState,
 }
 
@@ -65,7 +78,9 @@ impl XenoGBUI {
             video_channel_rc,
             events_sd,
             dbg_commands_sd,
+            settings: Settings::new(),
             emu_state,
+            frame: 0,
         }
     }
 
@@ -129,12 +144,44 @@ impl eframe::App for XenoGBUI {
         self.render_vbuf(ctx);
 
         CentralPanel::default().frame(Frame::NONE).show(ctx, |ui| {
-            let screen = Image::from_texture(&self.screen_texture)
+            let mut screen = Image::from_texture(&self.screen_texture)
                 .fit_to_original_size(SCALE as f32)
-                .maintain_aspect_ratio(true);
-            ui.add(screen);
+                .maintain_aspect_ratio(true)
+                .sense(Sense::hover());
+
+            match self.settings.graphics_mode {
+                GraphicsMode::NORMAL => (),
+                GraphicsMode::TINT(c) => {
+                    screen = screen.tint(c);
+                }
+                GraphicsMode::RAINBOW => {
+                    // let dir: f32 = if self.frame / 64 % 2 == 0 { 1.0 } else { -1.0 };
+                    // screen =
+                    //     screen.rotate(self.frame as f32 % 64.0 * dir * 0.005, Vec2::splat(0.5));
+
+                    // screen = screen.tint(Color32::from_rgb(
+                    //     (self.frame % 256) as u8,
+                    //     ((self.frame + 85) % 256) as u8,
+                    //     ((self.frame + 170) % 256) as u8,
+                    // ));
+                }
+            }
+
+            let res = ui.add(screen);
+
+            if res.ctx.pointer_latest_pos().is_some_and(|pos| {
+                Rect::from_min_max(
+                    Pos2::ZERO,
+                    Pos2::new(res.rect.width(), res.rect.height() / 2.0),
+                )
+                .contains(pos)
+            }) {
+                self.settings.ui(ui);
+            }
         });
 
         ctx.request_repaint();
+
+        self.frame += 1;
     }
 }

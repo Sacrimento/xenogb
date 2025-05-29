@@ -9,6 +9,7 @@ use eframe::egui::ViewportBuilder;
 
 use std::path::PathBuf;
 
+#[allow(clippy::too_many_arguments)]
 pub fn run_ui(
     bus: Bus,
     video_channel_rc: Receiver<Vbuf>,
