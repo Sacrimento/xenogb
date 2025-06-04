@@ -6,8 +6,8 @@ pub enum BootRom {
     MGB,
 }
 
-pub fn boot_rom(rom_name: BootRom) -> &'static [u8; 0x100] {
-    match rom_name {
+pub fn get_boot_rom(rom: BootRom) -> &'static [u8; 0x100] {
+    match rom {
         BootRom::NONE => &[0; 0x100],
         BootRom::DMG0 => include_bytes!("../../../boot/dmg0_boot.gb"),
         BootRom::DMG => include_bytes!("../../../boot/dmg_boot.gb"),

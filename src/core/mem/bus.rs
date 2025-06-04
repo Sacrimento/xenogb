@@ -1,4 +1,4 @@
-use super::boot::{boot_rom, BootRom};
+use super::boot::{get_boot_rom, BootRom};
 use super::cartridge::Cartridge;
 use super::ram::RAM;
 use crate::core::cpu::interrupts::{INTERRUPT_ENABLE, INTERRUPT_FLAGS};
@@ -40,7 +40,7 @@ pub struct Bus {
 impl Bus {
     pub fn new(
         cartridge: Cartridge,
-        boot_rom_name: BootRom,
+        boot_rom: BootRom,
         video_channel_sd: Sender<Vbuf>,
         audio_channel_sd: Sender<f32>,
     ) -> Self {
@@ -49,8 +49,8 @@ impl Bus {
             ram: RAM::new(),
             io: IOMMU::new(video_channel_sd, audio_channel_sd),
             dma: None,
-            booting: !matches!(boot_rom_name, BootRom::NONE),
-            boot_rom: boot_rom(boot_rom_name),
+            booting: !matches!(boot_rom, BootRom::NONE),
+            boot_rom: get_boot_rom(boot_rom),
         }
     }
 
