@@ -4,7 +4,7 @@ use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use crossbeam_channel::unbounded;
 use xenogb::core::{
     cpu::LR35902CPU,
-    mem::{boot::BootRom, bus::Bus, cartridge::parse_cartridge},
+    mem::{boot::BootRom, bus::Bus, cartridge::Cartridge},
 };
 
 fn setup_cpu(cartridge: PathBuf) -> LR35902CPU {
@@ -13,7 +13,7 @@ fn setup_cpu(cartridge: PathBuf) -> LR35902CPU {
 
     LR35902CPU::new(
         Bus::new(
-            parse_cartridge(PathBuf::from("benches/roms").join(cartridge)).unwrap(),
+            Cartridge::new(PathBuf::from("benches/roms").join(cartridge)),
             BootRom::NONE,
             vcs,
             acs,

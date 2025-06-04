@@ -1,10 +1,5 @@
-use log::info;
-
 use super::mbc::{mbc, MemoryBankController};
 use std::{fs, path::PathBuf};
-
-#[derive(Debug)]
-pub struct CartridgeError;
 
 #[allow(unused)]
 pub struct CartridgeHeader {
@@ -38,13 +33,13 @@ pub struct CartridgeHeader {
 }
 
 impl CartridgeHeader {
-    pub fn parse(header: &[u8]) -> CartridgeHeader {
-        CartridgeHeader {
+    pub fn new(header: &[u8]) -> Self {
+        Self {
             title: std::str::from_utf8(&header[0..11])
-                .expect("Invalid cartridge title")
+                .expect("Invalid rom_path title")
                 .into(),
             manufacturer_code: std::str::from_utf8(&header[11..15])
-                .expect("Invalid cartridge title")
+                .expect("Invalid rom_path title")
                 .into(),
             cgb_flag: header[15],
             new_licensee_code: std::str::from_utf8(&header[16..18])
@@ -63,13 +58,29 @@ impl CartridgeHeader {
     }
 }
 
-#[allow(dead_code)]
+#[allow(unused)]
 pub struct Cartridge {
     header: CartridgeHeader,
     pub mbc: Box<dyn MemoryBankController + Send + Sync>,
 }
 
 impl Cartridge {
+    pub fn new(rom_path: PathBuf) -> Self {
+        let contents: Vec<u8> = fs::read(&rom_path).expect("Unable to read the rom_path");
+
+        let header = CartridgeHeader::new(&contents[0x134..=0x14f]);
+
+        let mbc = mbc(
+            header.cartridge_type,
+            header.ram_size,
+            header.rom_size,
+            contents,
+            rom_path,
+        );
+
+        Self { header, mbc }
+    }
+
     pub fn read(&self, addr: u16) -> u8 {
         self.mbc.read(addr)
     }
@@ -77,21 +88,4 @@ impl Cartridge {
     pub fn write(&mut self, addr: u16, value: u8) {
         self.mbc.write(addr, value);
     }
-}
-
-pub fn parse_cartridge(cartridge: PathBuf) -> Result<Cartridge, CartridgeError> {
-    let contents: Vec<u8> = fs::read(&cartridge).expect("Unable to read the cartridge");
-
-    let header = CartridgeHeader::parse(&contents[0x134..=0x14f]);
-
-    let mbc = mbc(
-        header.cartridge_type,
-        header.ram_size,
-        header.rom_size,
-        contents,
-        cartridge,
-    );
-
-    info!("Cartridge successfully loaded");
-    Ok(Cartridge { header, mbc })
 }

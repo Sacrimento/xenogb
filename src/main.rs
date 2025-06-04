@@ -9,7 +9,7 @@ mod ui;
 use core::cpu::cpu::LR35902CPU;
 use core::mem::boot::BootRom;
 use core::mem::bus::Bus;
-use core::mem::cartridge::parse_cartridge;
+use core::mem::cartridge::Cartridge;
 use core::run_emu::{run_headless, StopCondition};
 use ui::run_ui;
 
@@ -71,11 +71,14 @@ fn main() -> Result<(), XenoGBError> {
 
     let args = Args::parse();
 
-    let cartridge = parse_cartridge(args.cartridge).expect("Could not load the cartrdige");
-
     let (audio_channel_sd, audio_channel_rc) = unbounded();
     let (video_channel_sd, video_channel_rc) = bounded(1);
-    let bus = Bus::new(cartridge, args.boot_rom, video_channel_sd, audio_channel_sd);
+    let bus = Bus::new(
+        Cartridge::new(args.cartridge),
+        args.boot_rom,
+        video_channel_sd,
+        audio_channel_sd,
+    );
 
     #[allow(clippy::unit_arg)]
     if args.headless {
