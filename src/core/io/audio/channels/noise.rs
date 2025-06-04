@@ -1,5 +1,3 @@
-use core::panic;
-
 use crate::core::io::audio::{envelope::Envelope, length_counter::LengthCounter};
 use log::warn;
 
@@ -78,8 +76,7 @@ impl NoiseChannel {
         }
 
         let digital = (!self.lfsr as u8 & 0x1) * self.envelope.volume();
-        let analogic = digital as f32 / 15.0 * 2.0 - 1.0;
-        analogic
+        digital as f32 / 15.0 * 2.0 - 1.0
     }
 
     pub fn enabled(&self) -> bool {

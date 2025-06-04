@@ -13,7 +13,7 @@ use crossbeam_channel::{Receiver, Sender};
 use eframe::egui;
 use egui::{
     epaint, CentralPanel, Color32, ColorImage, Context, Frame, Image, Key, Pos2, Rect,
-    TextureOptions, Vec2,
+    TextureOptions,
 };
 use egui_extras::install_image_loaders;
 

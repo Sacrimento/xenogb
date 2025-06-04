@@ -197,7 +197,7 @@ impl APU {
         sample += self.channel3.sample();
         sample += self.channel4.sample();
 
-        sample /= 4.0 as f32;
+        sample /= 4.0;
         self.hpf(sample);
         self.last_sample_at = Instant::now();
         self.last_sample

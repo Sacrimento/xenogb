@@ -87,8 +87,4 @@ impl Sweep {
         }
         Ok(())
     }
-
-    pub fn enabled(&self) -> bool {
-        self.enabled
-    }
 }

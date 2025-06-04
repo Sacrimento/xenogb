@@ -97,8 +97,7 @@ impl PulseChannel {
 
         let digital = signal * volume;
 
-        let analogic = (digital as f32 / 15.0) * 2.0 - 1.0;
-        analogic
+        (digital as f32 / 15.0) * 2.0 - 1.0
     }
 
     fn trigger(&mut self, div_apu: u8) {

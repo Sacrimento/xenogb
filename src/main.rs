@@ -1,4 +1,5 @@
 #![allow(clippy::upper_case_acronyms)]
+#![allow(clippy::module_inception)]
 
 mod audio;
 mod core;

@@ -65,8 +65,7 @@ impl WaveChannel {
         }
 
         let digital = sample >> (self.volume - 1);
-        let analogic = digital as f32 / 15.0 * 2.0 - 1.0;
-        analogic
+        digital as f32 / 15.0 * 2.0 - 1.0
     }
 
     pub fn tick(&mut self) {

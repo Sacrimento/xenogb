@@ -1,6 +1,6 @@
 use crossbeam_channel::{Receiver, Sender};
 use eframe::egui::{self, Color32};
-use egui::{RichText, Sense, Ui};
+use egui::{RichText, Ui};
 use egui_plot::{Legend, Line, Plot, PlotPoints};
 use itertools::Itertools;
 use std::collections::VecDeque;
@@ -48,7 +48,7 @@ impl ApuUi {
     }
 
     pub fn ui(&mut self, ui: &mut Ui) {
-        let Some(apu_data) = self.dbg_data_rc.try_iter().last().and_then(|d| Some(d.apu)) else {
+        let Some(apu_data) = self.dbg_data_rc.try_iter().last().map(|d| d.apu) else {
             return;
         };
 
@@ -66,8 +66,7 @@ impl ApuUi {
                 if res.changed() {
                     _ = self
                         .dbg_commands_sd
-                        .send(DebuggerCommand::APU_MUTE_CHANNEL(channel_n))
-                        .unwrap();
+                        .send(DebuggerCommand::APU_MUTE_CHANNEL(channel_n));
                 }
             };
 

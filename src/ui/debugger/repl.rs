@@ -46,7 +46,7 @@ impl FromStr for DynAddr {
         }
 
         Ok(Self::new(
-            Some(u16::from_str_radix(s, 10).map_err(|_| Error::new(ErrorKind::InvalidValue))?),
+            Some(str::parse(s).map_err(|_| Error::new(ErrorKind::InvalidValue))?),
             None,
         ))
     }

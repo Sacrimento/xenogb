@@ -36,10 +36,10 @@ impl CartridgeHeader {
     pub fn new(header: &[u8]) -> Self {
         Self {
             title: std::str::from_utf8(&header[0..11])
-                .expect("Invalid rom_path title")
+                .expect("Invalid cartridge title")
                 .into(),
             manufacturer_code: std::str::from_utf8(&header[11..15])
-                .expect("Invalid rom_path title")
+                .expect("Invalid cartridge title")
                 .into(),
             cgb_flag: header[15],
             new_licensee_code: std::str::from_utf8(&header[16..18])

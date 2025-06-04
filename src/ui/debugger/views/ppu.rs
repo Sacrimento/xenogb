@@ -1,6 +1,5 @@
-use super::super::utils::timedata::TimeData;
 use crate::core::io::video::{lcd::LCD, ppu::PPU_LAYER};
-use crate::debugger::{DebuggerCommand, EmuSnapshot, MetricType};
+use crate::debugger::{DebuggerCommand, EmuSnapshot};
 
 use crossbeam_channel::{Receiver, Sender};
 use eframe::egui::{
@@ -52,7 +51,7 @@ impl PpuUi {
     }
 
     pub fn ui(&mut self, ui: &mut Ui) {
-        let Some(ppu_data) = self.dbg_data_rc.try_iter().last().and_then(|d| Some(d.ppu)) else {
+        let Some(ppu_data) = self.dbg_data_rc.try_iter().last().map(|d| d.ppu) else {
             return;
         };
 
@@ -73,8 +72,7 @@ impl PpuUi {
                 if res.changed() {
                     _ = self
                         .dbg_commands_sd
-                        .send(DebuggerCommand::PPU_HIDE_LAYER(layer))
-                        .unwrap();
+                        .send(DebuggerCommand::PPU_HIDE_LAYER(layer));
                 }
             };
 

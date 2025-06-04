@@ -9,7 +9,7 @@ use crate::core::cpu::{
     CLOCK_SPEED,
 };
 use crate::debugger::{
-    CpuMetrics, CpuState, DebuggerCommand, EmuSnapshot, InterruptState, MetricType, MetricsExport,
+    CpuMetrics, DebuggerCommand, EmuSnapshot, InterruptState, MetricType, MetricsExport,
 };
 use crate::flag_set;
 
@@ -44,7 +44,7 @@ impl CpuUi {
     }
 
     pub fn ui(&mut self, ui: &mut Ui) {
-        let Some(cpu_data) = self.dbg_data_rc.try_iter().last().and_then(|d| Some(d.cpu)) else {
+        let Some(cpu_data) = self.dbg_data_rc.try_iter().last().map(|d| d.cpu) else {
             return;
         };
 
