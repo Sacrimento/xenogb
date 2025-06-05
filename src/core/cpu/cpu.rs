@@ -34,7 +34,7 @@ pub struct CPURegisters {
 impl CPURegisters {
     pub fn new(pc: u16) -> Self {
         Self {
-            a: 0x01,
+            a: 0x11,
             f: 0xb0,
             b: 0x00,
             c: 0x13,
@@ -116,7 +116,7 @@ impl LR35902CPU {
         let cycles = self.tick();
         for _ in 0..cycles {
             let div_apu = self.bus.io.timer.tick();
-            self.bus.dma_tick();
+            self.bus.tick();
             self.bus.io.ppu.tick();
             self.bus.io.apu.tick(div_apu);
             self.clock.tick();

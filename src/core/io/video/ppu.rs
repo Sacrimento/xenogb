@@ -61,11 +61,12 @@ impl Sprite {
 
 pub struct PPU {
     oam: Vec<Sprite>,
-    pub vram: [u8; 0x2000],
+    pub vram: [[u8; 0x2000]; 2],
+    vram_bank: u8,
 
     pub lcd: LCD,
     line_ticks: u16,
-    line_x: u8,
+    pub line_x: u8,
     line_sprites: Option<Vec<Sprite>>,
     window_line: u8,
     window_drawn: bool,
@@ -91,7 +92,8 @@ impl PPU {
             oam: std::iter::repeat_with(Sprite::new)
                 .take(40)
                 .collect::<Vec<Sprite>>(),
-            vram: [0; 0x2000],
+            vram: [[0; 0x2000]; 2],
+            vram_bank: 0,
             lcd,
             line_ticks: 0,
             line_x: 0,
@@ -108,7 +110,25 @@ impl PPU {
         }
     }
 
-    pub fn oam_write(&mut self, mut addr: u16, value: u8) {
+    pub fn write(&mut self, addr: u16, value: u8) {
+        match addr {
+            0x8000..=0x9fff => self.vram_write(addr, value),
+            0xfe00..=0xfe9f => self.oam_write(addr, value),
+            0xff4f => self.vram_bank = value & 0x1,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn read(&self, addr: u16) -> u8 {
+        match addr {
+            0x8000..=0x9fff => self.vram_read(addr),
+            0xfe00..=0xfe9f => self.oam_read(addr),
+            0xff4f => 0xfe | self.vram_bank,
+            _ => unreachable!(),
+        }
+    }
+
+    fn oam_write(&mut self, mut addr: u16, value: u8) {
         if addr >= 0xfe00 {
             addr -= 0xfe00;
         }
@@ -123,7 +143,7 @@ impl PPU {
         }
     }
 
-    pub fn oam_read(&self, mut addr: u16) -> u8 {
+    fn oam_read(&self, mut addr: u16) -> u8 {
         if addr >= 0xfe00 {
             addr -= 0xfe00;
         }
@@ -138,12 +158,12 @@ impl PPU {
         }
     }
 
-    pub fn vram_write(&mut self, addr: u16, value: u8) {
-        self.vram[(addr - 0x8000) as usize] = value;
+    fn vram_write(&mut self, addr: u16, value: u8) {
+        self.vram[self.vram_bank as usize][(addr - 0x8000) as usize] = value;
     }
 
-    pub fn vram_read(&self, addr: u16) -> u8 {
-        self.vram[(addr - 0x8000) as usize]
+    fn vram_read(&self, addr: u16) -> u8 {
+        self.vram[self.vram_bank as usize][(addr - 0x8000) as usize]
     }
 
     pub fn tick(&mut self) {
@@ -173,7 +193,7 @@ impl PPU {
         } else {
             ((tile_id as u8).wrapping_add(128) as u16 * 16 + 0x800) as usize
         };
-        &self.vram[offset..offset + 16]
+        &self.vram[self.vram_bank as usize][offset..offset + 16]
     }
 
     fn render_tile(&self, scx: usize, scy: usize, tile_map_flag: u8) -> Option<(bool, u8)> {
@@ -229,7 +249,8 @@ impl PPU {
         x: usize,
         y: usize,
     ) -> Option<(bool, u8)> {
-        let tile = &self.vram[tile_id as usize * 16..tile_id as usize * 16 + 16];
+        let tile =
+            &self.vram[self.vram_bank as usize][tile_id as usize * 16..tile_id as usize * 16 + 16];
 
         let tile_x = x & 7;
         let tile_y = y & 7;

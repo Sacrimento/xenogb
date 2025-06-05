@@ -119,14 +119,14 @@ impl ApuState {
 }
 
 pub struct PpuState {
-    pub vram: [u8; 0x2000],
+    pub vram: [[u8; 0x2000]; 2],
     pub metrics: MetricsExport<PpuMetrics>,
 }
 
 impl Default for PpuState {
     fn default() -> Self {
         Self {
-            vram: [0; 0x2000],
+            vram: [[0; 0x2000]; 2],
             metrics: MetricsExport::default(),
         }
     }

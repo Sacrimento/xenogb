@@ -1,8 +1,12 @@
 use super::boot::{get_boot_rom, BootRom};
 use super::cartridge::Cartridge;
+use super::dma::{OamDMA, VramDMA, VramDMAMode};
 use super::ram::RAM;
 use crate::core::cpu::interrupts::{INTERRUPT_ENABLE, INTERRUPT_FLAGS};
-use crate::core::io::video::ppu::Vbuf;
+use crate::core::io::video::{
+    lcd::PPUMode,
+    ppu::{Vbuf, RESX},
+};
 use crate::core::io::IOMMU;
 
 use crossbeam_channel::Sender;
@@ -21,17 +25,13 @@ use log::{error, warn};
 // 0xFF80	0xFFFE	High RAM (HRAM)
 // 0xFFFF	0xFFFF	Interrupt Enable register (IE)
 
-#[derive(Clone)]
-struct DMA {
-    src: u16,
-    dest: u16,
-}
-
 pub struct Bus {
     pub cartridge: Cartridge,
     ram: RAM,
     pub io: IOMMU,
-    dma: Option<DMA>,
+
+    oam_dma: OamDMA,
+    vram_dma: VramDMA,
 
     pub booting: bool,
     boot_rom: &'static [u8; 0x100],
@@ -48,7 +48,8 @@ impl Bus {
             cartridge,
             ram: RAM::new(),
             io: IOMMU::new(video_channel_sd, audio_channel_sd),
-            dma: None,
+            oam_dma: OamDMA::default(),
+            vram_dma: VramDMA::default(),
             booting: !matches!(boot_rom, BootRom::NONE),
             boot_rom: get_boot_rom(boot_rom),
         }
@@ -67,10 +68,11 @@ impl Bus {
             0xe000..=0xfdff => self.ram.read(addr - 0x2000),
             0xfe00..=0xfe9f => self.io.read(addr),
             0xff0f => INTERRUPT_FLAGS.get(),
-            0xff46 | 0xff51..=0xff55 => {
+            0xff46 => {
                 warn!("Invalid DMA read at 0x{addr:04X}");
                 0xff
             }
+            0xff51..=0xff55 => self.vram_dma.read(addr),
             0xff70 => self.ram.read(addr),
             0xff00..=0xff7f => self.io.read(addr),
             0xff80..=0xfffe => self.ram.read(addr),
@@ -97,8 +99,10 @@ impl Bus {
             0xe000..=0xfdff => self.ram.write(addr - 0x2000, value),
             0xfe00..=0xfe9f => self.io.write(addr, value),
             0xff0f => INTERRUPT_FLAGS.set(value),
-            0xff46 => self.dma_start(value),
+            0xff46 => self.oam_dma.init(value),
             0xff50 => self.booting = false,
+            0xff70 => self.ram.write(addr, value),
+            0xff51..=0xff55 => self.vram_dma.write(addr, value),
             0xff00..=0xff7f => self.io.write(addr, value),
             0xff80..=0xfffe => self.ram.write(addr, value),
             0xffff => INTERRUPT_ENABLE.set(value),
@@ -106,34 +110,59 @@ impl Bus {
         }
     }
 
-    fn dma_start(&mut self, addr_byte: u8) {
-        if self.dma.is_some() {
-            error!("Overwriting DMA!");
-        }
-
-        self.dma = Some(DMA {
-            src: addr_byte as u16 * 0x100,
-            dest: 0xfe00,
-        });
+    pub fn tick(&mut self) {
+        self.oam_dma_tick();
+        self.vram_dma_tick();
     }
 
-    pub fn dma_tick(&mut self) {
-        if self.dma.is_none() {
+    fn oam_dma_tick(&mut self) {
+        if self.oam_dma.src == 0 {
             return;
         }
 
-        let mut dma = self.dma.as_mut().unwrap().clone();
+        self.write(self.oam_dma.dst, self.read(self.oam_dma.src));
+        self.oam_dma.src += 1;
+        self.oam_dma.dst += 1;
 
-        let value = self.read(dma.src);
-        self.write(dma.dest, value);
-        dma.src += 1;
-        dma.dest += 1;
-
-        if dma.dest > 0xfe9f {
-            self.dma = None;
-            return;
+        if self.oam_dma.dst > 0xfe9f {
+            self.oam_dma.src = 0;
         }
+    }
 
-        self.dma = Some(dma);
+    fn vram_dma_tick(&mut self) {
+        match self.vram_dma.mode {
+            VramDMAMode::IDLE => (),
+            VramDMAMode::HBLANK => {
+                if self.io.ppu.lcd.get_ppu_mode() == PPUMode::HBlank {
+                    if self.vram_dma.remaining == 0 {
+                        self.vram_dma.mode = VramDMAMode::IDLE;
+                        return;
+                    }
+
+                    // Start of HBlank, copy 16 bytes
+                    if self.io.ppu.line_x as usize == RESX {
+                        let src = self.vram_dma.src & 0b11111111_11110000;
+                        let dst = self.vram_dma.dst & 0b00011111_11110000;
+
+                        for i in 0..16 {
+                            self.write(dst + i, self.read(src + i));
+                        }
+                        self.vram_dma.remaining -= 1;
+                    }
+                }
+            }
+            VramDMAMode::GENERAL => {
+                let length = (self.vram_dma.remaining as u16 + 1) * 16;
+                let src = self.vram_dma.src & 0b11111111_11110000;
+                let dst = self.vram_dma.dst & 0b00011111_11110000;
+
+                for i in 0..length {
+                    self.write(dst + i, self.read(src + i));
+                }
+
+                self.vram_dma.remaining = 0;
+                self.vram_dma.mode = VramDMAMode::IDLE;
+            }
+        }
     }
 }

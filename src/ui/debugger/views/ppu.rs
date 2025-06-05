@@ -3,8 +3,8 @@ use crate::debugger::{DebuggerCommand, EmuSnapshot};
 
 use crossbeam_channel::{Receiver, Sender};
 use eframe::egui::{
-    self, epaint, vec2, Align, Color32, ColorImage, CornerRadius, Image, Layout, Rect, RichText,
-    Scene, Sense, Stroke, StrokeKind, TextureHandle, TextureOptions, Ui,
+    self, epaint, vec2, Align, Color32, ColorImage, ComboBox, CornerRadius, Image, Layout, Rect,
+    RichText, Scene, Sense, Stroke, StrokeKind, TextureHandle, TextureOptions, Ui,
 };
 
 const VRAM_SCALE: usize = 5;
@@ -15,6 +15,8 @@ pub struct PpuUi {
     vram_textures: [TextureHandle; VRAMX * VRAMY],
     vram_selected_tile_idx: Option<usize>,
     vram_selected_tile_scene_rect: Rect,
+
+    vram_bank: usize,
 
     draw_background_cb: bool,
     draw_window_cb: bool,
@@ -42,6 +44,7 @@ impl PpuUi {
             vram_textures,
             vram_selected_tile_idx: None,
             vram_selected_tile_scene_rect: Rect::ZERO,
+            vram_bank: 0,
             draw_background_cb: true,
             draw_window_cb: true,
             draw_sprites_cb: true,
@@ -57,8 +60,17 @@ impl PpuUi {
 
         self.draw_layer_ui(ui);
 
+        ui.horizontal(|ui| {
+            ComboBox::from_label("Vram Bank")
+                .selected_text((self.vram_bank + 1).to_string())
+                .show_ui(ui, |ui| {
+                    ui.selectable_value(&mut self.vram_bank, 0, "Bank 1");
+                    ui.selectable_value(&mut self.vram_bank, 1, "Bank 2");
+                });
+        });
+
         ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
-            self.vram_grid_ui(ui, &ppu_data.vram);
+            self.vram_grid_ui(ui, &ppu_data.vram[self.vram_bank]);
             ui.separator();
             self.selected_tile_ui(ui);
         });

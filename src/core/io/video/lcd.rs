@@ -24,7 +24,7 @@ pub mod LCDS_FLAGS {
     pub const PPU_MODE: u8 = 0x3;
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum PPUMode {
     VBlank,
     OAMScan,
