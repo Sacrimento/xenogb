@@ -4,6 +4,8 @@ use crate::{flag_set, set_u16_hi, set_u16_lo};
 
 const DMA_MODE: u8 = 0x80;
 
+#[allow(clippy::upper_case_acronyms)]
+#[derive(Debug)]
 pub enum VramDMAMode {
     IDLE,
     HBLANK,
@@ -14,7 +16,17 @@ pub struct VramDMA {
     pub src: u16,
     pub dst: u16,
     pub mode: VramDMAMode,
-    pub remaining: u8,
+    pub remaining: u16,
+}
+
+impl std::fmt::Debug for VramDMA {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "VramDMA src=0x{:04X} dst=0x{:04X} mode={:#?} length=0x{:04X}",
+            self.src, self.dst, self.mode, self.remaining
+        )
+    }
 }
 
 impl Default for VramDMA {
@@ -36,11 +48,16 @@ impl VramDMA {
             0xff53 => self.dst = set_u16_hi!(self.dst, value),
             0xff54 => self.dst = set_u16_lo!(self.dst, value),
             0xff55 => {
-                self.remaining = value & 0b1111111;
+                self.remaining = (((value as u16) & 0b1111111) + 1) * 16;
+                // Ignore 4 lower bits
+                self.src &= 0xfff0;
+                // Force address to be within VRAM & ignore 4 lower bits
+                self.dst = (self.dst & 0xfff0) | 0x8000;
                 self.mode = match flag_set!(value, DMA_MODE) {
                     true => VramDMAMode::HBLANK,
                     false => VramDMAMode::GENERAL,
-                }
+                };
+                dbg!(self);
             }
             _ => unreachable!(),
         }
@@ -54,7 +71,7 @@ impl VramDMA {
             }
             0xff55 => match self.remaining {
                 0 => 0xff,
-                _ => self.remaining,
+                _ => ((self.remaining / 16) - 1) as u8,
             },
             _ => unreachable!(),
         }

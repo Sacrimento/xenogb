@@ -10,7 +10,7 @@ use crate::core::io::video::{
 use crate::core::io::IOMMU;
 
 use crossbeam_channel::Sender;
-use log::{error, warn};
+use log::warn;
 
 // 0x0000	0x3FFF	16 KiB ROM bank 00
 // 0x4000	0x7FFF	16 KiB ROM Bank 01–NN
@@ -101,8 +101,8 @@ impl Bus {
             0xff0f => INTERRUPT_FLAGS.set(value),
             0xff46 => self.oam_dma.init(value),
             0xff50 => self.booting = false,
-            0xff70 => self.ram.write(addr, value),
             0xff51..=0xff55 => self.vram_dma.write(addr, value),
+            0xff70 => self.ram.write(addr, value),
             0xff00..=0xff7f => self.io.write(addr, value),
             0xff80..=0xfffe => self.ram.write(addr, value),
             0xffff => INTERRUPT_ENABLE.set(value),
@@ -139,25 +139,21 @@ impl Bus {
                         return;
                     }
 
+                    let transfer_size = 16;
                     // Start of HBlank, copy 16 bytes
                     if self.io.ppu.line_x as usize == RESX {
-                        let src = self.vram_dma.src & 0b11111111_11110000;
-                        let dst = self.vram_dma.dst & 0b00011111_11110000;
-
-                        for i in 0..16 {
-                            self.write(dst + i, self.read(src + i));
+                        for i in 0..transfer_size {
+                            self.write(self.vram_dma.dst + i, self.read(self.vram_dma.src + i));
                         }
-                        self.vram_dma.remaining -= 1;
+                        self.vram_dma.src += transfer_size;
+                        self.vram_dma.dst += transfer_size;
+                        self.vram_dma.remaining -= transfer_size;
                     }
                 }
             }
             VramDMAMode::GENERAL => {
-                let length = (self.vram_dma.remaining as u16 + 1) * 16;
-                let src = self.vram_dma.src & 0b11111111_11110000;
-                let dst = self.vram_dma.dst & 0b00011111_11110000;
-
-                for i in 0..length {
-                    self.write(dst + i, self.read(src + i));
+                for i in 0..self.vram_dma.remaining {
+                    self.write(self.vram_dma.dst + i, self.read(self.vram_dma.src + i));
                 }
 
                 self.vram_dma.remaining = 0;
