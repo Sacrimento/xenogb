@@ -135,7 +135,7 @@ impl PpuUi {
                 let hi = ((b2 >> bit) & 1) << 1;
                 let lo = (b1 >> bit) & 1;
 
-                tile_buffer[tile_buffer_idx] = LCD::get_pixel(hi | lo);
+                tile_buffer[tile_buffer_idx] = LCD::get_dmg_pixel(hi | lo);
                 tile_buffer_idx += 1;
             }
         }

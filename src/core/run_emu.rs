@@ -1,11 +1,11 @@
 use super::cpu::instructions::CPURegisterId;
 use super::cpu::{CLOCK_SPEED, LR35902CPU};
-use super::io::video::ppu::Vbuf;
+use super::io::video::{lcd::Pixel, ppu::Vbuf};
 use super::io_event::{IOEvent, IOListener};
 use super::mem::bus::Bus;
 use super::playback::Playback;
 use crate::core::io::video::ppu::{RESX, RESY};
-use crate::core::utils::{dump_regs, vbuf_snapshot};
+use crate::core::utils::dump_regs;
 use crate::debugger::{Debugger, DebuggerCommand, EmuSnapshot};
 
 use std::backtrace::Backtrace;
@@ -47,7 +47,7 @@ pub fn run_headless(
     video_channel_rc: Receiver<Vbuf>,
     sc: Option<StopCondition>,
 ) {
-    let mut last_frame: Vbuf = [0; RESX * RESY];
+    let mut last_frame: Vbuf = [Pixel::default(); RESX * RESY];
     let start = Instant::now();
 
     loop {
@@ -60,13 +60,15 @@ pub fn run_headless(
                         && matches!(instr.reg2, Some(CPURegisterId::B))
                     {
                         dump_regs(&cpu);
-                        return vbuf_snapshot(last_frame);
+                        // return vbuf_snapshot(last_frame);
+                        return;
                     }
                 }
                 StopCondition::TIMER(secs) => {
                     if start.elapsed() > Duration::from_secs(secs as u64) {
                         dump_regs(&cpu);
-                        return vbuf_snapshot(last_frame);
+                        // return vbuf_snapshot(last_frame);
+                        return;
                     }
                 }
             }

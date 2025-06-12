@@ -87,9 +87,9 @@ impl XenoGBUI {
     fn render_vbuf(&mut self, ctx: &Context) {
         if let Ok(vbuf) = self.video_channel_rc.try_recv() {
             for (i, pixel) in vbuf.iter().enumerate() {
-                self.screen_buffer[i * 3] = *pixel;
-                self.screen_buffer[i * 3 + 1] = *pixel;
-                self.screen_buffer[i * 3 + 2] = *pixel;
+                self.screen_buffer[i * 3] = pixel.r;
+                self.screen_buffer[i * 3 + 1] = pixel.g;
+                self.screen_buffer[i * 3 + 2] = pixel.b;
             }
 
             match self.settings.graphics_mode {

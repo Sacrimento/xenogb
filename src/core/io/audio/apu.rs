@@ -132,7 +132,8 @@ impl APU {
                 }
             }
             0xff30..=0xff3f => self.channel3.write(addr, value, self.div_apu),
-            _ => warn!("apu.write: unhandled address 0x{addr:04X}"),
+            _ => (),
+            // _ => warn!("apu.write: unhandled address 0x{addr:04X}"),
         }
     }
 

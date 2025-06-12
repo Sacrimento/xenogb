@@ -38,20 +38,20 @@ pub fn dump_regs(cpu: &LR35902CPU) {
     .unwrap();
 }
 
-pub fn vbuf_snapshot(frame: Vbuf) {
-    // Output the current video buffer to a PGM formatted file
+// pub fn vbuf_snapshot(frame: Vbuf) {
+//     // Output the current video buffer to a PGM formatted file
 
-    let fpath = format!("{}/{}_vbuf_snapshot.pgm", temp_dir().display(), id());
+//     let fpath = format!("{}/{}_vbuf_snapshot.pgm", temp_dir().display(), id());
 
-    info!("Video buffer snapshot saved to {}", fpath);
-    let mut file = fs::File::create(fpath).unwrap();
+//     info!("Video buffer snapshot saved to {}", fpath);
+//     let mut file = fs::File::create(fpath).unwrap();
 
-    file.write_all(format!("P5\n{RESX} {RESY}\n255\n").as_bytes())
-        .unwrap();
+//     file.write_all(format!("P5\n{RESX} {RESY}\n255\n").as_bytes())
+//         .unwrap();
 
-    for y in 0..RESY {
-        for x in 0..RESX {
-            file.write_all(&[frame[(y * RESX) + x]]).unwrap();
-        }
-    }
-}
+//     for y in 0..RESY {
+//         for x in 0..RESX {
+//             file.write_all(&[frame[(y * RESX) + x]]).unwrap();
+//         }
+//     }
+// }

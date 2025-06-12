@@ -1,4 +1,4 @@
-use super::lcd::{PPUMode, LCD, LCDC_FLAGS, LCDS_FLAGS};
+use super::lcd::{PPUMode, Pixel, LCD, LCDC_FLAGS, LCDS_FLAGS};
 use crate::core::cpu::interrupts::{request_interrupt, InterruptFlags};
 use crate::debugger::{PpuMetricFields, PPU_METRICS};
 use crate::flag_set;
@@ -12,7 +12,7 @@ pub const TICKS_PER_FRAME: u32 = LINES_PER_FRAME as u32 * TICKS_PER_LINE as u32;
 pub const RESX: usize = 160;
 pub const RESY: usize = 144;
 
-pub type Vbuf = [u8; RESX * RESY];
+pub type Vbuf = [Pixel; RESX * RESY];
 
 #[allow(nonstandard_style)]
 #[derive(Debug)]
@@ -29,11 +29,10 @@ macro_rules! between {
 }
 
 #[allow(nonstandard_style)]
-mod SpriteFlags {
-    #[allow(dead_code)]
+mod TileAttributes {
     pub const CGB_PALETTE: u8 = 0x7;
-    #[allow(dead_code)]
     pub const BANK: u8 = 0x8;
+    #[allow(unused)]
     pub const DMG_PALETTE: u8 = 0x10;
     pub const X_FLIP: u8 = 0x20;
     pub const Y_FLIP: u8 = 0x40;
@@ -85,7 +84,7 @@ pub struct PPU {
 
 impl PPU {
     pub fn new(video_channel_sd: Sender<Vbuf>) -> Self {
-        let mut lcd = LCD::new();
+        let mut lcd = LCD::default();
         lcd.set_ppu_mode(PPUMode::OAMScan);
 
         Self {
@@ -101,7 +100,7 @@ impl PPU {
             window_line: 0,
             window_drawn: false,
             last_frame: std::time::Instant::now(),
-            vbuf: [0xff; RESX * RESY],
+            vbuf: [Pixel::default(); RESX * RESY],
             video_channel_sd,
             frames: 0,
             draw_background: true,
@@ -158,12 +157,30 @@ impl PPU {
         }
     }
 
+    #[inline]
     fn vram_write(&mut self, addr: u16, value: u8) {
         self.vram[self.vram_bank as usize][(addr - 0x8000) as usize] = value;
     }
 
+    #[inline]
     fn vram_read(&self, addr: u16) -> u8 {
         self.vram[self.vram_bank as usize][(addr - 0x8000) as usize]
+    }
+
+    #[inline]
+    fn vram_read_banked(&self, addr: u16, bank: u8) -> u8 {
+        self.vram[bank as usize][(addr - 0x8000) as usize]
+    }
+
+    #[inline]
+    fn vram_write_banked(&mut self, addr: u16, value: u8, bank: u8) {
+        self.vram[bank as usize][(addr - 0x8000) as usize] = value;
+    }
+
+    #[inline]
+    fn get_bg_attributes(&self, addr: u16) -> u8 {
+        assert!((0x8000..=0x9fff).contains(&addr));
+        self.vram_read_banked(addr, 1)
     }
 
     pub fn tick(&mut self) {
@@ -182,37 +199,57 @@ impl PPU {
         }
     }
 
-    fn get_tile(&self, x: usize, y: usize, area_flag: bool) -> &[u8] {
+    fn get_tile(&self, x: usize, y: usize, area_flag: bool) -> (u8, &[u8]) {
         let area = if area_flag { 0x9c00 } else { 0x9800 };
         let id_offset = ((y >> 3) << 5) + (x >> 3);
 
-        let tile_id = self.vram_read((area + id_offset) as u16) as usize;
+        let tile_attributes = self.vram_read_banked((area + id_offset) as u16, 1);
+        let tile_id = self.vram_read_banked((area + id_offset) as u16, 0) as usize;
 
         let offset = if flag_set!(self.lcd.lcdc, LCDC_FLAGS::WINDOW_BG_ADDRESSING_MODE) {
             tile_id * 16
         } else {
             ((tile_id as u8).wrapping_add(128) as u16 * 16 + 0x800) as usize
         };
-        &self.vram[self.vram_bank as usize][offset..offset + 16]
+        (
+            tile_attributes,
+            &self.vram[flag_set!(tile_attributes, TileAttributes::BANK) as usize]
+                [offset..offset + 16],
+        )
     }
 
-    fn render_tile(&self, scx: usize, scy: usize, tile_map_flag: u8) -> Option<(bool, u8)> {
-        let tile = self.get_tile(scx, scy, flag_set!(self.lcd.lcdc, tile_map_flag));
+    fn render_tile(&self, scx: usize, scy: usize, tile_map_flag: u8) -> Option<(bool, Pixel)> {
+        let (attributes, tile) = self.get_tile(scx, scy, flag_set!(self.lcd.lcdc, tile_map_flag));
 
         let tile_x = scx & 7;
         let tile_y = scy & 7;
 
-        let hi = ((tile[tile_y * 2 + 1] >> (7 - tile_x)) & 1) << 1;
-        let lo = (tile[tile_y * 2] >> (7 - tile_x)) & 1;
+        let x_offset = if flag_set!(attributes, TileAttributes::X_FLIP) {
+            tile_x
+        } else {
+            7 - tile_x
+        };
+
+        let y_offset = if flag_set!(attributes, TileAttributes::Y_FLIP) {
+            14 - (tile_y * 2)
+        } else {
+            tile_y * 2
+        };
+
+        let hi = ((tile[y_offset + 1] >> x_offset) & 1) << 1;
+        let lo = (tile[y_offset] >> x_offset) & 1;
         let color = hi | lo;
 
         Some((
             between!(color, 1, 3),
-            LCD::get_pixel((self.lcd.bg_palette >> (color * 2)) & 0b11),
+            self.lcd.get_cgb_bg_pixel(
+                (attributes & TileAttributes::CGB_PALETTE) as usize,
+                color as usize,
+            ),
         ))
     }
 
-    fn render_bg(&self, x: usize, y: usize) -> Option<(bool, u8)> {
+    fn render_bg(&self, x: usize, y: usize) -> Option<(bool, Pixel)> {
         if !flag_set!(self.lcd.lcdc, LCDC_FLAGS::WINDOW_BG_ENABLE) {
             return None;
         }
@@ -223,7 +260,7 @@ impl PPU {
         self.render_tile(scx, scy, LCDC_FLAGS::BG_TILE_MAP)
     }
 
-    fn render_window(&mut self, x: usize, y: usize) -> Option<(bool, u8)> {
+    fn render_window(&mut self, x: usize, y: usize) -> Option<(bool, Pixel)> {
         if !flag_set!(self.lcd.lcdc, LCDC_FLAGS::WINDOW_BG_ENABLE)
             || !flag_set!(self.lcd.lcdc, LCDC_FLAGS::WINDOW_ENABLE)
             || self.lcd.wx > 166
@@ -248,20 +285,20 @@ impl PPU {
         tile_id: u8,
         x: usize,
         y: usize,
-    ) -> Option<(bool, u8)> {
-        let tile =
-            &self.vram[self.vram_bank as usize][tile_id as usize * 16..tile_id as usize * 16 + 16];
+    ) -> Option<(bool, Pixel)> {
+        let tile = &self.vram[flag_set!(sprite.flags, TileAttributes::BANK) as usize]
+            [tile_id as usize * 16..tile_id as usize * 16 + 16];
 
         let tile_x = x & 7;
         let tile_y = y & 7;
 
-        let x_offset = if flag_set!(sprite.flags, SpriteFlags::X_FLIP) {
+        let x_offset = if flag_set!(sprite.flags, TileAttributes::X_FLIP) {
             tile_x
         } else {
             7 - tile_x
         };
 
-        let y_offset = if flag_set!(sprite.flags, SpriteFlags::Y_FLIP) {
+        let y_offset = if flag_set!(sprite.flags, TileAttributes::Y_FLIP) {
             14 - (tile_y * 2)
         } else {
             tile_y * 2
@@ -275,16 +312,16 @@ impl PPU {
             return None;
         }
 
-        let palette =
-            self.lcd.obj_palettes[flag_set!(sprite.flags, SpriteFlags::DMG_PALETTE) as usize];
-
         Some((
-            !flag_set!(sprite.flags, SpriteFlags::PRIORITY),
-            LCD::get_pixel((palette >> (color * 2)) & 0b11),
+            !flag_set!(sprite.flags, TileAttributes::PRIORITY),
+            self.lcd.get_cgb_obj_pixel(
+                (sprite.flags & TileAttributes::CGB_PALETTE) as usize,
+                color as usize,
+            ),
         ))
     }
 
-    fn render_sprite(&self, x: usize, y: usize) -> Option<(bool, u8)> {
+    fn render_sprite(&self, x: usize, y: usize) -> Option<(bool, Pixel)> {
         if !flag_set!(self.lcd.lcdc, LCDC_FLAGS::OBJ_ENABLE) {
             return None;
         }
@@ -303,7 +340,7 @@ impl PPU {
             }
 
             if flag_set!(self.lcd.lcdc, LCDC_FLAGS::OBJ_SIZE) {
-                let is_flipped = flag_set!(sprite.flags, SpriteFlags::Y_FLIP);
+                let is_flipped = flag_set!(sprite.flags, TileAttributes::Y_FLIP);
                 if (sprite_y < 8 && !is_flipped) || (sprite_y >= 8 && is_flipped) {
                     match self.render_sprite_from(
                         sprite,
@@ -350,8 +387,8 @@ impl PPU {
             return;
         }
 
-        let mut oam = self.oam.clone();
-        oam.sort_by_key(|sprite| sprite.x);
+        let oam = self.oam.clone();
+        // oam.sort_by_key(|sprite| sprite.x);
         self.line_sprites = Some(
             oam.iter()
                 .filter(|sprite| {
@@ -373,7 +410,7 @@ impl PPU {
         );
     }
 
-    fn get_pixel(&mut self) -> u8 {
+    fn get_pixel(&mut self) -> Pixel {
         let bg_pixel = if self.draw_background {
             self.render_bg(self.line_x as usize, self.lcd.ly as usize)
         } else {
@@ -391,7 +428,7 @@ impl PPU {
         };
 
         let (bg_prio, background_pixel) = match (bg_pixel, win_pixel) {
-            (None, None) => (false, 0xff),
+            (None, None) => (false, Pixel::default()),
             (Some((prio, bg_pxl)), None) => (prio, bg_pxl),
             (None, Some((prio, win_pxl))) => (prio, win_pxl),
             (Some(_), Some((prio, win_pxl))) => (prio, win_pxl),

@@ -42,8 +42,7 @@ impl IOMMU {
             0xff30..=0xff3f => self.apu.write(addr, value),
             0xff40..=0xff4b => self.ppu.lcd.write(addr, value),
             0xff4f => self.ppu.write(addr, value),
-            0xff68..=0xff6b => info!("iommu.write: unhandled address 0x{addr:04X}"),
-            0xff70 => info!("iommu.write: unhandled address 0x{addr:04X}"),
+            0xff68..=0xff6b => self.ppu.lcd.write(addr, value),
             _ => warn!("iommu.write: unhandled address 0x{addr:04X}"),
         }
     }
@@ -59,14 +58,7 @@ impl IOMMU {
             0xff30..=0xff3f => self.apu.read(addr),
             0xff40..=0xff4b => self.ppu.lcd.read(addr),
             0xff4f => self.ppu.read(addr),
-            0xff68..=0xff6b => {
-                info!("iommu.read: unhandled address 0x{addr:04X}");
-                0xff
-            }
-            0xff70 => {
-                info!("iommu.read: unhandled address 0x{addr:04X}");
-                0xff
-            }
+            0xff68..=0xff6b => self.ppu.lcd.read(addr),
             _ => {
                 warn!("iommu.read: unhandled address 0x{addr:04X}");
                 0xff
