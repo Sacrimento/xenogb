@@ -3,7 +3,7 @@ use log::warn;
 use std::time::Instant;
 
 use super::channels::{NoiseChannel, PulseChannel, WaveChannel};
-use crate::core::cpu::CLOCK_SPEED;
+use crate::core::cpu::{CPUSpeed, CLOCK_SPEED};
 use crate::flag_set;
 
 pub const SAMPLE_RATE: f32 = 44100.0;
@@ -142,7 +142,7 @@ impl APU {
         flag_set!(self.master_control, APU_AMC_FLAGS::AUDIO_ON)
     }
 
-    pub fn tick(&mut self, div_apu: bool) {
+    pub fn tick(&mut self, div_apu: bool, speed_mode: CPUSpeed) {
         if div_apu {
             self.div_apu = (self.div_apu + 1) % 8;
 
@@ -171,7 +171,12 @@ impl APU {
         if !self.enabled() {
             return;
         }
-        self.ticks_since_sample += 4.0;
+
+        self.ticks_since_sample += if matches!(speed_mode, CPUSpeed::DOUBLE) {
+            4.0
+        } else {
+            2.0
+        };
 
         self.channel1.tick();
         self.channel2.tick();

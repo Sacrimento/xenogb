@@ -1,15 +1,26 @@
 use std::time::{Duration, Instant};
 
-use log::warn;
+use log::{info, warn};
 
 use crate::core::io::video::ppu::TICKS_PER_FRAME;
+
 pub const CLOCK_SPEED: u32 = 4194304;
+pub const DOUBLE_CLOCK_SPEED: u32 = CLOCK_SPEED * 2;
+
+#[allow(clippy::upper_case_acronyms)]
+#[derive(Debug, Clone, Copy)]
+pub enum CPUSpeed {
+    NORMAL,
+    DOUBLE,
+    CUSTOM,
+}
 
 // CPU Clock based on ticks per frames instead of tick duration
 pub struct Clock {
     frame_start: Instant,
     frame_target_duration: Duration,
 
+    pub speed_mode: CPUSpeed,
     pub clock_ticks: u32,
 }
 
@@ -23,6 +34,7 @@ impl Clock {
         Self {
             frame_start: Instant::now(),
             frame_target_duration,
+            speed_mode: CPUSpeed::NORMAL,
             clock_ticks: 0,
         }
     }
@@ -45,8 +57,25 @@ impl Clock {
         }
     }
 
+    pub fn switch_speed(&mut self, double_speed: bool) {
+        match double_speed {
+            false => {
+                self.speed_mode = CPUSpeed::NORMAL;
+                self.frame_target_duration =
+                    Duration::from_secs_f64(TICKS_PER_FRAME as f64 / CLOCK_SPEED as f64);
+            }
+            true => {
+                self.speed_mode = CPUSpeed::DOUBLE;
+                self.frame_target_duration =
+                    Duration::from_secs_f64(TICKS_PER_FRAME as f64 / DOUBLE_CLOCK_SPEED as f64);
+            }
+        }
+        info!("Speed switched to {:?}", self.speed_mode);
+    }
+
     pub fn set_speed(&mut self, clock_speed: u32) {
         self.frame_target_duration =
-            Duration::from_secs_f64(TICKS_PER_FRAME as f64 / clock_speed as f64)
+            Duration::from_secs_f64(TICKS_PER_FRAME as f64 / clock_speed as f64);
+        self.speed_mode = CPUSpeed::CUSTOM;
     }
 }

@@ -1,4 +1,6 @@
 use crate::core::cpu::interrupts::{request_interrupt, InterruptFlags};
+use crate::core::cpu::CPUSpeed;
+use crate::flag_set;
 
 pub struct Timer {
     div: u16,
@@ -21,10 +23,10 @@ impl Timer {
         }
     }
 
-    pub fn tick(&mut self) -> bool {
-        let div_apu_bit = self.div_apu_bit();
+    pub fn tick(&mut self, speed_mode: CPUSpeed) -> bool {
+        let div_apu_bit = self.div_apu_bit(speed_mode);
         self.div = self.div.wrapping_add(4);
-        let div_apu = div_apu_bit && !self.div_apu_bit();
+        let div_apu = div_apu_bit && !self.div_apu_bit(speed_mode);
 
         let current_bit = self.div_bit();
 
@@ -37,6 +39,7 @@ impl Timer {
         div_apu
     }
 
+    #[inline(always)]
     fn div_bit(&self) -> bool {
         let bit_idx = match self.tac & 0b11 {
             0b00 => 9,
@@ -45,12 +48,16 @@ impl Timer {
             0b11 => 7,
             _ => unreachable!(),
         };
-        (self.div >> bit_idx) & 1 == 1
+        flag_set!(self.div >> bit_idx, 1)
     }
 
-    #[inline]
-    fn div_apu_bit(&self) -> bool {
-        (self.div >> 12) & 1 == 1
+    #[inline(always)]
+    fn div_apu_bit(&self, speed: CPUSpeed) -> bool {
+        let bit = match speed {
+            CPUSpeed::DOUBLE => 13,
+            _ => 12,
+        };
+        flag_set!(self.div >> bit, 1)
     }
 
     fn inc_tima(&mut self) {

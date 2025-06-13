@@ -3,6 +3,7 @@ use super::cartridge::Cartridge;
 use super::dma::{OamDMA, VramDMA, VramDMAMode};
 use super::ram::RAM;
 use crate::core::cpu::interrupts::{INTERRUPT_ENABLE, INTERRUPT_FLAGS};
+use crate::core::cpu::CPUSpeed;
 use crate::core::io::video::{
     lcd::PPUMode,
     ppu::{Vbuf, RESX},
@@ -33,6 +34,7 @@ pub struct Bus {
     oam_dma: OamDMA,
     vram_dma: VramDMA,
 
+    pub speed_mode: u8,
     pub booting: bool,
     boot_rom: &'static [u8; 0x100],
 }
@@ -50,6 +52,7 @@ impl Bus {
             io: IOMMU::new(video_channel_sd, audio_channel_sd),
             oam_dma: OamDMA::default(),
             vram_dma: VramDMA::default(),
+            speed_mode: 0,
             booting: !matches!(boot_rom, BootRom::NONE),
             boot_rom: get_boot_rom(boot_rom),
         }
@@ -72,6 +75,7 @@ impl Bus {
                 warn!("Invalid DMA read at 0x{addr:04X}");
                 0xff
             }
+            0xff4d => self.speed_mode,
             0xff51..=0xff55 => self.vram_dma.read(addr),
             0xff70 => self.ram.read(addr),
             0xff00..=0xff7f => self.io.read(addr),
@@ -100,6 +104,7 @@ impl Bus {
             0xfe00..=0xfe9f => self.io.write(addr, value),
             0xff0f => INTERRUPT_FLAGS.set(value),
             0xff46 => self.oam_dma.init(value),
+            0xff4d => self.speed_mode = ((self.speed_mode >> 1) << 1) | value & 1,
             0xff50 => self.booting = false,
             0xff51..=0xff55 => self.vram_dma.write(addr, value),
             0xff70 => self.ram.write(addr, value),

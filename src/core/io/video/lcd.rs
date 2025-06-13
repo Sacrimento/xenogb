@@ -41,18 +41,19 @@ impl From<(u8, u8)> for Pixel {
         // let adjust = |c: u8| ((c as u32 * 527 + 23) >> 6) as u8; // ?????
         // let adjust = |c: u8| c / 0x1f * 0xff;
         // let adjust = |c: u8| c & 0x7 | (c << 3);
+        let adjust = |c: u8| (c << 3) | (c >> 2);
 
         let b = (value as u8) & 0x1f;
         let g = ((value >> 5) & 0x1f) as u8;
         let r = ((value >> 10) & 0x1f) as u8;
 
-        // Self {
-        //     r: adjust(r),
-        //     g: adjust(g),
-        //     b: adjust(b),
-        // }
-        //
-        Self { r, g, b }
+        Self {
+            r: adjust(r),
+            g: adjust(g),
+            b: adjust(b),
+        }
+
+        // Self { r, g, b }
     }
 }
 

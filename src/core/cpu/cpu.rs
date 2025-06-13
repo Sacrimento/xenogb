@@ -115,10 +115,10 @@ impl LR35902CPU {
         let start = Instant::now();
         let cycles = self.tick();
         for _ in 0..cycles {
-            let div_apu = self.bus.io.timer.tick();
+            let div_apu = self.bus.io.timer.tick(self.clock.speed_mode);
             self.bus.tick();
-            self.bus.io.ppu.tick();
-            self.bus.io.apu.tick(div_apu);
+            self.bus.io.ppu.tick(self.clock.speed_mode);
+            self.bus.io.apu.tick(div_apu, self.clock.speed_mode);
             self.clock.tick();
         }
 

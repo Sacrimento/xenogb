@@ -1,4 +1,4 @@
-use log::{error, info};
+use log::{debug, error, info};
 
 use crate::{flag_set, set_u16_hi, set_u16_lo};
 
@@ -57,7 +57,7 @@ impl VramDMA {
                     true => VramDMAMode::HBLANK,
                     false => VramDMAMode::GENERAL,
                 };
-                dbg!(self);
+                debug!("{:?}", self);
             }
             _ => unreachable!(),
         }

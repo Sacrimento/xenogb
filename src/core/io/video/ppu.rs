@@ -1,5 +1,6 @@
 use super::lcd::{PPUMode, Pixel, LCD, LCDC_FLAGS, LCDS_FLAGS};
 use crate::core::cpu::interrupts::{request_interrupt, InterruptFlags};
+use crate::core::cpu::CPUSpeed;
 use crate::debugger::{PpuMetricFields, PPU_METRICS};
 use crate::flag_set;
 
@@ -183,12 +184,16 @@ impl PPU {
         self.vram_read_banked(addr, 1)
     }
 
-    pub fn tick(&mut self) {
+    pub fn tick(&mut self, speed_mode: CPUSpeed) {
         if !flag_set!(self.lcd.lcdc, LCDC_FLAGS::LCD_PPU_ENABLE) {
             return;
         }
 
-        for _ in 0..4 {
+        let dots = match speed_mode {
+            CPUSpeed::DOUBLE => 2,
+            _ => 4,
+        };
+        for _ in 0..dots {
             self.line_ticks += 1;
             match self.lcd.get_ppu_mode() {
                 PPUMode::HBlank => self.hblank(),

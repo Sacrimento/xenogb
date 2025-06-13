@@ -1,5 +1,8 @@
 use super::CPURegisterId;
-use crate::core::cpu::cpu::{CPUFlags, LR35902CPU};
+use crate::{
+    core::cpu::cpu::{CPUFlags, LR35902CPU},
+    flag_set,
+};
 
 pub fn ccf(cpu: &mut LR35902CPU) -> u8 {
     let c = cpu.get_flag(CPUFlags::C);
@@ -57,7 +60,15 @@ pub fn halt(cpu: &mut LR35902CPU) -> u8 {
 }
 
 pub fn stop(cpu: &mut LR35902CPU) -> u8 {
-    cpu.halt = true;
+    cpu.inc_pc(1);
+    if flag_set!(cpu.bus.speed_mode, 1) {
+        // Clear bit 0 & flip bit 7
+        cpu.bus.speed_mode = ((cpu.bus.speed_mode ^ (1 << 7)) >> 1) << 1;
+        cpu.clock.switch_speed(flag_set!(cpu.bus.speed_mode, 1));
+    }
+    // TODO: Make the CPU chill for 2050 M-cycles (~1.025 ms with CPU @ 2.10 MHz) somehow
+    // Note that we can't return 2051 cycles here as the CPU should be in a strange state
+    // https://gbdev.io/pandocs/CGB_Registers.html#ff4d--key1-cgb-mode-only-prepare-speed-switch
     1
 }
 
