@@ -29,8 +29,34 @@ macro_rules! between {
     };
 }
 
+#[derive(PartialEq)]
+enum PriorityStyle {
+    DMG,
+    CGB,
+}
+
+impl From<u8> for PriorityStyle {
+    fn from(value: u8) -> Self {
+        if flag_set!(value, 1) {
+            Self::DMG
+        } else {
+            Self::CGB
+        }
+    }
+}
+
+impl From<&PriorityStyle> for u8 {
+    fn from(value: &PriorityStyle) -> Self {
+        if matches!(value, PriorityStyle::DMG) {
+            1
+        } else {
+            0
+        }
+    }
+}
+
 #[allow(nonstandard_style)]
-mod TileAttributes {
+pub mod TileAttributes {
     pub const CGB_PALETTE: u8 = 0x7;
     pub const BANK: u8 = 0x8;
     #[allow(unused)]
@@ -81,6 +107,8 @@ pub struct PPU {
     draw_background: bool,
     draw_window: bool,
     draw_sprites: bool,
+
+    priority_style: PriorityStyle,
 }
 
 impl PPU {
@@ -107,6 +135,7 @@ impl PPU {
             draw_background: true,
             draw_window: true,
             draw_sprites: true,
+            priority_style: PriorityStyle::CGB,
         }
     }
 
@@ -115,6 +144,7 @@ impl PPU {
             0x8000..=0x9fff => self.vram_write(addr, value),
             0xfe00..=0xfe9f => self.oam_write(addr, value),
             0xff4f => self.vram_bank = value & 0x1,
+            0xff6c => self.priority_style = value.into(),
             _ => unreachable!(),
         }
     }
@@ -124,6 +154,7 @@ impl PPU {
             0x8000..=0x9fff => self.vram_read(addr),
             0xfe00..=0xfe9f => self.oam_read(addr),
             0xff4f => 0xfe | self.vram_bank,
+            0xff6c => u8::from(&self.priority_style),
             _ => unreachable!(),
         }
     }
@@ -223,7 +254,7 @@ impl PPU {
         )
     }
 
-    fn render_tile(&self, scx: usize, scy: usize, tile_map_flag: u8) -> Option<(bool, Pixel)> {
+    fn render_tile(&self, scx: usize, scy: usize, tile_map_flag: u8) -> Option<(u8, Pixel)> {
         let (attributes, tile) = self.get_tile(scx, scy, flag_set!(self.lcd.lcdc, tile_map_flag));
 
         let tile_x = scx & 7;
@@ -245,29 +276,25 @@ impl PPU {
         let lo = (tile[y_offset] >> x_offset) & 1;
         let color = hi | lo;
 
+        // if color & 0b11 == 0 {
+        //     return None;
+        // }
+
         Some((
-            between!(color, 1, 3),
-            self.lcd.get_cgb_bg_pixel(
-                (attributes & TileAttributes::CGB_PALETTE) as usize,
-                color as usize,
-            ),
+            color & 0b11,
+            self.lcd.get_cgb_bg_pixel(attributes, color as usize),
         ))
     }
 
-    fn render_bg(&self, x: usize, y: usize) -> Option<(bool, Pixel)> {
-        if !flag_set!(self.lcd.lcdc, LCDC_FLAGS::WINDOW_BG_ENABLE) {
-            return None;
-        }
-
+    fn render_bg(&self, x: usize, y: usize) -> Option<(u8, Pixel)> {
         let scx = (x + self.lcd.scx as usize) % 256;
         let scy = (y + self.lcd.scy as usize) % 256;
 
         self.render_tile(scx, scy, LCDC_FLAGS::BG_TILE_MAP)
     }
 
-    fn render_window(&mut self, x: usize, y: usize) -> Option<(bool, Pixel)> {
-        if !flag_set!(self.lcd.lcdc, LCDC_FLAGS::WINDOW_BG_ENABLE)
-            || !flag_set!(self.lcd.lcdc, LCDC_FLAGS::WINDOW_ENABLE)
+    fn render_window(&mut self, x: usize, y: usize) -> Option<(u8, Pixel)> {
+        if !flag_set!(self.lcd.lcdc, LCDC_FLAGS::WINDOW_ENABLE)
             || self.lcd.wx > 166
             || self.lcd.wy > 143
         {
@@ -290,7 +317,7 @@ impl PPU {
         tile_id: u8,
         x: usize,
         y: usize,
-    ) -> Option<(bool, Pixel)> {
+    ) -> Option<Pixel> {
         let tile = &self.vram[flag_set!(sprite.flags, TileAttributes::BANK) as usize]
             [tile_id as usize * 16..tile_id as usize * 16 + 16];
 
@@ -317,16 +344,10 @@ impl PPU {
             return None;
         }
 
-        Some((
-            !flag_set!(sprite.flags, TileAttributes::PRIORITY),
-            self.lcd.get_cgb_obj_pixel(
-                (sprite.flags & TileAttributes::CGB_PALETTE) as usize,
-                color as usize,
-            ),
-        ))
+        Some(self.lcd.get_cgb_obj_pixel(sprite.flags, color as usize))
     }
 
-    fn render_sprite(&self, x: usize, y: usize) -> Option<(bool, Pixel)> {
+    fn render_sprite(&self, x: usize, y: usize) -> Option<Pixel> {
         if !flag_set!(self.lcd.lcdc, LCDC_FLAGS::OBJ_ENABLE) {
             return None;
         }
@@ -392,8 +413,10 @@ impl PPU {
             return;
         }
 
-        let oam = self.oam.clone();
-        // oam.sort_by_key(|sprite| sprite.x);
+        let mut oam = self.oam.clone();
+        if self.priority_style == PriorityStyle::DMG {
+            oam.sort_by_key(|sprite| sprite.x);
+        }
         self.line_sprites = Some(
             oam.iter()
                 .filter(|sprite| {
@@ -432,28 +455,26 @@ impl PPU {
             None
         };
 
-        let (bg_prio, background_pixel) = match (bg_pixel, win_pixel) {
-            (None, None) => (false, Pixel::default()),
-            (Some((prio, bg_pxl)), None) => (prio, bg_pxl),
-            (None, Some((prio, win_pxl))) => (prio, win_pxl),
-            (Some(_), Some((prio, win_pxl))) => (prio, win_pxl),
-            // (Some((prio, bg_pxl)), Some(_)) => (prio, bg_pxl),
+        let (bg_color_idx, bg_pixel) = match (bg_pixel, win_pixel) {
+            (None, None) => (0, Pixel::default()),
+            (Some(bg_pxl), None) => bg_pxl,
+            (None, Some(win_pxl)) => win_pxl,
+            (Some(_), Some(win_pxl)) => win_pxl,
         };
 
-        let pixel;
-
-        if s_pixel.is_some() {
-            let (has_prio, s_pixel) = s_pixel.unwrap();
-            if !has_prio && bg_prio {
-                pixel = background_pixel;
-            } else {
-                pixel = s_pixel;
+        match s_pixel {
+            None => bg_pixel,
+            Some(s_pixel) => {
+                if !flag_set!(self.lcd.lcdc, LCDC_FLAGS::WINDOW_BG_PRIORITY)
+                    || (!bg_pixel.priority && !s_pixel.priority)
+                    || bg_color_idx == 0
+                {
+                    s_pixel
+                } else {
+                    bg_pixel
+                }
             }
-        } else {
-            pixel = background_pixel;
         }
-
-        pixel
     }
 
     fn draw(&mut self) {

@@ -7,7 +7,7 @@ use crossbeam_channel::Sender;
 
 use audio::apu::APU;
 use joypad::Joypad;
-use log::{info, warn};
+use log::warn;
 use serial::Serial;
 use timer::Timer;
 use video::ppu::{Vbuf, PPU};
@@ -43,6 +43,7 @@ impl IOMMU {
             0xff40..=0xff4b => self.ppu.lcd.write(addr, value),
             0xff4f => self.ppu.write(addr, value),
             0xff68..=0xff6b => self.ppu.lcd.write(addr, value),
+            0xff6c => self.ppu.write(addr, value),
             _ => warn!("iommu.write: unhandled address 0x{addr:04X}"),
         }
     }
@@ -59,6 +60,7 @@ impl IOMMU {
             0xff40..=0xff4b => self.ppu.lcd.read(addr),
             0xff4f => self.ppu.read(addr),
             0xff68..=0xff6b => self.ppu.lcd.read(addr),
+            0xff6c => self.ppu.read(addr),
             _ => {
                 warn!("iommu.read: unhandled address 0x{addr:04X}");
                 0xff

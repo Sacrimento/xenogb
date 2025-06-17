@@ -5,7 +5,7 @@ SNAPSHOT_FN=vbuf_snapshot
 
 TEST_DIR=$(dirname $(realpath -s $0))
 ROOT=$TEST_DIR/../..
-EXEC=$ROOT/target/debug/$PROJECT
+EXEC=$ROOT/target/release/$PROJECT
 
 source $TEST_DIR/../utils.sh
 
@@ -17,9 +17,9 @@ fail () {
 }
 
 echo "# Run mattcurrie's tests"
-for test_rom in $(find $TEST_DIR -name "*.gb") ; do
+for test_rom in $(find $TEST_DIR -type f -regex ".*/*.gbc?") ; do
     test_case=$(basename $test_rom)
-    reference=${test_rom%.gb}.png
+    reference=${test_rom%.gb*}.png
     $EXEC --headless --stop-condition LDBB -c "$test_rom" &
 
     wait $!

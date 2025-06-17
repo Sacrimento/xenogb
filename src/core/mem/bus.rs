@@ -3,7 +3,6 @@ use super::cartridge::Cartridge;
 use super::dma::{OamDMA, VramDMA, VramDMAMode};
 use super::ram::RAM;
 use crate::core::cpu::interrupts::{INTERRUPT_ENABLE, INTERRUPT_FLAGS};
-use crate::core::cpu::CPUSpeed;
 use crate::core::io::video::{
     lcd::PPUMode,
     ppu::{Vbuf, RESX},
@@ -77,6 +76,7 @@ impl Bus {
             }
             0xff4d => self.speed_mode,
             0xff51..=0xff55 => self.vram_dma.read(addr),
+            0xff6c => self.io.read(addr),
             0xff70 => self.ram.read(addr),
             0xff00..=0xff7f => self.io.read(addr),
             0xff80..=0xfffe => self.ram.read(addr),
@@ -107,6 +107,7 @@ impl Bus {
             0xff4d => self.speed_mode = ((self.speed_mode >> 1) << 1) | value & 1,
             0xff50 => self.booting = false,
             0xff51..=0xff55 => self.vram_dma.write(addr, value),
+            0xff6c => self.io.write(addr, value),
             0xff70 => self.ram.write(addr, value),
             0xff00..=0xff7f => self.io.write(addr, value),
             0xff80..=0xfffe => self.ram.write(addr, value),

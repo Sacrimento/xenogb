@@ -12,7 +12,7 @@ cmp_regs () {
 }
 
 cmp_snapshot () {
-    convert $1.pgm $1.png
+    magick $1.ppm $1.png
     compare -metric AE "$1.png" "$2" NULL: 2>&1 > /dev/null
     [ $? -eq 0 ]
 }

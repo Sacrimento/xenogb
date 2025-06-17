@@ -5,7 +5,7 @@ use super::io_event::{IOEvent, IOListener};
 use super::mem::bus::Bus;
 use super::playback::Playback;
 use crate::core::io::video::ppu::{RESX, RESY};
-use crate::core::utils::dump_regs;
+use crate::core::utils::{dump_regs, vbuf_snapshot};
 use crate::debugger::{Debugger, DebuggerCommand, EmuSnapshot};
 
 use std::backtrace::Backtrace;
@@ -60,14 +60,14 @@ pub fn run_headless(
                         && matches!(instr.reg2, Some(CPURegisterId::B))
                     {
                         dump_regs(&cpu);
-                        // return vbuf_snapshot(last_frame);
+                        return vbuf_snapshot(last_frame);
                         return;
                     }
                 }
                 StopCondition::TIMER(secs) => {
                     if start.elapsed() > Duration::from_secs(secs as u64) {
                         dump_regs(&cpu);
-                        // return vbuf_snapshot(last_frame);
+                        return vbuf_snapshot(last_frame);
                         return;
                     }
                 }

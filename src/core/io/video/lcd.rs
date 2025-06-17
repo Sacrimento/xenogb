@@ -1,3 +1,4 @@
+use super::ppu::TileAttributes;
 use crate::{
     core::cpu::interrupts::{request_interrupt, InterruptFlags},
     flag_set,
@@ -14,7 +15,7 @@ pub mod LCDC_FLAGS {
     pub const BG_TILE_MAP: u8 = 0x8;
     pub const OBJ_SIZE: u8 = 0x4;
     pub const OBJ_ENABLE: u8 = 0x2;
-    pub const WINDOW_BG_ENABLE: u8 = 0x1;
+    pub const WINDOW_BG_PRIORITY: u8 = 0x1;
 }
 
 #[allow(nonstandard_style)]
@@ -27,33 +28,42 @@ pub mod LCDS_FLAGS {
     pub const PPU_MODE: u8 = 0x3;
 }
 
-#[derive(Clone, Copy, Default)]
+#[derive(Clone, Copy)]
 pub struct Pixel {
     pub r: u8,
     pub g: u8,
     pub b: u8,
+
+    pub priority: bool,
 }
 
-impl From<(u8, u8)> for Pixel {
-    fn from(value: (u8, u8)) -> Self {
-        let mut value: u16 = (value.0 as u16) << 8 | value.1 as u16;
-        value >>= 1;
-        // let adjust = |c: u8| ((c as u32 * 527 + 23) >> 6) as u8; // ?????
-        // let adjust = |c: u8| c / 0x1f * 0xff;
-        // let adjust = |c: u8| c & 0x7 | (c << 3);
+impl Default for Pixel {
+    fn default() -> Self {
+        Self {
+            r: 0xff,
+            g: 0xff,
+            b: 0xff,
+            priority: false,
+        }
+    }
+}
+
+impl From<(u8, u8, bool)> for Pixel {
+    fn from(value: (u8, u8, bool)) -> Self {
+        let priority = value.2;
+        let value: u16 = (value.1 as u16) << 8 | value.0 as u16;
         let adjust = |c: u8| (c << 3) | (c >> 2);
 
-        let b = (value as u8) & 0x1f;
+        let r = (value as u8) & 0x1f;
         let g = ((value >> 5) & 0x1f) as u8;
-        let r = ((value >> 10) & 0x1f) as u8;
+        let b = ((value >> 10) & 0x1f) as u8;
 
         Self {
             r: adjust(r),
             g: adjust(g),
             b: adjust(b),
+            priority,
         }
-
-        // Self { r, g, b }
     }
 }
 
@@ -224,19 +234,27 @@ impl LCD {
     }
 
     #[inline]
-    pub fn get_cgb_bg_pixel(&self, palette_idx: usize, color_idx: usize) -> Pixel {
+    pub fn get_cgb_bg_pixel(&self, attributes: u8, color_idx: usize) -> Pixel {
+        let palette_idx = (attributes & TileAttributes::CGB_PALETTE) as usize;
+        let priority = flag_set!(attributes, TileAttributes::PRIORITY);
+
         (
             self.bg_cram[palette_idx * 8 + color_idx * 2],
             self.bg_cram[palette_idx * 8 + color_idx * 2 + 1],
+            priority,
         )
             .into()
     }
 
     #[inline]
-    pub fn get_cgb_obj_pixel(&self, palette_idx: usize, color_idx: usize) -> Pixel {
+    pub fn get_cgb_obj_pixel(&self, attributes: u8, color_idx: usize) -> Pixel {
+        let palette_idx = (attributes & TileAttributes::CGB_PALETTE) as usize;
+        let priority = flag_set!(attributes, TileAttributes::PRIORITY);
+
         (
             self.obj_cram[palette_idx * 8 + color_idx * 2],
             self.obj_cram[palette_idx * 8 + color_idx * 2 + 1],
+            priority,
         )
             .into()
     }
