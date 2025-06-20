@@ -140,11 +140,6 @@ impl Bus {
             VramDMAMode::IDLE => (),
             VramDMAMode::HBLANK => {
                 if self.io.ppu.lcd.get_ppu_mode() == PPUMode::HBlank {
-                    if self.vram_dma.remaining == 0 {
-                        self.vram_dma.mode = VramDMAMode::IDLE;
-                        return;
-                    }
-
                     let transfer_size = 16;
                     // Start of HBlank, copy 16 bytes
                     if self.io.ppu.line_x as usize == RESX {
@@ -155,6 +150,10 @@ impl Bus {
                         self.vram_dma.dst += transfer_size;
                         self.vram_dma.remaining -= transfer_size;
                     }
+
+                    if self.vram_dma.remaining == 0 {
+                        self.vram_dma.reset();
+                    }
                 }
             }
             VramDMAMode::GENERAL => {
@@ -162,8 +161,7 @@ impl Bus {
                     self.write(self.vram_dma.dst + i, self.read(self.vram_dma.src + i));
                 }
 
-                self.vram_dma.remaining = 0;
-                self.vram_dma.mode = VramDMAMode::IDLE;
+                self.vram_dma.reset();
             }
         }
     }

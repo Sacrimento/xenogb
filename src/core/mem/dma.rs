@@ -1,11 +1,11 @@
-use log::{debug, error, info};
+use log::{error, info};
 
 use crate::{flag_set, set_u16_hi, set_u16_lo};
 
 const DMA_MODE: u8 = 0x80;
 
 #[allow(clippy::upper_case_acronyms)]
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum VramDMAMode {
     IDLE,
     HBLANK,
@@ -48,16 +48,26 @@ impl VramDMA {
             0xff53 => self.dst = set_u16_hi!(self.dst, value),
             0xff54 => self.dst = set_u16_lo!(self.dst, value),
             0xff55 => {
-                self.remaining = (((value as u16) & 0b1111111) + 1) * 16;
+                if self.remaining > 0 && !flag_set!(value, DMA_MODE) {
+                    // Ongoing HBlank DMA - stop requested
+                    self.mode = VramDMAMode::IDLE;
+                    return;
+                }
+                self.remaining = (((value as u16) & 0x7f) + 1) * 16;
                 // Ignore 4 lower bits
                 self.src &= 0xfff0;
                 // Force address to be within VRAM & ignore 4 lower bits
                 self.dst = (self.dst & 0xfff0) | 0x8000;
+
+                if self.src == self.dst {
+                    return;
+                }
+
                 self.mode = match flag_set!(value, DMA_MODE) {
                     true => VramDMAMode::HBLANK,
                     false => VramDMAMode::GENERAL,
                 };
-                debug!("{:?}", self);
+                dbg!(self);
             }
             _ => unreachable!(),
         }
@@ -69,12 +79,26 @@ impl VramDMA {
                 info!("Attempt to read write-only value @0x{addr:04X}");
                 0xff
             }
-            0xff55 => match self.remaining {
-                0 => 0xff,
-                _ => ((self.remaining / 16) - 1) as u8,
+            0xff55 => match self.mode {
+                VramDMAMode::IDLE => {
+                    if self.remaining == 0 {
+                        0xff
+                    } else {
+                        ((self.remaining / 16) - 1) as u8 | 0x80
+                    }
+                }
+                VramDMAMode::HBLANK => ((self.remaining / 16) - 1) as u8,
+                _ => unreachable!(),
             },
             _ => unreachable!(),
         }
+    }
+
+    pub fn reset(&mut self) {
+        self.mode = VramDMAMode::IDLE;
+        self.remaining = 0;
+        self.src = 0xffff;
+        self.dst = 0xffff;
     }
 }
 
