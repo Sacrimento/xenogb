@@ -5145,7 +5145,6 @@ dependencies = [
  "itertools 0.14.0",
  "log",
  "log4rs",
- "phf",
  "ringbuf",
  "serde",
  "serde_yaml",

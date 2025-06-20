@@ -69,7 +69,7 @@ impl LR35902CPU {
         Self {
             bus,
             serial,
-            current_instruction: &INSTRUCTIONS[&0],
+            current_instruction: &INSTRUCTIONS[0],
             halt: false,
             registers: CPURegisters::new(pc),
             int_master: false,
@@ -250,15 +250,15 @@ impl LR35902CPU {
     }
 
     pub fn set_instruction(&mut self) {
-        let mut opcode: u16 = self.bus.read(self.registers.pc) as u16;
+        let mut opcode = self.bus.read(self.registers.pc) as usize;
         self.registers.pc += 1;
 
         if opcode == 0xcb {
-            opcode = (1 << 8) | self.bus.read(self.registers.pc) as u16;
+            opcode = (1 << 8) | self.bus.read(self.registers.pc) as usize;
             self.registers.pc += 1;
         }
 
-        self.current_instruction = &INSTRUCTIONS[&opcode];
+        self.current_instruction = &INSTRUCTIONS[opcode];
     }
 
     fn handle_ints(&mut self) {

@@ -155,15 +155,15 @@ fn get_instr_size(instr: &Instruction) -> u16 {
 }
 
 fn disas_at(cpu: &LR35902CPU, addr: u16) -> (u16, GbAsm) {
-    let mut opcode: u16 = cpu.bus.read(addr) as u16;
+    let mut opcode = cpu.bus.read(addr) as usize;
     let mut prefixed = 0;
 
     if opcode == 0xcb {
         prefixed = 1;
-        opcode = (1 << 8) | cpu.bus.read(addr + 1) as u16;
+        opcode = (1 << 8) | cpu.bus.read(addr + 1) as usize;
     }
 
-    if !INSTRUCTIONS.contains_key(&opcode) {
+    if INSTRUCTIONS[opcode] != Instruction::default() {
         return (
             1,
             GbAsm {
@@ -173,7 +173,7 @@ fn disas_at(cpu: &LR35902CPU, addr: u16) -> (u16, GbAsm) {
         );
     }
 
-    let instr = &INSTRUCTIONS[&opcode];
+    let instr = &INSTRUCTIONS[opcode];
 
     let size = get_instr_size(instr) + prefixed;
 
