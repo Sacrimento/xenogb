@@ -8,13 +8,34 @@ use crate::core::cpu::cpu::LR35902CPU;
 use crate::core::run_emu::EmuCrash;
 use crossbeam_channel::{Receiver, Sender};
 
-use std::cell::RefCell;
 use std::time::Duration;
 
-thread_local! {
-    pub static CPU_METRICS: RefCell<MetricsHandler<CpuMetrics>> = RefCell::new(MetricsHandler::<CpuMetrics>::new(Duration::from_millis(1000)));
-    pub static PPU_METRICS: RefCell<MetricsHandler<PpuMetrics>> = RefCell::new(MetricsHandler::<PpuMetrics>::new(Duration::from_millis(1000)));
+static mut CPU_METRICS: Option<MetricsHandler<CpuMetrics>> = None;
+static mut PPU_METRICS: Option<MetricsHandler<PpuMetrics>> = None;
+
+pub fn init_metrics(enabled: bool) {
+    unsafe {
+        CPU_METRICS = Some(MetricsHandler::new(enabled, Duration::from_millis(1000)));
+        PPU_METRICS = Some(MetricsHandler::new(enabled, Duration::from_millis(1000)));
+    }
 }
+
+#[inline(always)]
+#[allow(static_mut_refs)]
+pub fn cpu_metrics() -> &'static mut MetricsHandler<CpuMetrics> {
+    unsafe { CPU_METRICS.as_mut().unwrap() }
+}
+
+#[inline(always)]
+#[allow(static_mut_refs)]
+pub fn ppu_metrics() -> &'static mut MetricsHandler<PpuMetrics> {
+    unsafe { PPU_METRICS.as_mut().unwrap() }
+}
+
+// thread_local! {
+//     pub static CPU_METRICS: RefCell<MetricsHandler<CpuMetrics>> = RefCell::new(MetricsHandler::<CpuMetrics>::new(Duration::from_millis(1000)));
+//     pub static PPU_METRICS: RefCell<MetricsHandler<PpuMetrics>> = RefCell::new(MetricsHandler::<PpuMetrics>::new(Duration::from_millis(1000)));
+// }
 
 pub struct Debugger {
     pub enabled: bool,
@@ -36,8 +57,7 @@ impl Debugger {
         ui_commands_rc: Receiver<DebuggerCommand>,
         dbg_data_sd: Sender<EmuSnapshot>,
     ) -> Self {
-        CPU_METRICS.with_borrow_mut(|mh| mh.set_enabled(enabled));
-        PPU_METRICS.with_borrow_mut(|mh| mh.set_enabled(enabled));
+        init_metrics(enabled);
 
         Self {
             enabled,
@@ -80,8 +100,8 @@ impl Debugger {
             return;
         }
 
-        CPU_METRICS.with_borrow_mut(|mh| mh.update());
-        PPU_METRICS.with_borrow_mut(|mh| mh.update());
+        cpu_metrics().update();
+        ppu_metrics().update();
 
         if self.dbg_data_sd.is_full() {
             return;

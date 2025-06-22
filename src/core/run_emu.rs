@@ -6,7 +6,7 @@ use super::mem::bus::Bus;
 use super::playback::Playback;
 use crate::core::io::video::ppu::{RESX, RESY};
 use crate::core::utils::{dump_regs, vbuf_snapshot};
-use crate::debugger::{Debugger, DebuggerCommand, EmuSnapshot};
+use crate::debugger::{init_metrics, Debugger, DebuggerCommand, EmuSnapshot};
 
 use std::backtrace::Backtrace;
 use std::panic;
@@ -50,6 +50,8 @@ pub fn run_headless(
     let mut last_frame: Vbuf = [Pixel::default(); RESX * RESY];
     let start = Instant::now();
 
+    init_metrics(false);
+
     loop {
         if let Some(condition) = sc {
             match condition {
@@ -61,14 +63,12 @@ pub fn run_headless(
                     {
                         dump_regs(&cpu);
                         return vbuf_snapshot(last_frame);
-                        return;
                     }
                 }
                 StopCondition::TIMER(secs) => {
                     if start.elapsed() > Duration::from_secs(secs as u64) {
                         dump_regs(&cpu);
                         return vbuf_snapshot(last_frame);
-                        return;
                     }
                 }
             }

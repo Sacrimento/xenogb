@@ -5,7 +5,7 @@ use super::instructions::{stack::_push, CPURegisterId, Instruction, INSTRUCTIONS
 use super::interrupts::{InterruptFlags, INTERRUPT_ENABLE, INTERRUPT_FLAGS};
 use crate::core::mem::bus::Bus;
 use crate::dbg::print_serial;
-use crate::debugger::{CpuMetricFields, CPU_METRICS};
+use crate::debugger::{cpu_metrics, CpuMetricFields};
 use crate::flag_set;
 
 #[allow(nonstandard_style)]
@@ -89,7 +89,7 @@ impl LR35902CPU {
             }
 
             cycles = (self.current_instruction.func)(self);
-            CPU_METRICS.with_borrow_mut(|mh| mh.count(CpuMetricFields::INSTRUCTIONS, 1));
+            cpu_metrics().count(CpuMetricFields::INSTRUCTIONS, 1);
         }
 
         if INTERRUPT_FLAGS.get() > 0 {
@@ -107,7 +107,7 @@ impl LR35902CPU {
             self.int_master = true;
         }
 
-        CPU_METRICS.with_borrow_mut(|mh| mh.count(CpuMetricFields::CYCLES, cycles as u32));
+        cpu_metrics().count(CpuMetricFields::CYCLES, cycles as u32);
         cycles
     }
 
@@ -122,12 +122,10 @@ impl LR35902CPU {
             self.clock.tick();
         }
 
-        CPU_METRICS.with_borrow_mut(|mh| {
-            mh.mean_time(
-                CpuMetricFields::TICK_TIME,
-                (Instant::now() - start) / (cycles as u32 * 4),
-            )
-        });
+        cpu_metrics().mean_time(
+            CpuMetricFields::TICK_TIME,
+            (Instant::now() - start) / (cycles as u32 * 4),
+        );
     }
 
     pub fn set_register(&mut self, register: &CPURegisterId, value: u16) {

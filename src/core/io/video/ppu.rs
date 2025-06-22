@@ -1,7 +1,7 @@
 use super::lcd::{PPUMode, Pixel, LCD, LCDC_FLAGS, LCDS_FLAGS};
 use crate::core::cpu::interrupts::{request_interrupt, InterruptFlags};
 use crate::core::cpu::CPUSpeed;
-use crate::debugger::{PpuMetricFields, PPU_METRICS};
+use crate::debugger::{ppu_metrics, PpuMetricFields};
 use crate::flag_set;
 
 use crossbeam_channel::Sender;
@@ -202,17 +202,6 @@ impl PPU {
     #[inline]
     fn vram_read_banked(&self, addr: u16, bank: u8) -> u8 {
         self.vram[bank as usize][(addr - 0x8000) as usize]
-    }
-
-    #[inline]
-    fn vram_write_banked(&mut self, addr: u16, value: u8, bank: u8) {
-        self.vram[bank as usize][(addr - 0x8000) as usize] = value;
-    }
-
-    #[inline]
-    fn get_bg_attributes(&self, addr: u16) -> u8 {
-        assert!((0x8000..=0x9fff).contains(&addr));
-        self.vram_read_banked(addr, 1)
     }
 
     pub fn tick(&mut self, speed_mode: CPUSpeed) {
@@ -536,7 +525,7 @@ impl PPU {
                 }
 
                 self.frames += 1;
-                PPU_METRICS.with_borrow_mut(|mh| mh.count(PpuMetricFields::FRAME_RATE, 1));
+                ppu_metrics().count(PpuMetricFields::FRAME_RATE, 1);
 
                 if flag_set!(self.lcd.lcds, LCDS_FLAGS::MODE_OAM_STAT) {
                     request_interrupt(InterruptFlags::STAT);

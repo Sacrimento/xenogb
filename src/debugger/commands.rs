@@ -1,4 +1,4 @@
-use super::{Debugger, CPU_METRICS, PPU_METRICS};
+use super::{cpu_metrics, ppu_metrics, Debugger};
 use crate::core::{
     cpu::{instructions::CPURegisterId, LR35902CPU},
     io::video::ppu::PPU_LAYER,
@@ -66,7 +66,7 @@ impl Debugger {
         info!("Debugger is now enabled:{enabled}");
         self.enabled = enabled;
 
-        CPU_METRICS.with_borrow_mut(|mh| mh.set_enabled(enabled));
-        PPU_METRICS.with_borrow_mut(|mh| mh.set_enabled(enabled));
+        cpu_metrics().set_enabled(enabled);
+        ppu_metrics().set_enabled(enabled);
     }
 }

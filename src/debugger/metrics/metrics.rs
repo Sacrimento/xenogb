@@ -42,9 +42,9 @@ pub struct MetricsHandler<T> {
 }
 
 impl<T: Metrics + Default + Copy> MetricsHandler<T> {
-    pub fn new(update_interval: Duration) -> Self {
+    pub fn new(enabled: bool, update_interval: Duration) -> Self {
         Self {
-            enabled: false,
+            enabled,
             update_interval,
             last_update: Instant::now(),
             last_metrics: MetricsExport::new(update_interval, T::default()),

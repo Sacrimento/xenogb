@@ -12,7 +12,6 @@ use core::mem::boot::BootRom;
 use core::mem::bus::Bus;
 use core::mem::cartridge::Cartridge;
 use core::run_emu::{run_headless, StopCondition};
-use std::io::Write;
 use ui::run_ui;
 
 use chrono::Local;
@@ -20,8 +19,6 @@ use clap::Parser;
 use crossbeam_channel::{bounded, unbounded};
 
 use std::path::PathBuf;
-
-use crate::core::cpu::instructions::INSTRUCTIONS;
 
 #[derive(Debug)]
 struct XenoGBError;

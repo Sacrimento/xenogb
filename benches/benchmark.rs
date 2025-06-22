@@ -6,10 +6,13 @@ use xenogb::core::{
     cpu::LR35902CPU,
     mem::{boot::BootRom, bus::Bus, cartridge::Cartridge},
 };
+use xenogb::debugger::init_metrics;
 
 fn setup_cpu(cartridge: PathBuf) -> LR35902CPU {
     let (vcs, _) = unbounded();
     let (acs, _) = unbounded();
+
+    init_metrics(false);
 
     LR35902CPU::new(
         Bus::new(

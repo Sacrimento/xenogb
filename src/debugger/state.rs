@@ -2,7 +2,7 @@ use std::time::Instant;
 
 use super::disas::{disas, GbAsm};
 use super::metrics::{CpuMetrics, MetricsExport, PpuMetrics};
-use super::{CPU_METRICS, PPU_METRICS};
+use super::{cpu_metrics, ppu_metrics};
 use crate::core::cpu::cpu::{CPURegisters, LR35902CPU};
 use crate::core::cpu::interrupts::{INTERRUPT_ENABLE, INTERRUPT_FLAGS};
 use crate::core::io::audio::apu::APU;
@@ -44,7 +44,7 @@ impl CpuState {
                 int_enable: INTERRUPT_ENABLE.get(),
                 interrupts: INTERRUPT_FLAGS.get(),
             },
-            metrics: CPU_METRICS.with_borrow(|mh| mh.export()),
+            metrics: cpu_metrics().export(),
             disas: disas(cpu, last_pc, 30),
         }
     }
@@ -136,7 +136,7 @@ impl PpuState {
     pub fn new(ppu: &PPU) -> Self {
         Self {
             vram: ppu.vram,
-            metrics: PPU_METRICS.with_borrow(|mh| mh.export()),
+            metrics: ppu_metrics().export(),
         }
     }
 }
