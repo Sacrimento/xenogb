@@ -3,6 +3,7 @@ use std::time::Instant;
 use super::clock::Clock;
 use super::instructions::{stack::_push, CPURegisterId, Instruction, INSTRUCTIONS};
 use super::interrupts::{InterruptFlags, INTERRUPT_ENABLE, INTERRUPT_FLAGS};
+use crate::core::cpu::CPUSpeed;
 use crate::core::mem::bus::Bus;
 use crate::dbg::print_serial;
 use crate::debugger::{cpu_metrics, CpuMetricFields};
@@ -64,7 +65,7 @@ pub struct LR35902CPU {
 }
 
 impl LR35902CPU {
-    pub fn new(bus: Bus, serial: bool, clock_speed: u32) -> Self {
+    pub fn new(bus: Bus, serial: bool, speed: CPUSpeed) -> Self {
         let pc = if bus.booting { 0 } else { 0x100 };
         Self {
             bus,
@@ -74,7 +75,7 @@ impl LR35902CPU {
             registers: CPURegisters::new(pc),
             int_master: false,
             enabling_ints: false,
-            clock: Clock::new(clock_speed),
+            clock: Clock::new(speed),
         }
     }
 

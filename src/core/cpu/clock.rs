@@ -10,8 +10,8 @@ pub const DOUBLE_CLOCK_SPEED: u32 = CLOCK_SPEED * 2;
 #[allow(clippy::upper_case_acronyms)]
 #[derive(Default, Debug, Clone, Copy)]
 pub enum CPUSpeed {
-    #[default]
     NORMAL,
+    #[default]
     DOUBLE,
     CUSTOM,
 }
@@ -26,12 +26,18 @@ pub struct Clock {
 }
 
 impl Clock {
-    pub fn new(clock_speed: u32) -> Self {
-        let frame_target_duration = if clock_speed == u32::MAX {
-            Duration::ZERO
-        } else {
-            Duration::from_secs_f64(TICKS_PER_FRAME as f64 / DOUBLE_CLOCK_SPEED as f64)
+    pub fn new(speed: CPUSpeed) -> Self {
+        // Custom as initializer means no throttle
+        let frame_target_duration = match speed {
+            CPUSpeed::CUSTOM => Duration::ZERO,
+            CPUSpeed::NORMAL => {
+                Duration::from_secs_f64(TICKS_PER_FRAME as f64 / CLOCK_SPEED as f64)
+            }
+            CPUSpeed::DOUBLE => {
+                Duration::from_secs_f64(TICKS_PER_FRAME as f64 / DOUBLE_CLOCK_SPEED as f64)
+            }
         };
+
         Self {
             frame_start: Instant::now(),
             frame_target_duration,

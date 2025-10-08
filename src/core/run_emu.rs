@@ -1,5 +1,5 @@
 use super::cpu::instructions::CPURegisterId;
-use super::cpu::{CLOCK_SPEED, LR35902CPU};
+use super::cpu::{CPUSpeed, LR35902CPU};
 use super::io::video::{lcd::Pixel, ppu::Vbuf};
 use super::io_event::{IOEvent, IOListener};
 use super::mem::bus::Bus;
@@ -167,7 +167,7 @@ pub fn run_emu_thread(
 
     let crash_info = Arc::new(Mutex::new(None));
 
-    let mut cpu = LR35902CPU::new(bus, serial, CLOCK_SPEED);
+    let mut cpu = LR35902CPU::new(bus, serial, CPUSpeed::DOUBLE);
     let mut dbg = Debugger::new(debug, dbg_cmd_rc, dbg_data_sd);
 
     let thread = std::thread::spawn(move || {

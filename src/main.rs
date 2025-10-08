@@ -7,7 +7,7 @@ mod dbg;
 mod debugger;
 mod ui;
 
-use core::cpu::cpu::LR35902CPU;
+use core::cpu::{CPUSpeed, LR35902CPU};
 use core::mem::boot::BootRom;
 use core::mem::bus::Bus;
 use core::mem::cartridge::Cartridge;
@@ -84,7 +84,7 @@ fn main() -> Result<(), XenoGBError> {
     #[allow(clippy::unit_arg)]
     if args.headless {
         return Ok(run_headless(
-            LR35902CPU::new(bus, args.serial, u32::MAX),
+            LR35902CPU::new(bus, args.serial, CPUSpeed::CUSTOM),
             video_channel_rc,
             args.stop_condition,
         ));
