@@ -32,6 +32,8 @@ impl CpuUi {
         dbg_data_rc: Receiver<EmuSnapshot>,
         dbg_commands_sd: Sender<DebuggerCommand>,
     ) -> Self {
+        let cpu_data = dbg_data_rc.recv().unwrap();
+
         Self {
             dbg_data_rc,
             dbg_commands_sd,
@@ -39,7 +41,7 @@ impl CpuUi {
             tick_td: TimeData::new(HISTORY_SIZE, "tick-dt".into()),
             cycles_td: TimeData::new(HISTORY_SIZE, "cycles-dt".into()),
             freq_td: TimeData::new(HISTORY_SIZE, "freq-dt".into()),
-            freq: CLOCK_SPEED as f64 / 1000000f64,
+            freq: cpu_data.cpu.clock.target_frame_time.as_secs_f64() / 1000000f64,
         }
     }
 

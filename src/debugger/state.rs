@@ -1,10 +1,11 @@
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use super::disas::{disas, GbAsm};
 use super::metrics::{CpuMetrics, MetricsExport, PpuMetrics};
 use super::{cpu_metrics, ppu_metrics};
 use crate::core::cpu::cpu::{CPURegisters, LR35902CPU};
 use crate::core::cpu::interrupts::{INTERRUPT_ENABLE, INTERRUPT_FLAGS};
+use crate::core::cpu::CPUSpeed;
 use crate::core::io::audio::apu::APU;
 use crate::core::io::video::ppu::PPU;
 use crate::core::run_emu::EmuCrash;
@@ -26,12 +27,19 @@ pub struct InterruptState {
 }
 
 #[derive(Default)]
+pub struct ClockState {
+    pub mode: CPUSpeed,
+    pub target_frame_time: Duration,
+}
+
+#[derive(Default)]
 pub struct CpuState {
     pub registers: CPURegisters,
     pub halt: bool,
     pub interrupts: InterruptState,
     pub metrics: MetricsExport<CpuMetrics>,
     pub disas: Vec<GbAsm>,
+    pub clock: ClockState,
 }
 
 impl CpuState {
@@ -46,6 +54,10 @@ impl CpuState {
             },
             metrics: cpu_metrics().export(),
             disas: disas(cpu, last_pc, 30),
+            clock: ClockState {
+                mode: cpu.clock.speed_mode,
+                target_frame_time: cpu.clock.frame_target_duration,
+            },
         }
     }
 }

@@ -30,7 +30,7 @@ impl AudioConsumer {
     }
 }
 
-pub fn run_audio(sample_rx: Receiver<f32>) {
+pub fn run_audio_thread(sample_rx: Receiver<f32>) {
     std::thread::spawn(move || {
         let host = cpal::default_host();
         let device = host.default_output_device().unwrap();
@@ -41,7 +41,12 @@ pub fn run_audio(sample_rx: Receiver<f32>) {
             buffer_size: BufferSize::Default,
         };
 
-        let rb = HeapRb::<f32>::new(1024);
+        let f_sample_rate = config.sample_rate.0 as f32;
+        // Calculate size of ringbuffer
+        let latency_frames = (150.0 / 1000.0) * f_sample_rate;
+        let latency_samples = latency_frames as usize * config.channels as usize;
+
+        let rb = HeapRb::<f32>::new(latency_samples);
         let (mut prod, cons) = rb.split();
 
         let stream = build_stream(&device, &config, AudioConsumer::new(cons)).unwrap();

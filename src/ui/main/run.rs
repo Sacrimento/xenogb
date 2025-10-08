@@ -1,5 +1,5 @@
 use super::ui::{XenoGBUI, WINDOW_SIZE};
-use crate::audio::run_audio::run_audio;
+use crate::audio::run_audio::run_audio_thread;
 use crate::core::io::video::ppu::Vbuf;
 use crate::core::mem::bus::Bus;
 use crate::core::run_emu::run_emu_thread;
@@ -29,7 +29,7 @@ pub fn run_ui(
             ..Default::default()
         },
         Box::new(move |ctx| {
-            run_audio(audio_channel_rc);
+            run_audio_thread(audio_channel_rc);
 
             let (emu_state, channels) =
                 run_emu_thread(bus, debug, serial, record_enabled, record_path, replay_path);

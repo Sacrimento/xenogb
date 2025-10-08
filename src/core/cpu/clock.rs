@@ -8,8 +8,9 @@ pub const CLOCK_SPEED: u32 = 4194304;
 pub const DOUBLE_CLOCK_SPEED: u32 = CLOCK_SPEED * 2;
 
 #[allow(clippy::upper_case_acronyms)]
-#[derive(Debug, Clone, Copy)]
+#[derive(Default, Debug, Clone, Copy)]
 pub enum CPUSpeed {
+    #[default]
     NORMAL,
     DOUBLE,
     CUSTOM,
@@ -18,7 +19,7 @@ pub enum CPUSpeed {
 // CPU Clock based on ticks per frames instead of tick duration
 pub struct Clock {
     frame_start: Instant,
-    frame_target_duration: Duration,
+    pub frame_target_duration: Duration,
 
     pub speed_mode: CPUSpeed,
     pub clock_ticks: u32,
@@ -29,12 +30,12 @@ impl Clock {
         let frame_target_duration = if clock_speed == u32::MAX {
             Duration::ZERO
         } else {
-            Duration::from_secs_f64(TICKS_PER_FRAME as f64 / clock_speed as f64)
+            Duration::from_secs_f64(TICKS_PER_FRAME as f64 / DOUBLE_CLOCK_SPEED as f64)
         };
         Self {
             frame_start: Instant::now(),
             frame_target_duration,
-            speed_mode: CPUSpeed::NORMAL,
+            speed_mode: CPUSpeed::DOUBLE,
             clock_ticks: 0,
         }
     }
