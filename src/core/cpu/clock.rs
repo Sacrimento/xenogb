@@ -41,7 +41,7 @@ impl Clock {
         Self {
             frame_start: Instant::now(),
             frame_target_duration,
-            speed_mode: CPUSpeed::DOUBLE,
+            speed_mode: speed,
             clock_ticks: 0,
         }
     }
