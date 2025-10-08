@@ -11,17 +11,15 @@ impl DebuggerUi {
                 .with_title("Debugger")
                 .with_inner_size([800.0, 600.0]),
             |ctx, _| {
-                egui::CentralPanel::default()
-                    .frame(egui::Frame::NONE)
-                    .show(ctx, |ui| {
-                        let mut behavior = Behavior {
-                            repl: &mut self.repl,
-                            ppu: &mut self.ppu,
-                            cpu: &mut self.cpu,
-                            apu: &mut self.apu,
-                        };
-                        self.tree.ui(&mut behavior, ui);
-                    });
+                egui::CentralPanel::default().show(ctx, |ui| {
+                    let mut behavior = Behavior {
+                        repl: &mut self.repl,
+                        ppu: &mut self.ppu,
+                        cpu: &mut self.cpu,
+                        apu: &mut self.apu,
+                    };
+                    self.tree.ui(&mut behavior, ui);
+                });
 
                 if ctx.input(|i| i.viewport().close_requested()) {
                     self.enabled = false;
