@@ -173,9 +173,9 @@ impl APU {
         }
 
         self.ticks_since_sample += if matches!(speed_mode, CPUSpeed::DOUBLE) {
-            4.0
-        } else {
             2.0
+        } else {
+            4.0
         };
 
         self.channel1.tick();
