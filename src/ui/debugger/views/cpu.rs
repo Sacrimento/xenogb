@@ -1,6 +1,6 @@
 use crossbeam_channel::{Receiver, Sender};
 use eframe::egui;
-use egui::{Align, Grid, Layout, Slider, Ui};
+use egui::{Align, CollapsingHeader, Grid, Layout, Slider, Ui};
 
 use super::super::utils::{Cache, TimeData};
 use crate::core::cpu::{
@@ -146,50 +146,52 @@ impl CpuUi {
     }
 
     fn render_metrics(&mut self, ui: &mut Ui, metrics_export: MetricsExport<CpuMetrics>) {
-        ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
-            self.instructions_td.ui(
-                ui,
-                format!(
-                    "Instructions: {} per {:?}",
-                    metrics_export.metrics.instructions.get(),
-                    metrics_export.duration
-                ),
-            );
-            self.cycles_td.ui(
-                ui,
-                format!(
-                    "Cycles: {} per {:?}",
-                    metrics_export.metrics.cycles.get(),
-                    metrics_export.duration
-                ),
-            );
-            self.tick_td.ui(
-                ui,
-                format!(
-                    "Average CPU tick time: {:?}",
-                    metrics_export.metrics.tick_time.get()
-                ),
-            );
-            self.freq_td.ui(
-                ui,
-                format!(
-                    "CPU clock speed: {:?} Mhz",
-                    metrics_export.metrics.cycles.get() as f64 * 4.0 * metrics_export.secs_ratio()
-                        / 1000000.0
-                ),
-            );
-            let res = ui.add(
-                Slider::new(&mut self.freq, 2.0..=35.0)
-                    .logarithmic(true)
-                    .suffix("Mhz")
-                    .text("Target CPU frequency"),
-            );
-            if res.drag_stopped() || res.lost_focus() {
-                self.dbg_commands_sd
-                    .send(DebuggerCommand::CPU_CLOCK((self.freq * 1000000.0) as u32))
-                    .expect("Could not send DebuggerCommand::CPU_CLOCK");
-            }
-        });
+        let instr = format!(
+            "Instructions: {} per {:?}",
+            metrics_export.metrics.instructions.get(),
+            metrics_export.duration
+        );
+        CollapsingHeader::new(instr.clone())
+            .id_salt("instr")
+            .show(ui, |ui| self.instructions_td.ui(ui, instr));
+
+        let cycles = format!(
+            "Cycles: {} per {:?}",
+            metrics_export.metrics.cycles.get(),
+            metrics_export.duration
+        );
+        CollapsingHeader::new(cycles.clone())
+            .id_salt("cycles")
+            .show(ui, |ui| self.cycles_td.ui(ui, cycles));
+
+        let ticks = format!(
+            "Average CPU tick time: {:?}",
+            metrics_export.metrics.tick_time.get()
+        );
+        CollapsingHeader::new(ticks.clone())
+            .id_salt("ticks")
+            .show(ui, |ui| self.tick_td.ui(ui, ticks));
+
+        let freq = format!(
+            "CPU clock speed: {:?} Mhz",
+            metrics_export.metrics.cycles.get() as f64 * 4.0 * metrics_export.secs_ratio()
+                / 1000000.0
+        );
+        CollapsingHeader::new(freq.clone())
+            .id_salt("freq")
+            .show(ui, |ui| self.freq_td.ui(ui, freq));
+
+        let res = ui.add(
+            Slider::new(&mut self.freq, 2.0..=35.0)
+                .logarithmic(true)
+                .suffix("Mhz")
+                .text("Target CPU frequency"),
+        );
+        if res.drag_stopped() || res.lost_focus() {
+            self.dbg_commands_sd
+                .send(DebuggerCommand::CPU_CLOCK((self.freq * 1000000.0) as u32))
+                .expect("Could not send DebuggerCommand::CPU_CLOCK");
+        }
     }
 
     fn update_td(&mut self, metrics_export: MetricsExport<CpuMetrics>) {
