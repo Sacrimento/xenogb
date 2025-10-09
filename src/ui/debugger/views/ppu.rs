@@ -1,3 +1,4 @@
+use super::super::utils::Cache;
 use crate::core::io::video::{lcd::LCD, ppu::PPU_LAYER};
 use crate::debugger::{DebuggerCommand, EmuSnapshot};
 
@@ -22,7 +23,7 @@ pub struct PpuUi {
     draw_window_cb: bool,
     draw_sprites_cb: bool,
 
-    dbg_data_rc: Receiver<EmuSnapshot>,
+    dbg_data_rc: Cache,
     dbg_commands_sd: Sender<DebuggerCommand>,
 }
 
@@ -48,15 +49,13 @@ impl PpuUi {
             draw_background_cb: true,
             draw_window_cb: true,
             draw_sprites_cb: true,
-            dbg_data_rc,
+            dbg_data_rc: Cache::new(dbg_data_rc),
             dbg_commands_sd,
         }
     }
 
     pub fn ui(&mut self, ui: &mut Ui) {
-        let Some(ppu_data) = self.dbg_data_rc.try_iter().last().map(|d| d.ppu) else {
-            return;
-        };
+        let ppu_data = self.dbg_data_rc.get().ppu;
 
         self.draw_layer_ui(ui);
 

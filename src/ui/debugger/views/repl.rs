@@ -7,16 +7,15 @@ use egui::{
 use crate::core::run_emu::EmuCrash;
 use crate::debugger::{DebuggerCommand, EmuSnapshot, GbAsm};
 use crate::ui::debugger::repl::Repl;
+use crate::ui::debugger::utils::Cache;
 
 pub struct ReplUi {
-    dbg_data_rc: Receiver<EmuSnapshot>,
+    dbg_data_rc: Cache,
 
     repl: Repl,
     repl_out: Vec<String>,
 
     emu_crash: Option<EmuCrash>,
-
-    last_state: EmuSnapshot,
 }
 
 impl ReplUi {
@@ -27,27 +26,24 @@ impl ReplUi {
         let repl = Repl::new(dbg_commands_sd);
 
         Self {
-            dbg_data_rc,
+            dbg_data_rc: Cache::new(dbg_data_rc),
             repl,
             repl_out: vec![],
             emu_crash: None,
-            last_state: EmuSnapshot::default(),
         }
     }
 
     pub fn ui(&mut self, ui: &mut Ui) {
-        if let Some(data) = self.dbg_data_rc.try_iter().last() {
-            if let Some(crash) = &data.crash {
-                self.emu_died(crash);
-            }
-            self.last_state = data;
+        let data = self.dbg_data_rc.get();
+        if let Some(crash) = &data.crash {
+            self.emu_died(crash);
         }
 
         SidePanel::right("data-panel")
             .min_width(200.0)
             .resizable(false)
             .show(ui.ctx(), |ui| {
-                self.disas_ui(ui);
+                self.disas_ui(ui, &data);
             });
 
         CentralPanel::default().show(ui.ctx(), |ui| {
@@ -105,9 +101,9 @@ impl ReplUi {
         });
     }
 
-    fn asm_ui(&self, ui: &mut Ui, asm: &GbAsm) {
-        let cpu = &self.last_state.cpu;
-        let bp = &self.last_state.breakpoints;
+    fn asm_ui(&self, ui: &mut Ui, asm: &GbAsm, data: &EmuSnapshot) {
+        let cpu = &data.cpu;
+        let bp = &data.breakpoints;
 
         if self.emu_crash.as_ref().is_some_and(|c| c.addr == asm.addr) {
             ui.label(
@@ -134,8 +130,8 @@ impl ReplUi {
         }
     }
 
-    fn disas_ui(&self, ui: &mut Ui) {
-        let cpu = &self.last_state.cpu;
+    fn disas_ui(&self, ui: &mut Ui, data: &EmuSnapshot) {
+        let cpu = &data.cpu;
 
         let last_exec = cpu.disas.first().map_or(0, |asm| asm.addr);
         let next_exec = cpu.disas.get(1).map_or(0, |asm| asm.addr);
@@ -146,7 +142,7 @@ impl ReplUi {
                 if idx == 1 && jumped {
                     ui.label(RichText::new("...").monospace());
                 }
-                self.asm_ui(ui, asm);
+                self.asm_ui(ui, asm, data);
             }
         });
     }

@@ -2,7 +2,7 @@ use crossbeam_channel::{Receiver, Sender};
 use eframe::egui;
 use egui::{Align, Grid, Layout, Slider, Ui};
 
-use super::super::utils::timedata::TimeData;
+use super::super::utils::{Cache, TimeData};
 use crate::core::cpu::{
     cpu::{CPUFlags, CPURegisters},
     interrupts::InterruptFlags,
@@ -16,7 +16,7 @@ use crate::flag_set;
 const HISTORY_SIZE: usize = 60;
 
 pub struct CpuUi {
-    dbg_data_rc: Receiver<EmuSnapshot>,
+    dbg_data_rc: Cache,
     dbg_commands_sd: Sender<DebuggerCommand>,
 
     instructions_td: TimeData,
@@ -33,7 +33,7 @@ impl CpuUi {
         dbg_commands_sd: Sender<DebuggerCommand>,
     ) -> Self {
         Self {
-            dbg_data_rc,
+            dbg_data_rc: Cache::new(dbg_data_rc),
             dbg_commands_sd,
             instructions_td: TimeData::new(HISTORY_SIZE, "instructions-dt".into()),
             tick_td: TimeData::new(HISTORY_SIZE, "tick-dt".into()),
@@ -44,9 +44,7 @@ impl CpuUi {
     }
 
     pub fn ui(&mut self, ui: &mut Ui) {
-        let Some(cpu_data) = self.dbg_data_rc.try_iter().last().map(|d| d.cpu) else {
-            return;
-        };
+        let cpu_data = self.dbg_data_rc.get().cpu;
 
         self.update_td(cpu_data.metrics);
 

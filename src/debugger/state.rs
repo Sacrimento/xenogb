@@ -10,7 +10,7 @@ use crate::core::io::audio::apu::APU;
 use crate::core::io::video::ppu::PPU;
 use crate::core::run_emu::EmuCrash;
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct EmuSnapshot {
     pub ppu: PpuState,
     pub cpu: CpuState,
@@ -19,20 +19,20 @@ pub struct EmuSnapshot {
     pub crash: Option<EmuCrash>,
 }
 
-#[derive(Default)]
+#[derive(Default, Clone, Copy)]
 pub struct InterruptState {
     pub int_master: bool,
     pub int_enable: u8,
     pub interrupts: u8,
 }
 
-#[derive(Default)]
+#[derive(Default, Clone, Copy)]
 pub struct ClockState {
     pub mode: CPUSpeed,
     pub target_frame_time: Duration,
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct CpuState {
     pub registers: CPURegisters,
     pub halt: bool,
@@ -62,7 +62,7 @@ impl CpuState {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Clone, Copy)]
 pub struct ChannelState {
     pub enabled: bool,
     pub muted: bool,
@@ -70,6 +70,7 @@ pub struct ChannelState {
     pub freq: u32,
 }
 
+#[derive(Clone, Copy)]
 pub struct Sample {
     pub sample: f32,
     pub at: Instant,
@@ -84,7 +85,7 @@ impl Default for Sample {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Copy, Clone)]
 pub struct ApuState {
     pub channel1: ChannelState,
     pub channel2: ChannelState,
@@ -130,6 +131,7 @@ impl ApuState {
     }
 }
 
+#[derive(Clone, Copy)]
 pub struct PpuState {
     pub vram: [[u8; 0x2000]; 2],
     pub metrics: MetricsExport<PpuMetrics>,

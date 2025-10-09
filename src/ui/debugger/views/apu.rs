@@ -6,6 +6,7 @@ use itertools::Itertools;
 use std::collections::VecDeque;
 use std::time::{Duration, Instant};
 
+use super::super::utils::Cache;
 use crate::debugger::{ApuState, DebuggerCommand, EmuSnapshot};
 
 const CHANNEL_FREQS_UPDATE_INTERVAL: Duration = Duration::from_millis(5);
@@ -23,7 +24,7 @@ pub struct ApuUi {
 
     channel_freqs: ChannelFreqs,
 
-    dbg_data_rc: Receiver<EmuSnapshot>,
+    dbg_data_rc: Cache,
     dbg_commands_sd: Sender<DebuggerCommand>,
 }
 
@@ -42,15 +43,13 @@ impl ApuUi {
                     as usize,
                 CHANNEL_FREQS_UPDATE_INTERVAL,
             ),
-            dbg_data_rc,
+            dbg_data_rc: Cache::new(dbg_data_rc),
             dbg_commands_sd,
         }
     }
 
     pub fn ui(&mut self, ui: &mut Ui) {
-        let Some(apu_data) = self.dbg_data_rc.try_iter().last().map(|d| d.apu) else {
-            return;
-        };
+        let apu_data = self.dbg_data_rc.get().apu;
 
         self.channel_freqs.update(&apu_data);
 

@@ -5,6 +5,7 @@ use crate::core::cpu::instructions::{
 };
 use crate::core::cpu::LR35902CPU;
 
+#[derive(Clone)]
 pub struct GbAsm {
     pub addr: u16,
     pub asm: String,
