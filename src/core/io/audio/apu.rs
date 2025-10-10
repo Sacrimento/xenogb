@@ -62,6 +62,7 @@ pub struct APU {
     audio_channel_sd: Sender<[f32; 2]>,
 
     muted: bool,
+    hardware_volume: f32,
 }
 
 impl APU {
@@ -79,6 +80,8 @@ impl APU {
             last_sample: 0.0,
             last_sample_at: Instant::now(),
             audio_channel_sd,
+            muted: false,
+            hardware_volume: 1.0,
         }
     }
 
@@ -225,10 +228,21 @@ impl APU {
             return [0.0, 0.0];
         }
 
-        let sample_left = self.mix_sample() * ((self.master_volume.left as f32 + 1.0) / 8.0);
-        let sample_right = self.mix_sample() * ((self.master_volume.right as f32 + 1.0) / 8.0);
+        let sample_left = self.mix_sample()
+            * ((self.master_volume.left as f32 + 1.0) / 8.0)
+            * (1. + self.hardware_volume * 3.).log2();
+        let sample_right = self.mix_sample()
+            * ((self.master_volume.right as f32 + 1.0) / 8.0)
+            * (1. + self.hardware_volume * 3.).log2();
 
         [sample_left, sample_right]
     }
 
+    pub fn mute(&mut self, muted: bool) {
+        self.muted = muted;
+    }
+
+    pub fn volume(&mut self, volume: f32) {
+        self.hardware_volume = volume;
+    }
 }

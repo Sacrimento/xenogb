@@ -5,7 +5,7 @@ use crate::core::run_emu::EmuState;
 use crate::debugger::{DebuggerCommand, EmuSnapshot};
 use crate::ui::{
     debugger::DebuggerUi,
-    main::settings::{GraphicsMode, Settings},
+    main::settings::{GraphicsSettings, Settings},
 };
 
 use cphf::{phf_ordered_map, OrderedMap};
@@ -76,9 +76,9 @@ impl XenoGBUI {
             screen_texture,
             debugger,
             video_channel_rc,
-            events_sd,
+            events_sd: events_sd.clone(),
             dbg_commands_sd,
-            settings: Settings::new(),
+            settings: Settings::new(events_sd),
             emu_state,
             frame: 0,
         }
@@ -92,11 +92,11 @@ impl XenoGBUI {
                 self.screen_buffer[i * 3 + 2] = pixel.b;
             }
 
-            match self.settings.graphics_mode {
-                GraphicsMode::NORMAL => (),
-                GraphicsMode::TINT_TO_WHITE(c) => self.apply_tint(c, true),
-                GraphicsMode::TINT_TO_BLACK(c) => self.apply_tint(c, false),
-                GraphicsMode::RAINBOW => self.apply_rainbow(),
+            match self.settings.graphics {
+                GraphicsSettings::NORMAL => (),
+                GraphicsSettings::TINT_TO_WHITE(c) => self.apply_tint(c, true),
+                GraphicsSettings::TINT_TO_BLACK(c) => self.apply_tint(c, false),
+                GraphicsSettings::RAINBOW => self.apply_rainbow(),
             }
 
             ctx.tex_manager().write().set(
@@ -187,7 +187,7 @@ impl eframe::App for XenoGBUI {
             if res.ctx.pointer_latest_pos().is_some_and(|pos| {
                 Rect::from_min_max(
                     Pos2::ZERO,
-                    Pos2::new(res.rect.width(), res.rect.height() / 2.0),
+                    Pos2::new(res.rect.width(), res.rect.height() / 4.0),
                 )
                 .contains(pos)
             }) {

@@ -13,6 +13,8 @@ pub enum IOEvent {
     JOYPAD_PRESS(u8),
     JOYPAD_RELEASE(u8),
     CLOSE,
+    SOUND_MUTE(bool),
+    SOUND_VOLUME(f32),
 }
 
 impl Display for IOEvent {
@@ -21,6 +23,8 @@ impl Display for IOEvent {
             IOEvent::JOYPAD_PRESS(key) => write!(f, "PRESS {}", key),
             IOEvent::JOYPAD_RELEASE(key) => write!(f, "RELEASE {}", key),
             IOEvent::CLOSE => write!(f, "CLOSE"),
+            IOEvent::SOUND_MUTE(muted) => write!(f, "SOUND MUTED: {}", muted),
+            IOEvent::SOUND_VOLUME(level) => write!(f, "SOUND VOLUME: {}", level),
         }
     }
 }
@@ -67,6 +71,8 @@ impl IOListener {
             IOEvent::JOYPAD_PRESS(key) => cpu.bus.io.joypad.press(key),
             IOEvent::JOYPAD_RELEASE(key) => cpu.bus.io.joypad.release(key),
             IOEvent::CLOSE => cpu.bus.cartridge.mbc.save(),
+            IOEvent::SOUND_MUTE(muted) => cpu.bus.io.apu.mute(muted),
+            IOEvent::SOUND_VOLUME(volume) => cpu.bus.io.apu.volume(volume),
         };
 
         if playback.player.enabled() {
