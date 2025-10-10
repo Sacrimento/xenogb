@@ -43,7 +43,7 @@ impl Bus {
         cartridge: Cartridge,
         boot_rom: BootRom,
         video_channel_sd: Sender<Vbuf>,
-        audio_channel_sd: Sender<f32>,
+        audio_channel_sd: Sender<[f32; 2]>,
     ) -> Self {
         Self {
             cartridge,

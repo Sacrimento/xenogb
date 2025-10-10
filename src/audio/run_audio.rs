@@ -8,19 +8,19 @@ use ringbuf::{HeapCons, HeapRb};
 use crate::core::io::audio::apu::SAMPLE_RATE;
 
 struct AudioConsumer {
-    consumer: HeapCons<f32>,
-    last_sample: f32,
+    consumer: HeapCons<[f32; 2]>,
+    last_sample: [f32; 2],
 }
 
 impl AudioConsumer {
-    fn new(consumer: HeapCons<f32>) -> Self {
+    fn new(consumer: HeapCons<[f32; 2]>) -> Self {
         Self {
             consumer,
-            last_sample: 0.0,
+            last_sample: [0.0, 0.0],
         }
     }
 
-    fn pop(&mut self) -> f32 {
+    fn pop(&mut self) -> [f32; 2] {
         if let Some(s) = self.consumer.try_pop() {
             self.last_sample = s;
             s
@@ -30,18 +30,18 @@ impl AudioConsumer {
     }
 }
 
-pub fn run_audio_thread(sample_rx: Receiver<f32>) {
+pub fn run_audio_thread(sample_rx: Receiver<[f32; 2]>) {
     std::thread::spawn(move || {
         let host = cpal::default_host();
         let device = host.default_output_device().unwrap();
 
         let config = StreamConfig {
-            channels: 1,
+            channels: 2,
             sample_rate: SampleRate(SAMPLE_RATE as u32),
             buffer_size: BufferSize::Default,
         };
 
-        let rb = HeapRb::<f32>::new(16384);
+        let rb = HeapRb::<[f32; 2]>::new(16384);
         let (mut prod, cons) = rb.split();
 
         let stream = build_stream(&device, &config, AudioConsumer::new(cons)).unwrap();
@@ -68,9 +68,8 @@ fn build_stream(
             config,
             move |output: &mut [f32], _info| {
                 for frame in output.chunks_mut(channels) {
-                    let s = consumer.pop();
-                    for out in frame.iter_mut() {
-                        *out = s;
+                    for out in frame.iter_mut().zip(consumer.pop().iter()) {
+                        *out.0 = *out.1;
                     }
                 }
             },

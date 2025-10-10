@@ -38,10 +38,16 @@ pub mod APU_MVVP_FLAGS {
     pub const VIN_LEFT: u8 = 0x80;
 }
 
+#[derive(Debug, Default)]
+struct MasterVolume {
+    left: u8,
+    right: u8,
+}
+
 pub struct APU {
     master_control: u8,
     panning: u8,
-    master_volume: u8,
+    master_volume: MasterVolume,
 
     div_apu: u8,
 
@@ -53,14 +59,16 @@ pub struct APU {
     ticks_since_sample: f32,
     pub last_sample: f32,
     pub last_sample_at: Instant,
-    audio_channel_sd: Sender<f32>,
+    audio_channel_sd: Sender<[f32; 2]>,
+
+    muted: bool,
 }
 
 impl APU {
-    pub fn new(audio_channel_sd: Sender<f32>) -> Self {
+    pub fn new(audio_channel_sd: Sender<[f32; 2]>) -> Self {
         Self {
             master_control: 0,
-            master_volume: 0,
+            master_volume: MasterVolume::default(),
             panning: 0,
             div_apu: 0,
             channel1: PulseChannel::new(true),
@@ -77,7 +85,7 @@ impl APU {
     fn reset(&mut self) {
         self.master_control = 0;
         self.panning = 0;
-        self.master_volume = 0;
+        self.master_volume = MasterVolume::default();
 
         self.channel1.reset();
         self.channel2.reset();
@@ -91,7 +99,7 @@ impl APU {
             0xff16..=0xff19 => self.channel2.read(addr),
             0xff1a..=0xff1e => self.channel3.read(addr),
             0xff20..=0xff23 => self.channel4.read(addr),
-            0xff24 => self.master_volume,
+            0xff24 => self.master_volume.left << 4 | self.master_volume.right,
             0xff25 => self.panning,
             0xff26 => {
                 if self.enabled() {
@@ -122,7 +130,10 @@ impl APU {
             0xff16..=0xff19 => self.channel2.write(addr, value, self.div_apu),
             0xff1a..=0xff1e => self.channel3.write(addr, value, self.div_apu),
             0xff20..=0xff23 => self.channel4.write(addr, value, self.div_apu),
-            0xff24 => self.master_volume = value,
+            0xff24 => {
+                self.master_volume.left = (value & 0x70) >> 4;
+                self.master_volume.right = value & 0x07;
+            }
             0xff25 => self.panning = value,
             0xff26 => {
                 if !self.enabled() && flag_set!(value, APU_AMC_FLAGS::AUDIO_ON) {
@@ -185,8 +196,8 @@ impl APU {
 
         if self.ticks_since_sample >= TICKS_PER_SAMPLE {
             self.ticks_since_sample -= TICKS_PER_SAMPLE;
-            let s = self.mix();
-            _ = self.audio_channel_sd.send(s);
+            let samples = self.mix();
+            _ = self.audio_channel_sd.send(samples);
         }
     }
 
@@ -195,7 +206,7 @@ impl APU {
         self.last_sample = alpha * self.last_sample + (1.0 - alpha) * sample;
     }
 
-    fn mix(&mut self) -> f32 {
+    fn mix_sample(&mut self) -> f32 {
         let mut sample = 0.0;
 
         sample += self.channel1.sample();
@@ -208,4 +219,16 @@ impl APU {
         self.last_sample_at = Instant::now();
         self.last_sample
     }
+
+    fn mix(&mut self) -> [f32; 2] {
+        if self.muted {
+            return [0.0, 0.0];
+        }
+
+        let sample_left = self.mix_sample() * ((self.master_volume.left as f32 + 1.0) / 8.0);
+        let sample_right = self.mix_sample() * ((self.master_volume.right as f32 + 1.0) / 8.0);
+
+        [sample_left, sample_right]
+    }
+
 }

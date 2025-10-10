@@ -21,7 +21,7 @@ pub struct IOMMU {
 }
 
 impl IOMMU {
-    pub fn new(video_channel_sd: Sender<Vbuf>, audio_channel_sd: Sender<f32>) -> Self {
+    pub fn new(video_channel_sd: Sender<Vbuf>, audio_channel_sd: Sender<[f32; 2]>) -> Self {
         Self {
             serial: Serial::default(),
             timer: Timer::new(),
