@@ -65,9 +65,14 @@ impl CpuState {
 #[derive(Default, Clone, Copy)]
 pub struct ChannelState {
     pub enabled: bool,
-    pub muted: bool,
     pub volume: u8,
     pub freq: u32,
+}
+
+#[derive(Default, Clone, Copy)]
+pub struct MasterVolumeState {
+    pub left: u8,
+    pub right: u8,
 }
 
 #[derive(Clone, Copy)]
@@ -87,6 +92,7 @@ impl Default for Sample {
 
 #[derive(Default, Copy, Clone)]
 pub struct ApuState {
+    pub master_volume: MasterVolumeState,
     pub channel1: ChannelState,
     pub channel2: ChannelState,
     pub channel3: ChannelState,
@@ -99,27 +105,27 @@ impl ApuState {
         let ch3_vol = [0, 15, 11, 4][apu.channel3.volume as usize];
 
         Self {
+            master_volume: MasterVolumeState {
+                left: apu.master_volume.left,
+                right: apu.master_volume.right,
+            },
             channel1: ChannelState {
                 enabled: apu.channel1.enabled(),
-                muted: apu.channel1.muted,
                 volume: apu.channel1.envelope.volume(),
                 freq: 131072u32 / (2048u32 - apu.channel1.period as u32),
             },
             channel2: ChannelState {
                 enabled: apu.channel2.enabled(),
-                muted: apu.channel2.muted,
                 volume: apu.channel2.envelope.volume(),
                 freq: 131072u32 / (2048u32 - apu.channel2.period as u32),
             },
             channel3: ChannelState {
                 enabled: apu.channel3.enabled(),
-                muted: apu.channel3.muted,
                 volume: ch3_vol,
                 freq: 65536u32 / (2048u32 - apu.channel3.period as u32),
             },
             channel4: ChannelState {
                 enabled: apu.channel4.enabled(),
-                muted: apu.channel4.muted,
                 volume: apu.channel4.envelope.volume(),
                 freq: 0,
             },

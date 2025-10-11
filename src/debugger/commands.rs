@@ -41,7 +41,11 @@ pub enum DebuggerCommand {
     CPU_CLOCK(u32),
 
     // APU
-    APU_MUTE_CHANNEL(u8),
+    APU_VOLUME(f32),
+    APU_VOLUME_LEFT(f32),
+    APU_VOLUME_RIGHT(f32),
+    APU_CHANNEL_VOLUME((u8, f32)),
+    APU_CHANNEL_MUTE(u8),
 
     //PPU
     PPU_HIDE_LAYER(PPU_LAYER),

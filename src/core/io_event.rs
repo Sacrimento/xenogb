@@ -72,7 +72,7 @@ impl IOListener {
             IOEvent::JOYPAD_RELEASE(key) => cpu.bus.io.joypad.release(key),
             IOEvent::CLOSE => cpu.bus.cartridge.mbc.save(),
             IOEvent::SOUND_MUTE(muted) => cpu.bus.io.apu.mute(muted),
-            IOEvent::SOUND_VOLUME(volume) => cpu.bus.io.apu.volume(volume),
+            IOEvent::SOUND_VOLUME(volume) => cpu.bus.io.apu.user_volume(volume),
         };
 
         if playback.player.enabled() {

@@ -4,8 +4,6 @@ use log::warn;
 #[derive(Default)]
 pub struct NoiseChannel {
     enabled: bool,
-    pub muted: bool,
-
     length_counter: LengthCounter,
 
     clock_div: u8,
@@ -16,6 +14,9 @@ pub struct NoiseChannel {
     div: u16,
 
     pub envelope: Envelope,
+
+    dbg_volume: f32,
+    dbg_muted: bool,
 }
 
 impl NoiseChannel {
@@ -23,6 +24,7 @@ impl NoiseChannel {
         Self {
             lfsr: 0x7fff,
             length_counter: LengthCounter::new(64),
+            dbg_volume: 1.0,
             ..Default::default()
         }
     }
@@ -67,7 +69,7 @@ impl NoiseChannel {
     }
 
     pub fn sample(&self) -> f32 {
-        if self.muted {
+        if self.dbg_muted {
             return 0.0;
         }
 
@@ -76,7 +78,7 @@ impl NoiseChannel {
         }
 
         let digital = (!self.lfsr as u8 & 0x1) * self.envelope.volume();
-        digital as f32 / 15.0 * 2.0 - 1.0
+        (digital as f32 / 15.0 * 2.0 - 1.0) * self.dbg_volume
     }
 
     pub fn enabled(&self) -> bool {
@@ -154,7 +156,11 @@ impl NoiseChannel {
         }
     }
 
-    pub fn mute(&mut self) {
-        self.muted = !self.muted;
+    pub fn dbg_volume(&mut self, volume: f32) {
+        self.dbg_volume = volume;
+    }
+
+    pub fn dbg_mute(&mut self) {
+        self.dbg_muted = !self.dbg_muted;
     }
 }

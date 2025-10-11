@@ -39,15 +39,15 @@ pub mod APU_MVVP_FLAGS {
 }
 
 #[derive(Debug, Default)]
-struct MasterVolume {
-    left: u8,
-    right: u8,
+pub struct MasterVolume {
+    pub left: u8,
+    pub right: u8,
 }
 
 pub struct APU {
     master_control: u8,
     panning: u8,
-    master_volume: MasterVolume,
+    pub master_volume: MasterVolume,
 
     div_apu: u8,
 
@@ -62,7 +62,10 @@ pub struct APU {
     audio_channel_sd: Sender<[f32; 2]>,
 
     muted: bool,
-    hardware_volume: f32,
+    user_volume: f32,
+    dbg_volume: f32,
+    dbg_volume_left: f32,
+    dbg_volume_right: f32,
 }
 
 impl APU {
@@ -81,7 +84,10 @@ impl APU {
             last_sample_at: Instant::now(),
             audio_channel_sd,
             muted: false,
-            hardware_volume: 1.0,
+            user_volume: 1.0,
+            dbg_volume: 1.0,
+            dbg_volume_left: 1.0,
+            dbg_volume_right: 1.0,
         }
     }
 
@@ -228,12 +234,12 @@ impl APU {
             return [0.0, 0.0];
         }
 
-        let sample_left = self.mix_sample()
-            * ((self.master_volume.left as f32 + 1.0) / 8.0)
-            * (1. + self.hardware_volume * 3.).log2();
-        let sample_right = self.mix_sample()
-            * ((self.master_volume.right as f32 + 1.0) / 8.0)
-            * (1. + self.hardware_volume * 3.).log2();
+        let sample = self.mix_sample() * (1. + self.user_volume * 3.).log2() * self.dbg_volume;
+
+        let sample_left =
+            sample * ((self.master_volume.left as f32 + 1.0) / 8.0) * self.dbg_volume_left;
+        let sample_right =
+            sample * ((self.master_volume.right as f32 + 1.0) / 8.0) * self.dbg_volume_right;
 
         [sample_left, sample_right]
     }
@@ -242,7 +248,19 @@ impl APU {
         self.muted = muted;
     }
 
-    pub fn volume(&mut self, volume: f32) {
-        self.hardware_volume = volume;
+    pub fn user_volume(&mut self, volume: f32) {
+        self.user_volume = volume;
+    }
+
+    pub fn dbg_volume(&mut self, volume: f32) {
+        self.dbg_volume = volume;
+    }
+
+    pub fn dbg_volume_left(&mut self, volume: f32) {
+        self.dbg_volume_left = volume;
+    }
+
+    pub fn dbg_volume_right(&mut self, volume: f32) {
+        self.dbg_volume_right = volume;
     }
 }

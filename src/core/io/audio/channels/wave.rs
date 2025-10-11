@@ -6,7 +6,6 @@ use crate::core::io::audio::length_counter::LengthCounter;
 pub struct WaveChannel {
     enabled: bool,
     dac_enabled: bool,
-    pub muted: bool,
 
     length_counter: LengthCounter,
 
@@ -17,6 +16,9 @@ pub struct WaveChannel {
 
     wave_ram_idx: usize,
     wave_ram: [u8; 0x10],
+
+    dbg_volume: f32,
+    dbg_muted: bool,
 }
 
 impl WaveChannel {
@@ -24,6 +26,7 @@ impl WaveChannel {
         Self {
             wave_ram_idx: 1,
             length_counter: LengthCounter::new(256),
+            dbg_volume: 1.0,
             ..Default::default()
         }
     }
@@ -49,7 +52,7 @@ impl WaveChannel {
     }
 
     pub fn sample(&self) -> f32 {
-        if self.muted {
+        if self.dbg_muted {
             return 0.0;
         }
 
@@ -65,7 +68,7 @@ impl WaveChannel {
         }
 
         let digital = sample >> (self.volume - 1);
-        digital as f32 / 15.0 * 2.0 - 1.0
+        (digital as f32 / 15.0 * 2.0 - 1.0) * self.dbg_volume
     }
 
     pub fn tick(&mut self) {
@@ -153,7 +156,11 @@ impl WaveChannel {
         }
     }
 
-    pub fn mute(&mut self) {
-        self.muted = !self.muted;
+    pub fn dbg_volume(&mut self, volume: f32) {
+        self.dbg_volume = volume;
+    }
+
+    pub fn dbg_mute(&mut self) {
+        self.dbg_muted = !self.dbg_muted;
     }
 }

@@ -16,7 +16,6 @@ const DUTY_TABLE: [[u8; 8]; 4] = [
 #[derive(Default)]
 pub struct PulseChannel {
     enabled: bool,
-    pub muted: bool,
 
     div: u16,
 
@@ -27,6 +26,9 @@ pub struct PulseChannel {
     duty_idx: u8,
     wave_duty: u8,
     pub period: u16,
+
+    dbg_volume: f32,
+    dbg_muted: bool,
 }
 
 impl PulseChannel {
@@ -37,6 +39,7 @@ impl PulseChannel {
             sweep,
             envelope: Envelope::default(),
             length_counter: LengthCounter::new(64),
+            dbg_volume: 1.0,
             ..Default::default()
         }
     }
@@ -84,7 +87,7 @@ impl PulseChannel {
     }
 
     pub fn sample(&self) -> f32 {
-        if self.muted {
+        if self.dbg_muted {
             return 0.0;
         }
 
@@ -97,7 +100,7 @@ impl PulseChannel {
 
         let digital = signal * volume;
 
-        (digital as f32 / 15.0) * 2.0 - 1.0
+        ((digital as f32 / 15.0) * 2.0 - 1.0) * self.dbg_volume
     }
 
     fn trigger(&mut self, div_apu: u8) {
@@ -178,7 +181,11 @@ impl PulseChannel {
         }
     }
 
-    pub fn mute(&mut self) {
-        self.muted = !self.muted;
+    pub fn dbg_volume(&mut self, volume: f32) {
+        self.dbg_volume = volume;
+    }
+
+    pub fn dbg_mute(&mut self) {
+        self.dbg_muted = !self.dbg_muted;
     }
 }

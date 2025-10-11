@@ -1,6 +1,5 @@
 use crossbeam_channel::{Receiver, Sender};
-use eframe::egui::{self, Color32};
-use egui::{RichText, Ui};
+use eframe::egui::{Color32, Pos2, Rect, Sense, Separator, Slider, Stroke, StrokeKind, Ui, Vec2};
 use egui_plot::{Legend, Line, Plot, PlotPoints};
 use itertools::Itertools;
 use std::collections::VecDeque;
@@ -17,15 +16,11 @@ const NOTE_NAMES: [&str; 12] = [
 ];
 
 pub struct ApuUi {
-    channel1_cb: bool,
-    channel2_cb: bool,
-    channel3_cb: bool,
-    channel4_cb: bool,
-
     channel_freqs: ChannelFreqs,
 
+    mixer: Mixer,
+
     dbg_data_rc: Cache,
-    dbg_commands_sd: Sender<DebuggerCommand>,
 }
 
 impl ApuUi {
@@ -34,17 +29,13 @@ impl ApuUi {
         dbg_commands_sd: Sender<DebuggerCommand>,
     ) -> Self {
         Self {
-            channel1_cb: true,
-            channel2_cb: true,
-            channel3_cb: true,
-            channel4_cb: true,
             channel_freqs: ChannelFreqs::new(
                 (CHANNEL_TIME_HISTORY.as_millis() / CHANNEL_FREQS_UPDATE_INTERVAL.as_millis())
                     as usize,
                 CHANNEL_FREQS_UPDATE_INTERVAL,
             ),
+            mixer: Mixer::new(dbg_commands_sd),
             dbg_data_rc: Cache::new(dbg_data_rc),
-            dbg_commands_sd,
         }
     }
 
@@ -53,43 +44,214 @@ impl ApuUi {
 
         self.channel_freqs.update(&apu_data);
 
-        self.channel_enable_ui(ui);
         self.channel_freqs.ui(ui);
+        self.mixer.ui(ui, &apu_data);
+    }
+}
+
+struct Mixer {
+    channel1_volume: f32,
+    channel1_enabled: bool,
+
+    channel2_volume: f32,
+    channel2_enabled: bool,
+
+    channel3_volume: f32,
+    channel3_enabled: bool,
+
+    channel4_volume: f32,
+    channel4_enabled: bool,
+
+    left_volume: f32,
+    right_volume: f32,
+    master_volume: f32,
+
+    dbg_commands_sd: Sender<DebuggerCommand>,
+}
+
+impl Mixer {
+    pub fn new(sender: Sender<DebuggerCommand>) -> Self {
+        Self {
+            channel1_volume: 1.0,
+            channel1_enabled: true,
+            channel2_volume: 1.0,
+            channel2_enabled: true,
+            channel3_volume: 1.0,
+            channel3_enabled: true,
+            channel4_volume: 1.0,
+            channel4_enabled: true,
+            left_volume: 1.0,
+            right_volume: 1.0,
+            master_volume: 1.0,
+            dbg_commands_sd: sender,
+        }
     }
 
-    fn channel_enable_ui(&mut self, ui: &mut Ui) {
-        ui.label("Channel Enable");
+    pub fn ui(&mut self, ui: &mut Ui, apu_data: &ApuState) {
+        let cb_callback = |ui: &mut Ui, channel_b: &mut bool, channel_n| {
+            let res = ui.checkbox(channel_b, "");
+            if res.changed() {
+                _ = self
+                    .dbg_commands_sd
+                    .send(DebuggerCommand::APU_CHANNEL_MUTE(channel_n));
+            }
+        };
+
+        let slider_callback = |ui: &mut Ui, vol: &mut f32, text: &str| {
+            let res = ui.add(
+                Slider::new(vol, 0.0..=2.0)
+                    .vertical()
+                    .show_value(false)
+                    .text(text),
+            );
+            res.lost_focus() || res.dragged()
+        };
+
         ui.horizontal(|ui| {
-            let mut cb_callback = |channel_b: &mut bool, channel_s: RichText, channel_n| {
-                let res = ui.checkbox(channel_b, channel_s);
-                if res.changed() {
+            ui.vertical(|ui| {
+                if slider_callback(ui, &mut self.channel1_volume, "CH 1") {
                     _ = self
                         .dbg_commands_sd
-                        .send(DebuggerCommand::APU_MUTE_CHANNEL(channel_n));
+                        .send(DebuggerCommand::APU_CHANNEL_VOLUME((
+                            1,
+                            self.channel1_volume,
+                        )));
                 }
-            };
+                cb_callback(ui, &mut self.channel1_enabled, 1);
+            });
+            Self::vu_meter_ui(
+                ui,
+                (apu_data.channel1.volume as f32 / 15.0) * self.channel1_volume,
+                Vec2::new(6.0, ui.available_height()),
+            );
 
-            cb_callback(
-                &mut self.channel1_cb,
-                RichText::new("Channel 1").color(CHANNEL_COLORS[0]),
-                1,
+            ui.vertical(|ui| {
+                if slider_callback(ui, &mut self.channel2_volume, "CH 2") {
+                    _ = self
+                        .dbg_commands_sd
+                        .send(DebuggerCommand::APU_CHANNEL_VOLUME((
+                            2,
+                            self.channel2_volume,
+                        )));
+                }
+                cb_callback(ui, &mut self.channel2_enabled, 2);
+            });
+            Self::vu_meter_ui(
+                ui,
+                (apu_data.channel2.volume as f32 / 15.0) * self.channel2_volume,
+                Vec2::new(6.0, ui.available_height()),
             );
-            cb_callback(
-                &mut self.channel2_cb,
-                RichText::new("Channel 2").color(CHANNEL_COLORS[1]),
-                2,
+
+            ui.vertical(|ui| {
+                if slider_callback(ui, &mut self.channel3_volume, "CH 3") {
+                    _ = self
+                        .dbg_commands_sd
+                        .send(DebuggerCommand::APU_CHANNEL_VOLUME((
+                            3,
+                            self.channel3_volume,
+                        )));
+                }
+                cb_callback(ui, &mut self.channel3_enabled, 3);
+            });
+            Self::vu_meter_ui(
+                ui,
+                (apu_data.channel3.volume as f32 / 15.0) * self.channel3_volume,
+                Vec2::new(6.0, ui.available_height()),
             );
-            cb_callback(
-                &mut self.channel3_cb,
-                RichText::new("Channel 3").color(CHANNEL_COLORS[2]),
-                3,
+
+            ui.vertical(|ui| {
+                if slider_callback(ui, &mut self.channel4_volume, "CH 4") {
+                    _ = self
+                        .dbg_commands_sd
+                        .send(DebuggerCommand::APU_CHANNEL_VOLUME((
+                            4,
+                            self.channel4_volume,
+                        )));
+                }
+                cb_callback(ui, &mut self.channel4_enabled, 4);
+            });
+            Self::vu_meter_ui(
+                ui,
+                (apu_data.channel4.volume as f32 / 15.0) * self.channel4_volume,
+                Vec2::new(6.0, ui.available_height()),
             );
-            cb_callback(
-                &mut self.channel4_cb,
-                RichText::new("Channel 4").color(CHANNEL_COLORS[3]),
-                4,
+
+            ui.add(Separator::default().vertical());
+
+            let master_volume = ((apu_data.channel1.volume as f32 / 15.0)
+                + ((apu_data.channel2.volume as f32) / 15.0)
+                + (apu_data.channel3.volume as f32 / 15.0)
+                + (apu_data.channel4.volume as f32 / 15.0))
+                / 4.0;
+            if slider_callback(ui, &mut self.left_volume, "L") {
+                _ = self
+                    .dbg_commands_sd
+                    .send(DebuggerCommand::APU_VOLUME_LEFT(self.left_volume));
+            }
+            Self::vu_meter_ui(
+                ui,
+                master_volume
+                    * ((apu_data.master_volume.left as f32 + 1.) / 16.0)
+                    * self.left_volume,
+                Vec2::new(6.0, ui.available_height()),
+            );
+            if slider_callback(ui, &mut self.right_volume, "R") {
+                _ = self
+                    .dbg_commands_sd
+                    .send(DebuggerCommand::APU_VOLUME_RIGHT(self.right_volume));
+            }
+            Self::vu_meter_ui(
+                ui,
+                master_volume
+                    * ((apu_data.master_volume.right as f32 + 1.) / 16.0)
+                    * self.right_volume,
+                Vec2::new(6.0, ui.available_height()),
+            );
+            ui.add(Separator::default().vertical());
+
+            if slider_callback(ui, &mut self.master_volume, "M") {
+                _ = self
+                    .dbg_commands_sd
+                    .send(DebuggerCommand::APU_VOLUME(self.master_volume));
+            }
+            Self::vu_meter_ui(
+                ui,
+                master_volume
+                    * ((apu_data.master_volume.left as f32 + 1.) / 16.0)
+                    * ((apu_data.master_volume.right as f32 + 1.) / 16.0)
+                    * self.master_volume,
+                Vec2::new(6.0, ui.available_height()),
             );
         });
+    }
+
+    pub fn vu_meter_ui(ui: &mut Ui, level: f32, size: Vec2) {
+        let level = level.clamp(0.0, 1.0);
+
+        let (_, rect) = ui.allocate_space(size);
+        let painter = ui.painter_at(rect);
+
+        painter.rect_filled(rect, 2.0, Color32::from_gray(25));
+
+        let filled_h = rect.height() * level;
+        let filled_rect =
+            Rect::from_min_max(Pos2::new(rect.min.x, rect.max.y - filled_h), rect.max);
+
+        let fill = if level < 0.60 {
+            Color32::from_rgb(0, 200, 0)
+        } else if level < 0.85 {
+            Color32::from_rgb(255, 200, 0)
+        } else {
+            Color32::from_rgb(255, 64, 0)
+        };
+
+        painter.rect_filled(filled_rect, 2.0, fill);
+        painter.rect_stroke(
+            rect,
+            2.0,
+            Stroke::new(1.0, Color32::from_gray(80)),
+            StrokeKind::Middle,
+        );
     }
 }
 
@@ -143,28 +305,30 @@ impl ChannelFreqs {
             }
         }
 
-        Plot::new("channel-freqs")
-            // .sense(Sense::empty())
-            // .allow_scroll(false)
-            // .allow_zoom(false)
-            // .clamp_grid(true)
-            .legend(Legend::default())
-            .show_grid([false, false])
-            .label_formatter(|_, value| {
-                let note_number = (12.0 * (value.y / 440.0).log2() + 69.0).round() as u64;
+        ui.collapsing("channel-freqs", |ui| {
+            Plot::new("channel-freqs")
+                .sense(Sense::empty())
+                .allow_scroll(false)
+                .allow_zoom(false)
+                .clamp_grid(true)
+                .legend(Legend::default())
+                .show_grid([false, false])
+                .label_formatter(|_, value| {
+                    let note_number = (12.0 * (value.y / 440.0).log2() + 69.0).round() as u64;
 
-                let name = NOTE_NAMES[(note_number % 12) as usize];
-                let octave = (note_number / 12).saturating_sub(1);
+                    let name = NOTE_NAMES[(note_number % 12) as usize];
+                    let octave = (note_number / 12).saturating_sub(1);
 
-                format!("{name}{octave}")
-            })
-            .show(ui, |plot_ui| {
-                for channel in lines {
-                    for line in channel {
-                        plot_ui.line(line);
+                    format!("{name}{octave}")
+                })
+                .show(ui, |plot_ui| {
+                    for channel in lines {
+                        for line in channel {
+                            plot_ui.line(line);
+                        }
                     }
-                }
-            });
+                });
+        });
     }
 
     pub fn update(&mut self, apu_state: &ApuState) {
@@ -181,7 +345,7 @@ impl ChannelFreqs {
                 if self.history[i].len() == self.history_size {
                     self.history[i].pop_front();
                 }
-                if channel.muted || !channel.enabled || channel.volume == 0 {
+                if !channel.enabled || channel.volume == 0 {
                     self.history[i].push_back(None);
                 } else {
                     self.history[i].push_back(Some(channel.freq));

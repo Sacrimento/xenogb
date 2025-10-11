@@ -76,14 +76,24 @@ impl Debugger {
             match event {
                 DebuggerCommand::ENABLED(enabled) => self.set_enabled(enabled),
                 DebuggerCommand::CPU_CLOCK(clock_speed) => cpu.clock.set_speed(clock_speed),
-                DebuggerCommand::APU_MUTE_CHANNEL(ch_num) => match ch_num {
-                    1 => cpu.bus.io.apu.channel1.mute(),
-                    2 => cpu.bus.io.apu.channel2.mute(),
-                    3 => cpu.bus.io.apu.channel3.mute(),
-                    4 => cpu.bus.io.apu.channel4.mute(),
+                DebuggerCommand::PPU_HIDE_LAYER(layer) => cpu.bus.io.ppu.hide_layer(layer),
+                DebuggerCommand::APU_VOLUME(vol) => cpu.bus.io.apu.dbg_volume(vol),
+                DebuggerCommand::APU_VOLUME_LEFT(vol) => cpu.bus.io.apu.dbg_volume_left(vol),
+                DebuggerCommand::APU_VOLUME_RIGHT(vol) => cpu.bus.io.apu.dbg_volume_right(vol),
+                DebuggerCommand::APU_CHANNEL_VOLUME((channel_n, vol)) => match channel_n {
+                    1 => cpu.bus.io.apu.channel1.dbg_volume(vol),
+                    2 => cpu.bus.io.apu.channel2.dbg_volume(vol),
+                    3 => cpu.bus.io.apu.channel3.dbg_volume(vol),
+                    4 => cpu.bus.io.apu.channel4.dbg_volume(vol),
                     _ => unreachable!(),
                 },
-                DebuggerCommand::PPU_HIDE_LAYER(layer) => cpu.bus.io.ppu.hide_layer(layer),
+                DebuggerCommand::APU_CHANNEL_MUTE(channel_n) => match channel_n {
+                    1 => cpu.bus.io.apu.channel1.dbg_mute(),
+                    2 => cpu.bus.io.apu.channel2.dbg_mute(),
+                    3 => cpu.bus.io.apu.channel3.dbg_mute(),
+                    4 => cpu.bus.io.apu.channel4.dbg_mute(),
+                    _ => unreachable!(),
+                },
                 DebuggerCommand::CONTINUE => self.resume = true,
                 DebuggerCommand::STEP => {
                     if self.stepping {
