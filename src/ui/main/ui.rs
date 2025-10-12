@@ -17,16 +17,6 @@ use egui::{
 };
 use egui_extras::install_image_loaders;
 
-static KEYMAP: OrderedMap<u8, Key> = phf_ordered_map! {u8, Key;
-    JOYPAD_INPUT::DOWN => Key::ArrowDown,
-    JOYPAD_INPUT::UP => Key::ArrowUp,
-    JOYPAD_INPUT::LEFT => Key::ArrowLeft,
-    JOYPAD_INPUT::RIGHT => Key::ArrowRight,
-    JOYPAD_INPUT::A => Key::A,
-    JOYPAD_INPUT::B => Key::S,
-    JOYPAD_INPUT::SELECT => Key::Space,
-    JOYPAD_INPUT::START => Key::Enter,
-};
 const DEBUGGER_KEY: Key = Key::D;
 
 const SCALE: usize = 4;
@@ -148,7 +138,7 @@ impl eframe::App for XenoGBUI {
         }
 
         ctx.input(|inp| {
-            for (emu_key, ui_key) in KEYMAP.entries() {
+            for (emu_key, ui_key) in self.settings.keymap.map.iter() {
                 if inp.key_pressed(*ui_key) {
                     self.events_sd
                         .send(IOEvent::JOYPAD_PRESS(*emu_key))
@@ -187,7 +177,7 @@ impl eframe::App for XenoGBUI {
             if res.ctx.pointer_latest_pos().is_some_and(|pos| {
                 Rect::from_min_max(
                     Pos2::ZERO,
-                    Pos2::new(res.rect.width(), res.rect.height() / 4.0),
+                    Pos2::new(res.rect.width(), res.rect.height() / 2.0),
                 )
                 .contains(pos)
             }) {

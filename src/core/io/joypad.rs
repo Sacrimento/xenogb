@@ -13,6 +13,20 @@ pub mod JOYPAD_INPUT {
     pub const LEFT: u8 = 0x20;
     pub const UP: u8 = 0x40;
     pub const DOWN: u8 = 0x80;
+
+    pub fn display(button: u8) -> &'static str {
+        match button {
+            A => "A",
+            B => "B",
+            START => "START",
+            SELECT => "SELECT",
+            RIGHT => "RIGHT",
+            LEFT => "LEFT",
+            UP => "UP",
+            DOWN => "DOWN",
+            _ => unreachable!(),
+        }
+    }
 }
 
 pub struct Joypad {

@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use crossbeam_channel::unbounded;
 use xenogb::core::{
-    cpu::LR35902CPU,
+    cpu::{CPUSpeed, LR35902CPU},
     mem::{boot::BootRom, bus::Bus, cartridge::Cartridge},
 };
 use xenogb::debugger::init_metrics;
@@ -22,7 +22,7 @@ fn setup_cpu(cartridge: PathBuf) -> LR35902CPU {
             acs,
         ),
         false,
-        u32::MAX,
+        CPUSpeed::NORMAL,
     )
 }
 

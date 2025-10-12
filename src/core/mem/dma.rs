@@ -67,7 +67,7 @@ impl VramDMA {
                     true => VramDMAMode::HBLANK,
                     false => VramDMAMode::GENERAL,
                 };
-                dbg!(self);
+                // dbg!(self);
             }
             _ => unreachable!(),
         }
