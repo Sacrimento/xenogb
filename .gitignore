@@ -6,3 +6,4 @@
 /**/*.gbsave
 /**/vbuf_snapshot.png
 /.cargo
+/profile.json*
