@@ -1,4 +1,3 @@
-use crate::core::io::joypad::JOYPAD_INPUT;
 use crate::core::io::video::ppu::{Vbuf, RESX, RESY};
 use crate::core::io_event::IOEvent;
 use crate::core::run_emu::EmuState;
@@ -8,7 +7,6 @@ use crate::ui::{
     main::settings::{GraphicsSettings, Settings},
 };
 
-use cphf::{phf_ordered_map, OrderedMap};
 use crossbeam_channel::{Receiver, Sender};
 use eframe::egui;
 use egui::{

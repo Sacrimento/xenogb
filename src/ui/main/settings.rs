@@ -1,12 +1,11 @@
 use std::fmt::Display;
 
 use crossbeam_channel::Sender;
-use eframe::egui::{self, CornerRadius};
-use egui::{
+use eframe::egui::{
     widgets::color_picker::{color_picker_color32, Alpha},
     Color32, ComboBox, Key, Order, Slider, TopBottomPanel, Ui, Window,
 };
-use egui_extras::{Column, TableBuilder, TableRow};
+use egui_extras::{Column, TableBuilder};
 use indexmap::IndexMap;
 use itertools::Itertools;
 

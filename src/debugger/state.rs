@@ -26,12 +26,14 @@ pub struct InterruptState {
     pub interrupts: u8,
 }
 
+#[allow(dead_code)]
 #[derive(Default, Clone, Copy)]
 pub struct ClockState {
     pub mode: CPUSpeed,
     pub target_frame_time: Duration,
 }
 
+#[allow(dead_code)]
 #[derive(Default, Clone)]
 pub struct CpuState {
     pub registers: CPURegisters,
@@ -75,6 +77,7 @@ pub struct MasterVolumeState {
     pub right: u8,
 }
 
+#[allow(dead_code)]
 #[derive(Clone, Copy)]
 pub struct Sample {
     pub sample: f32,
@@ -90,6 +93,7 @@ impl Default for Sample {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Default, Copy, Clone)]
 pub struct ApuState {
     pub master_volume: MasterVolumeState,
@@ -137,6 +141,7 @@ impl ApuState {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Clone, Copy)]
 pub struct PpuState {
     pub vram: [[u8; 0x2000]; 2],
