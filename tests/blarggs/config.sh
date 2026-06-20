@@ -10,7 +10,7 @@ run_test() {
     local output
     output=$(timeout --foreground "$TIMEOUT" "$EXEC" --headless -s -c "$rom" 2>&1) || true
     echo "$output" > "$output_dir/stdout.txt"
-    echo "$output" | grep -q "Passed"
+    [[ "$output" == *"Passed"* ]]
 }
 
 check_test() {

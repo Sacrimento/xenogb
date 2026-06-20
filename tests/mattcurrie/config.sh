@@ -7,7 +7,7 @@ SNAPSHOT_FN=vbuf_snapshot
 run_test() {
     local rom="$1"
 
-    timeout --foreground "$TIMEOUT" "$EXEC" --headless --stop-condition LDBB -c "$rom" 2>&1
+    timeout --foreground "$TIMEOUT" "$EXEC" --headless --stop-condition LDBB --cpu-speed custom -c "$rom" 2>&1
 }
 
 check_test() {
