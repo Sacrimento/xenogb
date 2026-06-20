@@ -16,7 +16,7 @@
 mattcurrie/dmg
 
 mooneye/acceptance/ppu
-mooneye/acceptance/timer
+mooneye/acceptance/timer/tima_write*
 mooneye/acceptance/interrupts/*intr*
 mooneye/acceptance/instr
 mooneye/acceptance/oam_dma
