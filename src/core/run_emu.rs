@@ -158,6 +158,7 @@ pub fn run_emu_thread(
     bus: Bus,
     debug: bool,
     serial: bool,
+    cpu_speed: CPUSpeed,
     record_enabled: bool,
     record_path: Option<PathBuf>,
     replay_path: Option<PathBuf>,
@@ -168,7 +169,7 @@ pub fn run_emu_thread(
 
     let crash_info = Arc::new(Mutex::new(None));
 
-    let mut cpu = LR35902CPU::new(bus, serial, CPUSpeed::NORMAL);
+    let mut cpu = LR35902CPU::new(bus, serial, cpu_speed);
     let mut dbg = Debugger::new(debug, dbg_cmd_rc, dbg_data_sd);
 
     let thread = std::thread::spawn(move || {

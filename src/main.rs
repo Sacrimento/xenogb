@@ -44,6 +44,9 @@ struct Args {
     #[arg(short, long, default_value_t = false)]
     debug: bool,
 
+    #[arg(short, long, value_enum, default_value_t = CPUSpeed::NORMAL)]
+    cpu_speed: CPUSpeed,
+
     #[arg(long, default_value_t = false)]
     record: bool,
 
@@ -87,7 +90,7 @@ fn main() -> Result<(), XenoGBError> {
     #[allow(clippy::unit_arg)]
     if args.headless {
         return Ok(run_headless(
-            LR35902CPU::new(bus, args.serial, CPUSpeed::NORMAL),
+            LR35902CPU::new(bus, args.serial, args.cpu_speed),
             video_channel_rc,
             args.stop_condition,
             args.test_out_dir,
@@ -101,6 +104,7 @@ fn main() -> Result<(), XenoGBError> {
         audio_channel_rc,
         args.debug,
         args.serial,
+        args.cpu_speed,
         args.record,
         args.record_path,
         args.replay_path,

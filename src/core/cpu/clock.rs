@@ -8,10 +8,10 @@ pub const CLOCK_SPEED: u32 = 4194304;
 pub const DOUBLE_CLOCK_SPEED: u32 = CLOCK_SPEED * 2;
 
 #[allow(clippy::upper_case_acronyms)]
-#[derive(Default, Debug, Clone, Copy)]
+#[derive(Default, Debug, Clone, Copy, clap::ValueEnum)]
 pub enum CPUSpeed {
-    NORMAL,
     #[default]
+    NORMAL,
     DOUBLE,
     CUSTOM,
 }

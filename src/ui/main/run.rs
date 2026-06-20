@@ -6,6 +6,7 @@ use crate::core::run_emu::run_emu_thread;
 
 use crossbeam_channel::Receiver;
 use eframe::egui::ViewportBuilder;
+use crate::core::cpu::CPUSpeed;
 
 use std::path::PathBuf;
 
@@ -16,6 +17,7 @@ pub fn run_ui(
     audio_channel_rc: Receiver<[f32; 2]>,
     debug: bool,
     serial: bool,
+    cpu_speed: CPUSpeed,
     record_enabled: bool,
     record_path: Option<PathBuf>,
     replay_path: Option<PathBuf>,
@@ -31,8 +33,15 @@ pub fn run_ui(
         Box::new(move |ctx| {
             run_audio_thread(audio_channel_rc);
 
-            let (emu_state, channels) =
-                run_emu_thread(bus, debug, serial, record_enabled, record_path, replay_path);
+            let (emu_state, channels) = run_emu_thread(
+                bus,
+                debug,
+                serial,
+                cpu_speed,
+                record_enabled,
+                record_path,
+                replay_path,
+            );
 
             Ok(Box::new(XenoGBUI::new(
                 ctx,
