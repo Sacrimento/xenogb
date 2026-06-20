@@ -12,7 +12,10 @@ cmp_regs () {
 }
 
 cmp_snapshot () {
-    magick $1.ppm $1.png
-    compare -metric AE "$1.png" "$2" NULL: 2>&1 > /dev/null
-    [ $? -eq 0 ]
+    if command -v magick &>/dev/null; then
+        magick "$1".ppm "$1".png
+    else
+        convert "$1".ppm "$1".png
+    fi
+    compare -metric AE "$1".png "$2" NULL: 2>/dev/null
 }

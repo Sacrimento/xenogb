@@ -1,0 +1,11 @@
+# Permanent skip list for XenoGB test framework
+# One entry per line. Empty lines and lines starting with # are ignored.
+#
+# Suite-level skip (skips the entire suite):
+#   mooneye
+#
+# Subdirectory skip (skips a subdirectory within a suite's roms/):
+#   blarggs/sound
+#   mooneye/timer
+
+mattcurrie/dmg

@@ -31,7 +31,5 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
       - name: Build binaries in "${{ matrix.BUILD_TARGET }}" mode
         run: cargo build --profile ${{ matrix.BUILD_TARGET }}
-      - name: Run blarggs tests
-        run: ./tests/blarggs/run.sh
-      - name: Run mattcurrie tests
-        run: ./tests/mattcurrie/run.sh
+      - name: Run tests
+        run: ./tests/run_tests.sh
