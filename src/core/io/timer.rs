@@ -9,6 +9,7 @@ pub struct Timer {
     tac: u8,
 
     prev_div_bit: bool,
+    pending_overflow: bool,
 }
 
 #[allow(clippy::new_without_default)]
@@ -20,10 +21,18 @@ impl Timer {
             tma: 0,
             tac: 0,
             prev_div_bit: false,
+            pending_overflow: false,
         }
     }
 
     pub fn tick(&mut self, speed_mode: CPUSpeed) -> bool {
+        // Finalize pending overflow at the start of the new M-cycle
+        if self.pending_overflow {
+            self.pending_overflow = false;
+            self.tima = self.tma;
+            request_interrupt(InterruptFlags::TIMER);
+        }
+
         let div_apu_bit = self.div_apu_bit(speed_mode);
         self.div = self.div.wrapping_add(4);
         let div_apu = div_apu_bit && !self.div_apu_bit(speed_mode);
@@ -64,8 +73,8 @@ impl Timer {
         self.tima = self.tima.wrapping_add(1);
 
         if self.tima == 0 {
-            self.tima = self.tma;
-            request_interrupt(InterruptFlags::TIMER);
+            // Overflow: TIMA stays 0, reload and interrupt are deferred to next M-cycle
+            self.pending_overflow = true;
         }
     }
 
@@ -93,18 +102,39 @@ impl Timer {
                 self.div = 0;
                 self.prev_div_bit = false;
             }
-            0xff05 => self.tima = value,
-            0xff06 => self.tma = value,
+            0xff05 => {
+                // Writing to TIMA during overflow M-cycle cancels the pending reload
+                if self.pending_overflow {
+                    self.pending_overflow = false;
+                } else {
+                    self.tima = value;
+                }
+            }
+            0xff06 => {
+                self.tma = value;
+                // Writing to TMA during cycle B (pending overflow) also updates TIMA
+                if self.pending_overflow {
+                    self.tima = value;
+                }
+            }
             0xff07 => {
-                let old_bit = self.timer_enabled() && self.div_bit();
+                let was_enabled = self.timer_enabled();
+                let old_bit = self.div_bit();
                 self.tac = value & 0b111;
-                let new_bit = self.timer_enabled() && self.div_bit();
+                let is_enabled = self.timer_enabled();
+                let new_bit = self.div_bit();
 
-                if old_bit && !new_bit {
+                // Normal falling edge: enabled, bit goes 1 -> 0
+                let falling_edge = was_enabled && old_bit && (!is_enabled || !new_bit);
+
+                // DMG-specific: disabling timer with selected bit set triggers a tick
+                let dmg_disable_tick = was_enabled && !is_enabled && old_bit;
+
+                if falling_edge || dmg_disable_tick {
                     self.inc_tima();
                 }
 
-                self.prev_div_bit = new_bit;
+                self.prev_div_bit = is_enabled && new_bit;
             }
             _ => unreachable!(),
         };
