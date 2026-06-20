@@ -262,7 +262,7 @@ impl LR35902CPU {
 
     fn handle_ints(&mut self) {
         let mut handle_int = |int: u8, addr: u16| -> bool {
-            if (INTERRUPT_FLAGS.get() & int) == int && (INTERRUPT_ENABLE.get() & int) == int {
+            if flag_set!(INTERRUPT_FLAGS.get(), int) && flag_set!(INTERRUPT_ENABLE.get(), int) {
                 _push(self, (self.registers.pc >> 8) as u8);
                 _push(self, (self.registers.pc & 0xff) as u8);
                 INTERRUPT_FLAGS.set(INTERRUPT_FLAGS.get() ^ int);

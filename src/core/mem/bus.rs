@@ -45,10 +45,11 @@ impl Bus {
         video_channel_sd: Sender<Vbuf>,
         audio_channel_sd: Sender<[f32; 2]>,
     ) -> Self {
+        let is_cgb = cartridge.is_cgb();
         Self {
             cartridge,
             ram: RAM::new(),
-            io: IOMMU::new(video_channel_sd, audio_channel_sd),
+            io: IOMMU::new(video_channel_sd, audio_channel_sd, is_cgb),
             oam_dma: OamDMA::default(),
             vram_dma: VramDMA::default(),
             speed_mode: 0,

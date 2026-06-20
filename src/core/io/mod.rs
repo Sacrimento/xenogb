@@ -21,11 +21,11 @@ pub struct IOMMU {
 }
 
 impl IOMMU {
-    pub fn new(video_channel_sd: Sender<Vbuf>, audio_channel_sd: Sender<[f32; 2]>) -> Self {
+    pub fn new(video_channel_sd: Sender<Vbuf>, audio_channel_sd: Sender<[f32; 2]>, is_cgb: bool) -> Self {
         Self {
             serial: Serial::default(),
             timer: Timer::new(),
-            ppu: PPU::new(video_channel_sd),
+            ppu: PPU::new(video_channel_sd, is_cgb),
             apu: APU::new(audio_channel_sd),
             joypad: Joypad::new(),
         }

@@ -234,6 +234,42 @@ impl LCD {
     }
 
     #[inline]
+    pub fn get_dmg_bg_pixel(&self, attributes: u8, color_idx: usize) -> Pixel {
+        let color_bits = (self.dmg_bg_palette >> (color_idx * 2)) & 0x3;
+        let c = DMG_COLORS[color_bits as usize];
+        let priority = flag_set!(attributes, TileAttributes::PRIORITY);
+        Pixel {
+            r: c,
+            g: c,
+            b: c,
+            priority,
+        }
+    }
+
+    #[inline]
+    pub fn get_dmg_obj_pixel(&self, attributes: u8, color_idx: usize) -> Pixel {
+        if color_idx == 0 {
+            return Pixel {
+                r: 0,
+                g: 0,
+                b: 0,
+                priority: false,
+            };
+        }
+        let palette_select = (attributes & TileAttributes::CGB_PALETTE) >> 1;
+        let palette = self.dmg_obj_palettes[palette_select as usize];
+        let color_bits = (palette >> (color_idx * 2)) & 0x3;
+        let c = DMG_COLORS[color_bits as usize];
+        let priority = flag_set!(attributes, TileAttributes::PRIORITY);
+        Pixel {
+            r: c,
+            g: c,
+            b: c,
+            priority,
+        }
+    }
+
+    #[inline]
     pub fn get_cgb_bg_pixel(&self, attributes: u8, color_idx: usize) -> Pixel {
         let palette_idx = (attributes & TileAttributes::CGB_PALETTE) as usize;
         let priority = flag_set!(attributes, TileAttributes::PRIORITY);

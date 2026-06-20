@@ -109,10 +109,11 @@ pub struct PPU {
     draw_sprites: bool,
 
     priority_style: PriorityStyle,
+    is_cgb: bool,
 }
 
 impl PPU {
-    pub fn new(video_channel_sd: Sender<Vbuf>) -> Self {
+    pub fn new(video_channel_sd: Sender<Vbuf>, is_cgb: bool) -> Self {
         let mut lcd = LCD::default();
         lcd.set_ppu_mode(PPUMode::OAMScan);
 
@@ -135,7 +136,12 @@ impl PPU {
             draw_background: true,
             draw_window: true,
             draw_sprites: true,
-            priority_style: PriorityStyle::CGB,
+            priority_style: if is_cgb {
+                PriorityStyle::CGB
+            } else {
+                PriorityStyle::DMG
+            },
+            is_cgb,
         }
     }
 
@@ -271,7 +277,11 @@ impl PPU {
 
         Some((
             color & 0b11,
-            self.lcd.get_cgb_bg_pixel(attributes, color as usize),
+            if self.is_cgb {
+                self.lcd.get_cgb_bg_pixel(attributes, color as usize)
+            } else {
+                self.lcd.get_dmg_bg_pixel(attributes, color as usize)
+            },
         ))
     }
 
@@ -333,7 +343,11 @@ impl PPU {
             return None;
         }
 
-        Some(self.lcd.get_cgb_obj_pixel(sprite.flags, color as usize))
+        Some(if self.is_cgb {
+            self.lcd.get_cgb_obj_pixel(sprite.flags, color as usize)
+        } else {
+            self.lcd.get_dmg_obj_pixel(sprite.flags, color as usize)
+        })
     }
 
     fn render_sprite(&self, x: usize, y: usize) -> Option<Pixel> {
