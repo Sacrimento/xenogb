@@ -58,7 +58,7 @@ impl Bus {
     }
 
     pub fn read(&self, addr: u16) -> u8 {
-        if self.booting && addr <= 0x100 {
+        if self.booting && addr < 0x100 {
             return self.boot_rom[addr as usize];
         }
 
