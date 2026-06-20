@@ -9,4 +9,9 @@
 #   mooneye/timer
 
 mattcurrie/dmg
-mooneye/timer
+
+mooneye/acceptance/ppu
+mooneye/acceptance/timer
+mooneye/acceptance/interrupts
+mooneye/acceptance/instr
+mooneye/acceptance/oam_dma
