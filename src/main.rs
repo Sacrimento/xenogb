@@ -52,6 +52,9 @@ struct Args {
 
     #[arg(long, default_value = None)]
     replay_path: Option<PathBuf>,
+
+    #[arg(long, default_value = None)]
+    test_out_dir: Option<PathBuf>,
 }
 
 fn setup_logger() -> String {
@@ -87,6 +90,7 @@ fn main() -> Result<(), XenoGBError> {
             LR35902CPU::new(bus, args.serial, CPUSpeed::NORMAL),
             video_channel_rc,
             args.stop_condition,
+            args.test_out_dir,
         ));
     }
 

@@ -5,7 +5,7 @@ appenders:
       pattern: "{d(%+)(local)} [{t}] {h({l})} {M}:{m}{n}"
     filters:
       - kind: threshold
-        level: info
+        level: warn
   file:
     kind: file
     path: __LOG_FILE__

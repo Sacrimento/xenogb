@@ -2,7 +2,8 @@ use crate::core::cpu::LR35902CPU;
 use crate::core::io::video::ppu::Vbuf;
 use crate::core::io::video::ppu::{RESX, RESY};
 use std::env::temp_dir;
-use std::process::id;
+use std::fs::create_dir_all;
+use std::path::PathBuf;
 
 use std::{fs, io::Write};
 
@@ -15,8 +16,14 @@ macro_rules! flag_set {
     };
 }
 
-pub fn dump_regs(cpu: &LR35902CPU) {
-    let fpath = format!("{}/{}_cpu_registers.txt", temp_dir().display(), id());
+pub fn dump_regs(cpu: &LR35902CPU, test_out_dir: &Option<PathBuf>) {
+    let fpath = match test_out_dir {
+        None => format!("{}/cpu_registers.txt", temp_dir().display()),
+        Some(test_out_dir) => {
+            create_dir_all(test_out_dir).expect("Could not create test dir");
+            format!("{}/cpu_registers.txt", test_out_dir.display())
+        }
+    };
 
     info!("CPU registers saved to {}", fpath);
     let mut file = fs::File::create(fpath).unwrap();
@@ -38,10 +45,16 @@ pub fn dump_regs(cpu: &LR35902CPU) {
     .unwrap();
 }
 
-pub fn vbuf_snapshot(frame: Vbuf) {
+pub fn vbuf_snapshot(frame: Vbuf, test_out_dir: &Option<PathBuf>) {
     // Output the current video buffer to a PPM formatted file
 
-    let fpath = format!("{}/{}_vbuf_snapshot.ppm", temp_dir().display(), id());
+    let fpath = match test_out_dir {
+        None => format!("{}/vbuf_snapshot.ppm", temp_dir().display()),
+        Some(test_out_dir) => {
+            create_dir_all(test_out_dir).expect("Could not create test dir");
+            format!("{}/vbuf_snapshot.ppm", test_out_dir.display())
+        }
+    };
 
     info!("Video buffer snapshot saved to {}", fpath);
     let mut file = fs::File::create(fpath).unwrap();

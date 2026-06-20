@@ -46,6 +46,7 @@ pub fn run_headless(
     mut cpu: LR35902CPU,
     video_channel_rc: Receiver<Vbuf>,
     sc: Option<StopCondition>,
+    test_out_dir: Option<PathBuf>,
 ) {
     let mut last_frame: Vbuf = [Pixel::default(); RESX * RESY];
     let start = Instant::now();
@@ -61,14 +62,14 @@ pub fn run_headless(
                         && matches!(instr.reg1, Some(CPURegisterId::B))
                         && matches!(instr.reg2, Some(CPURegisterId::B))
                     {
-                        dump_regs(&cpu);
-                        return vbuf_snapshot(last_frame);
+                        dump_regs(&cpu, &test_out_dir);
+                        return vbuf_snapshot(last_frame, &test_out_dir);
                     }
                 }
                 StopCondition::TIMER(secs) => {
                     if start.elapsed() > Duration::from_secs(secs as u64) {
-                        dump_regs(&cpu);
-                        return vbuf_snapshot(last_frame);
+                        dump_regs(&cpu, &test_out_dir);
+                        return vbuf_snapshot(last_frame, &test_out_dir);
                     }
                 }
             }

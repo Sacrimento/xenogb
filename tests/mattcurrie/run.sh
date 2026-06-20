@@ -24,7 +24,7 @@ for test_rom in $(find $TEST_DIR -type f -regex ".*/*.gbc?") ; do
 
     wait $!
 
-    SNAPSHOT_PATH=/tmp/"$!"_"$SNAPSHOT_FN"
+    SNAPSHOT_PATH=/tmp/"$SNAPSHOT_FN"
 
     if cmp_snapshot $SNAPSHOT_PATH $reference; then
         echo "$test_case --- OK"
