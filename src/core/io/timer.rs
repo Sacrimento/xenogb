@@ -9,7 +9,13 @@ pub struct Timer {
     tac: u8,
 
     prev_div_bit: bool,
-    pending_overflow: bool,
+
+    // Overflow delay state machine (matches潘 docs 2-cycle behavior):
+    // Cycle A: tima overflows FF->00, overflow_delay = true
+    // Cycle B: tick finalizes: tima = tma, IF set, was_reset = true
+    // Cycle C: tick clears was_reset, timer resumes normal
+    overflow_delay: bool,
+    was_reset: bool,
 }
 
 #[allow(clippy::new_without_default)]
@@ -21,26 +27,34 @@ impl Timer {
             tma: 0,
             tac: 0,
             prev_div_bit: false,
-            pending_overflow: false,
+            overflow_delay: false,
+            was_reset: false,
         }
     }
 
     pub fn tick(&mut self, speed_mode: CPUSpeed) -> bool {
-        // Finalize pending overflow at the start of the new M-cycle
-        if self.pending_overflow {
-            self.pending_overflow = false;
-            self.tima = self.tma;
-            request_interrupt(InterruptFlags::TIMER);
-        }
-
         let div_apu_bit = self.div_apu_bit(speed_mode);
         self.div = self.div.wrapping_add(4);
         let div_apu = div_apu_bit && !self.div_apu_bit(speed_mode);
 
         let current_bit = self.div_bit();
 
-        if self.timer_enabled() && self.prev_div_bit && !current_bit {
-            self.inc_tima();
+        if self.timer_enabled() {
+            // Finalize overflow: reload TIMA from TMA and fire interrupt
+            if self.overflow_delay {
+                self.overflow_delay = false;
+                self.tima = self.tma;
+                request_interrupt(InterruptFlags::TIMER);
+                self.was_reset = true;
+            } else if self.was_reset {
+                // Cycle after reload: clear was_reset, skip falling edge this cycle
+                self.was_reset = false;
+            } else {
+                // Normal falling edge detection
+                if self.prev_div_bit && !current_bit {
+                    self.inc_tima();
+                }
+            }
         }
 
         self.prev_div_bit = current_bit;
@@ -73,8 +87,8 @@ impl Timer {
         self.tima = self.tima.wrapping_add(1);
 
         if self.tima == 0 {
-            // Overflow: TIMA stays 0, reload and interrupt are deferred to next M-cycle
-            self.pending_overflow = true;
+            // Overflow: TIMA stays 0, reload deferred to next M-cycle
+            self.overflow_delay = true;
         }
     }
 
@@ -103,18 +117,18 @@ impl Timer {
                 self.prev_div_bit = false;
             }
             0xff05 => {
-                // Writing to TIMA during overflow M-cycle cancels the pending reload
-                if self.pending_overflow {
-                    self.pending_overflow = false;
-                } else {
-                    self.tima = value;
+                // Writing to TIMA during overflow delay cycle cancels the pending reload
+                if self.overflow_delay {
+                    self.overflow_delay = false;
                 }
+                self.tima = value;
             }
             0xff06 => {
                 self.tma = value;
-                // Writing to TMA during cycle B (pending overflow) also updates TIMA
-                if self.pending_overflow {
+                // Writing to TMA during was_reset cycle also updates TIMA
+                if self.was_reset {
                     self.tima = value;
+                    self.was_reset = false;
                 }
             }
             0xff07 => {
