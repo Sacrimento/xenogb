@@ -84,7 +84,7 @@ fn main() -> Result<(), XenoGBError> {
     #[allow(clippy::unit_arg)]
     if args.headless {
         return Ok(run_headless(
-            LR35902CPU::new(bus, args.serial, CPUSpeed::CUSTOM),
+            LR35902CPU::new(bus, args.serial, CPUSpeed::NORMAL),
             video_channel_rc,
             args.stop_condition,
         ));

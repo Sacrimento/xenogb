@@ -64,7 +64,7 @@ pub fn stop(cpu: &mut LR35902CPU) -> u8 {
     if flag_set!(cpu.bus.speed_mode, 1) {
         // Clear bit 0 & flip bit 7
         cpu.bus.speed_mode = ((cpu.bus.speed_mode ^ (1 << 7)) >> 1) << 1;
-        cpu.clock.switch_speed(flag_set!(cpu.bus.speed_mode, 1));
+        cpu.clock.switch_speed(flag_set!(cpu.bus.speed_mode, 0x80));
     }
     // TODO: Make the CPU chill for 2050 M-cycles (~1.025 ms with CPU @ 2.10 MHz) somehow
     // Note that we can't return 2051 cycles here as the CPU should be in a strange state

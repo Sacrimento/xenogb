@@ -167,7 +167,7 @@ pub fn run_emu_thread(
 
     let crash_info = Arc::new(Mutex::new(None));
 
-    let mut cpu = LR35902CPU::new(bus, serial, CPUSpeed::DOUBLE);
+    let mut cpu = LR35902CPU::new(bus, serial, CPUSpeed::NORMAL);
     let mut dbg = Debugger::new(debug, dbg_cmd_rc, dbg_data_sd);
 
     let thread = std::thread::spawn(move || {
