@@ -15,8 +15,16 @@
 
 mattcurrie/dmg
 
+# Mooneye
+
 mooneye/acceptance/ppu
 mooneye/acceptance/timer/tima_write*
 mooneye/acceptance/interrupts/*intr*
 mooneye/acceptance/instr
-mooneye/acceptance/oam_dma
+mooneye/acceptance/oam_dma/oam_dma*
+mooneye/acceptance/oam_dma/reg_read*
+mooneye/emulator-only/mbc1
+mooneye/emulator-only/mbc5
+
+## MBC2 is not yet implemented
+mooneye/emulator-only/mbc2

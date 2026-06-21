@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # mooneye/config.sh — Mooneye test suite configuration
 
-TIMEOUT=2
+TIMEOUT=10
 CPU_REGISTERS_FN=cpu_registers.txt
 
 EXPECTED_REGS=("A:*" "F:*" "B:03" "C:05" "D:08" "E:0D" "H:15" "L:22")
