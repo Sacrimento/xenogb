@@ -40,10 +40,3 @@ serde_yaml = "0.9.34"
 
 [profile.release]
 debug = true
-
-
-[build]
-rustflags = [
-    "-C", "symbol-mangling-version=v0",
-    "-C", "force-frame-pointers=yes",
-]

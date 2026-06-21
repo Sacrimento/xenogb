@@ -55,8 +55,8 @@ impl PulseChannel {
 
     pub fn freq_sweep(&mut self) {
         // if self.sweep.as_ref().is_some_and(|s| s.enabled()) {
-        if self.sweep.is_some() {
-            match self.sweep.as_mut().unwrap().tick() {
+        if let Some(sweep) = &mut self.sweep {
+            match sweep.tick() {
                 Ok(None) => (),
                 Ok(Some(p)) => self.period = p,
                 Err(FreqOverflow) => self.enabled = false,
@@ -107,7 +107,8 @@ impl PulseChannel {
         self.envelope.trigger();
         self.enabled = self.envelope.dac_enabled();
 
-        if self.length_counter.trigger() && div_apu % 2 == 0 && self.length_counter.tick() {
+        if self.length_counter.trigger() && div_apu.is_multiple_of(2) && self.length_counter.tick()
+        {
             self.enabled = false;
         }
 
@@ -151,7 +152,7 @@ impl PulseChannel {
                 self.length_counter.set_enabled(value & 0x40 == 0x40);
                 if !lc_enabled
                     && self.length_counter.enabled()
-                    && div_apu % 2 == 0
+                    && div_apu.is_multiple_of(2)
                     && self.length_counter.value > 0
                     && self.length_counter.tick()
                 {

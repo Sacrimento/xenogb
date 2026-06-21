@@ -66,6 +66,7 @@ pub enum CPURegisterId {
 type FnType = fn(&mut LR35902CPU) -> u8;
 
 #[derive(PartialEq)]
+#[allow(unpredictable_function_pointer_comparisons)]
 pub struct Instruction {
     pub name: &'static str,
     pub addr_mode: AddrMode,

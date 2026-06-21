@@ -170,7 +170,7 @@ impl APU {
                 return;
             }
 
-            if self.div_apu % 2 == 0 {
+            if self.div_apu.is_multiple_of(2) {
                 self.channel1.tick_length_timer();
                 self.channel2.tick_length_timer();
                 self.channel3.tick_length_timer();

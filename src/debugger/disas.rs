@@ -54,19 +54,15 @@ impl Instruction {
 
         let args = match self.addr_mode {
             R => {
-                if self.reg1.is_some() {
-                    self.reg1.as_ref().unwrap().to_string()
+                if let Some(reg) = self.reg1 {
+                    reg.to_string()
                 } else {
                     String::new()
                 }
             }
             R_R => {
-                if self.reg1.is_some() {
-                    format!(
-                        "{}, {}",
-                        self.reg1.as_ref().unwrap(),
-                        self.reg2.as_ref().unwrap()
-                    )
+                if let Some(reg) = &self.reg1 {
+                    format!("{}, {}", reg, self.reg2.as_ref().unwrap())
                 } else {
                     String::new()
                 }

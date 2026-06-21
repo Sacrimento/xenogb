@@ -60,7 +60,11 @@ impl WaveChannel {
             return 0.0;
         }
 
-        let nibble = if self.wave_ram_idx % 2 == 0 { 4 } else { 0 };
+        let nibble = if self.wave_ram_idx.is_multiple_of(2) {
+            4
+        } else {
+            0
+        };
         let sample = (self.wave_ram[self.wave_ram_idx / 2] >> nibble) & 0xf;
 
         if self.volume == 0 {
@@ -91,7 +95,8 @@ impl WaveChannel {
     fn trigger(&mut self, div_apu: u8) {
         self.enabled = self.dac_enabled;
 
-        if self.length_counter.trigger() && div_apu % 2 == 0 && self.length_counter.tick() {
+        if self.length_counter.trigger() && div_apu.is_multiple_of(2) && self.length_counter.tick()
+        {
             self.enabled = false;
         }
 
@@ -117,7 +122,7 @@ impl WaveChannel {
                 self.length_counter.set_enabled(value & 0x40 == 0x40);
                 if !lc_enabled
                     && self.length_counter.enabled()
-                    && div_apu % 2 == 0
+                    && div_apu.is_multiple_of(2)
                     && self.length_counter.value > 0
                     && self.length_counter.tick()
                 {
@@ -149,7 +154,11 @@ impl WaveChannel {
             }
             0xff1e => ((self.length_counter.enabled() as u8) << 6) | 0xbf,
             0xff30..=0xff3f => {
-                let nibble = if self.wave_ram_idx % 2 == 0 { 4 } else { 0 };
+                let nibble = if self.wave_ram_idx.is_multiple_of(2) {
+                    4
+                } else {
+                    0
+                };
                 (self.wave_ram[self.wave_ram_idx / 2] >> nibble) & 0xf
             }
             _ => unreachable!(),

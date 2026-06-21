@@ -91,7 +91,8 @@ impl NoiseChannel {
 
         self.lfsr = 0x7fff;
 
-        if self.length_counter.trigger() && div_apu % 2 == 0 && self.length_counter.tick() {
+        if self.length_counter.trigger() && div_apu.is_multiple_of(2) && self.length_counter.tick()
+        {
             self.enabled = false;
         }
 
@@ -128,7 +129,7 @@ impl NoiseChannel {
                 self.length_counter.set_enabled(value & 0x40 == 0x40);
                 if !lc_enabled
                     && self.length_counter.enabled()
-                    && div_apu % 2 == 0
+                    && div_apu.is_multiple_of(2)
                     && self.length_counter.value > 0
                     && self.length_counter.tick()
                 {
