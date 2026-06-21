@@ -5,12 +5,8 @@ TIMEOUT=25
 
 run_test() {
     local rom="$1"
-    local output_dir="$2"
 
-    local output
-    output=$(timeout --foreground "$TIMEOUT" "$EXEC" --headless -s -c "$rom" 2>&1) || true
-    echo "$output" > "$output_dir/stdout.txt"
-    [[ "$output" == *"Passed"* ]]
+    (set +o pipefail; timeout --foreground "$TIMEOUT" "$EXEC" --headless -s -c "$rom" 2>&1 | grep -q "Passed")
 }
 
 check_test() {

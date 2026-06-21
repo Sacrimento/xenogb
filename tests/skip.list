@@ -4,14 +4,19 @@
 # Suite-level skip (skips the entire suite):
 #   mooneye
 #
-# Subdirectory skip (skips a subdirectory within a suite's roms/):
+# Subdirectory skip (path relative to suite, without roms/):
 #   blarggs/sound
-#   mooneye/timer
+#   mooneye/acceptance/timer
+#
+# Glob patterns are supported: *, ?, and [...] work as in shell globbing.
+#   mooneye/acceptance/tim*        → skips timer, timing, etc.
+#   mooneye/acceptance/*/timing.gb → skips timing.gb in any subgroup
+#   blarggs/0[12]-*.gb             → skips 01-*.gb and 02-*.gb
 
 mattcurrie/dmg
 
 mooneye/acceptance/ppu
 mooneye/acceptance/timer
-mooneye/acceptance/interrupts
+mooneye/acceptance/interrupts/*intr*
 mooneye/acceptance/instr
 mooneye/acceptance/oam_dma

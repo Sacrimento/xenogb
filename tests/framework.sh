@@ -72,6 +72,7 @@ Options:
       --skip-subdir <path>    Skip subdirectory (e.g. mooneye/timer) (repeatable)
 
 Exclusion always wins over inclusion. skip.list entries are merged with CLI skips.
+skip.list supports glob patterns: *, ?, and [...] for fine-grained skips.
 EOF
 }
 
@@ -114,7 +115,8 @@ is_suite_skipped() {
         return 1
     fi
     for skip in "${SKIP_SUITES[@]}"; do
-        [[ "$skip" == "$suite" ]] && return 0
+        # shellcheck disable=SC2053
+        [[ "$suite" == $skip ]] && return 0
     done
     return 1
 }
@@ -127,7 +129,22 @@ is_subdir_skipped() {
     fi
     local key="${suite}/${subdir}"
     for skip in "${SKIP_SUBDIRS[@]}"; do
-        [[ "$skip" == "$key" ]] && return 0
+        # shellcheck disable=SC2053
+        [[ "$key" == $skip ]] && return 0
+    done
+    return 1
+}
+
+is_rom_skipped() {
+    local suite="$1"
+    local rom_rel_path="$2"
+    if [[ ${#SKIP_SUBDIRS[@]} -eq 0 ]]; then
+        return 1
+    fi
+    local full_path="${suite}/${rom_rel_path}"
+    for skip in "${SKIP_SUBDIRS[@]}"; do
+        # shellcheck disable=SC2053
+        [[ "$full_path" == $skip ]] && return 0
     done
     return 1
 }
@@ -161,6 +178,14 @@ get_rom_group() {
     [[ "$dir" == "." ]] && echo "" || echo "$dir"
 }
 
+get_rom_rel_path() {
+    local rom_path="$1"
+    local suite_dir="$2"
+    local roms_dir="${suite_dir}/roms"
+    local prefix="${roms_dir}/"
+    echo "${rom_path#"$prefix"}"
+}
+
 # ─── Execution ────────────────────────────────────────────────────────────────
 
 run_group_tests() {
@@ -172,9 +197,9 @@ run_group_tests() {
 
     local group_key
     if [[ -z "$group" ]]; then
-        group_key="${suite_name}/roms"
+        group_key="${suite_name}"
     else
-        group_key="${suite_name}/roms/${group}"
+        group_key="${suite_name}/${group}"
     fi
 
     GROUP_TOTAL["$group_key"]=${#roms[@]}
@@ -185,21 +210,21 @@ run_group_tests() {
     local pids=()
     local pid_roms=()
     local pid_results=()
-    local pid_starts=()
 
     for rom in "${roms[@]}"; do
         local rom_name
         rom_name=$(basename "$rom")
         local result_dir
         result_dir=$(mktemp -d "/tmp/xenogb_result_XXXXXX")
-        local start_time
-        start_time=$(date +%s)
 
         (
             export SUITE_DIR="$suite_dir"
             export SUITE_NAME="$suite_name"
             export ROM_PATH="$rom"
             export OUTPUT_DIR="$result_dir"
+
+            local start_time
+            start_time=$(date +%s%N 2>/dev/null || date +%s)
 
             local run_exit=0
             run_test "$rom" "$result_dir" || run_exit=$?
@@ -215,26 +240,37 @@ run_group_tests() {
                     echo "PASS" > "$result_dir/.status"
                 fi
             fi
+
+            local end_time
+            end_time=$(date +%s%N 2>/dev/null || date +%s)
+            local elapsed_ns=$(( end_time - start_time ))
+            if [[ ${#start_time} -gt 10 ]]; then
+                local elapsed_s=$(( elapsed_ns / 1000000000 ))
+                local elapsed_frac=$(( (elapsed_ns % 1000000000) / 1000000 ))
+                echo "${elapsed_s}.${elapsed_frac}" > "$result_dir/.elapsed"
+            else
+                echo "$elapsed_ns" > "$result_dir/.elapsed"
+            fi
         ) &
 
         pids+=($!)
         pid_roms+=("$rom_name")
         pid_results+=("$result_dir")
-        pid_starts+=("$start_time")
     done
 
     for i in "${!pids[@]}"; do
         wait "${pids[$i]}" 2>/dev/null || true
-        local end_time
-        end_time=$(date +%s)
-        local elapsed=$(( end_time - ${pid_starts[$i]} ))
 
         local status_dir="${pid_results[$i]}"
         local rom_name="${pid_roms[$i]}"
         local status="FAIL"
+        local elapsed=0
 
         if [[ -f "$status_dir/.status" ]]; then
             status=$(<"$status_dir/.status")
+        fi
+        if [[ -f "$status_dir/.elapsed" ]]; then
+            elapsed=$(<"$status_dir/.elapsed")
         fi
 
         rm -rf "$status_dir"
@@ -270,33 +306,123 @@ record_group_skipped() {
     done
 }
 
+record_rom_skipped() {
+    local group_key="$1"
+    shift
+    local roms=("$@")
+
+    local rom
+    for rom in "${roms[@]}"; do
+        local rom_name
+        rom_name=$(basename "$rom")
+        GROUP_RESULTS["$group_key"]+="${rom_name}:SKIP:0 "
+        TOTAL_SKIPPED=$((TOTAL_SKIPPED + 1))
+    done
+}
+
 # ─── Output ───────────────────────────────────────────────────────────────────
 
 declare -g PRINTED_SUITE=""
 
 print_group_summary() {
     local group_key="$1"
-    local suite_name="${group_key%%/roms*}"
-    local prefix="${suite_name}/"
-    local subgroup="${group_key#"$prefix"}"
+    local suite_name="${group_key%%/*}"
+    local subgroup="${group_key#"$suite_name"/}"
+    local is_root=0
+    [[ "$subgroup" == "$group_key" ]] && is_root=1
     local total=${GROUP_TOTAL["$group_key"]}
     local failed=${GROUP_FAILED["$group_key"]}
     local skipped=${GROUP_SKIPPED["$group_key"]}
 
-    if [[ "$suite_name" != "$PRINTED_SUITE" ]]; then
-        echo -e "${BOLD}${suite_name}${RESET}"
-        PRINTED_SUITE="$suite_name"
+    COLLECTED_RESULTS+=("${is_root}|${suite_name}|${subgroup}|${total}|${failed}|${skipped}")
+}
+
+COLLECTED_RESULTS=()
+SUMMARY_MAX_WIDTH=20
+
+compute_summary_width() {
+    local max_w=20
+    local suite_name
+    for suite_name in "$@"; do
+        local suite_dir="$FRAMEWORK_DIR/$suite_name"
+        local roms=()
+        # shellcheck disable=SC2207
+        roms=($(discover_roms "$suite_dir"))
+        local rom group rel
+        for rom in "${roms[@]}"; do
+            group=$(get_rom_group "$rom" "$suite_dir")
+            if [[ -z "$group" ]]; then
+                rel="$suite_name"
+            else
+                rel="$group"
+            fi
+            local len=${#rel}
+            (( len > max_w )) && max_w=$len
+        done
+    done
+    SUMMARY_MAX_WIDTH=$max_w
+}
+
+print_collected_summaries() {
+    if [[ ${#COLLECTED_RESULTS[@]} -eq 0 ]]; then
+        return
     fi
 
-    printf "  %-22s" "$subgroup"
+    local max_width=$SUMMARY_MAX_WIDTH
 
-    if [[ $skipped -gt 0 ]]; then
-        printf " \033[0;33m[SKIP]\033[0m %d/%d\n" "$skipped" "$total"
-    elif [[ $failed -eq 0 ]]; then
-        printf " \033[0;32m[PASS]\033[0m %d/%d\n" "$total" "$total"
-    else
-        printf " \033[0;31m[FAIL]\033[0m %d/%d (%d failed)\n" "$(( total - failed ))" "$total" "$failed"
-    fi
+    local prev_suite=""
+    for entry in "${COLLECTED_RESULTS[@]}"; do
+        local is_root suite_name subgroup total failed skipped
+        IFS='|' read -r is_root suite_name subgroup total failed skipped <<< "$entry"
+        local passed=$(( total - failed - skipped ))
+
+        if [[ "$is_root" == "1" ]]; then
+            # Root-level: inline with suite name (2-char indent offset for alignment)
+            local padded
+            padded=$(printf "%-*s" "$(( max_width + 2 ))" "$suite_name")
+
+            if [[ $passed -eq 0 && $failed -eq 0 ]]; then
+                echo -e "${BOLD}${padded}${RESET} \033[0;33m[SKIP]\033[0m ${skipped}/${total}"
+            elif [[ $failed -eq 0 ]]; then
+                if [[ $skipped -gt 0 ]]; then
+                    echo -e "${BOLD}${padded}${RESET} \033[0;32m[PASS]\033[0m ${passed}/${total} (${skipped} skipped)"
+                else
+                    echo -e "${BOLD}${padded}${RESET} \033[0;32m[PASS]\033[0m ${passed}/${total}"
+                fi
+            else
+                if [[ $skipped -gt 0 ]]; then
+                    echo -e "${BOLD}${padded}${RESET} \033[0;31m[FAIL]\033[0m ${passed}/${total} (${failed} failed, ${skipped} skipped)"
+                else
+                    echo -e "${BOLD}${padded}${RESET} \033[0;31m[FAIL]\033[0m ${passed}/${total} (${failed} failed)"
+                fi
+            fi
+            prev_suite="$suite_name"
+        else
+            # Non-root: print suite header if new
+            if [[ "$suite_name" != "$prev_suite" ]]; then
+                echo -e "${BOLD}${suite_name}${RESET}"
+                prev_suite="$suite_name"
+            fi
+
+            printf "  %-*s" "$max_width" "$subgroup"
+
+            if [[ $passed -eq 0 && $failed -eq 0 ]]; then
+                printf " \033[0;33m[SKIP]\033[0m %d/%d\n" "$skipped" "$total"
+            elif [[ $failed -eq 0 ]]; then
+                if [[ $skipped -gt 0 ]]; then
+                    printf " \033[0;32m[PASS]\033[0m %d/%d (%d skipped)\n" "$passed" "$total" "$skipped"
+                else
+                    printf " \033[0;32m[PASS]\033[0m %d/%d\n" "$passed" "$total"
+                fi
+            else
+                if [[ $skipped -gt 0 ]]; then
+                    printf " \033[0;31m[FAIL]\033[0m %d/%d (%d failed, %d skipped)\n" "$passed" "$total" "$failed" "$skipped"
+                else
+                    printf " \033[0;31m[FAIL]\033[0m %d/%d (%d failed)\n" "$passed" "$total" "$failed"
+                fi
+            fi
+        fi
+    done
 }
 
 print_group_verbose() {
@@ -318,11 +444,11 @@ print_group_verbose() {
 
         printf "  %-35s" "$name"
         if [[ "$status" == "PASS" ]]; then
-            printf "\033[0;32m[PASS]\033[0m  (%ds)\n" "$elapsed"
+            printf "\033[0;32m[PASS]\033[0m  (%ss)\n" "$elapsed"
         elif [[ "$status" == "SKIP" ]]; then
             printf "\033[0;33m[SKIP]\033[0m\n"
         else
-            printf "\033[0;31m[FAIL]\033[0m  (%ds)\n" "$elapsed"
+            printf "\033[0;31m[FAIL]\033[0m  (%ss)\n" "$elapsed"
         fi
     done
     echo
@@ -363,6 +489,8 @@ run_framework() {
         exit 0
     fi
 
+    compute_summary_width "${active_suites[@]}"
+
     for suite_name in "${active_suites[@]}"; do
         local suite_dir="$FRAMEWORK_DIR/$suite_name"
 
@@ -371,11 +499,13 @@ run_framework() {
             # shellcheck disable=SC2207
             roms=($(discover_roms "$suite_dir"))
             if [[ ${#roms[@]} -gt 0 ]]; then
-                record_group_skipped "${suite_name}/roms" "${roms[@]}"
+                record_group_skipped "${suite_name}" "${roms[@]}"
                 if [[ $VERBOSE -eq 1 ]]; then
-                    print_group_verbose "${suite_name}/roms"
+                    print_group_verbose "${suite_name}"
                 else
-                    print_group_summary "${suite_name}/roms"
+                    print_group_summary "${suite_name}"
+                    print_collected_summaries
+                    COLLECTED_RESULTS=()
                 fi
             fi
             continue
@@ -414,15 +544,36 @@ run_framework() {
             local group_rom_array=(${group_roms["$group_key"]})
             IFS="$old_ifs"
 
-            local display_key="${suite_name}/roms/${group}"
+            local display_key="${suite_name}/${group}"
             if [[ -z "$group" ]]; then
-                display_key="${suite_name}/roms"
+                display_key="${suite_name}"
             fi
 
             if is_subdir_skipped "$suite_name" "$group"; then
                 record_group_skipped "$display_key" "${group_rom_array[@]}"
             else
-                run_group_tests "$suite_name" "$suite_dir" "$group" "${group_rom_array[@]}"
+                # Check for individually skipped ROMs via glob patterns
+                local run_roms=()
+                local skipped_roms=()
+                local rom_rel
+                for rom in "${group_rom_array[@]}"; do
+                    rom_rel=$(get_rom_rel_path "$rom" "$suite_dir")
+                    if is_rom_skipped "$suite_name" "$rom_rel"; then
+                        skipped_roms+=("$rom")
+                    else
+                        run_roms+=("$rom")
+                    fi
+                done
+
+                if [[ ${#run_roms[@]} -gt 0 ]]; then
+                    run_group_tests "$suite_name" "$suite_dir" "$group" "${run_roms[@]}"
+                fi
+
+                if [[ ${#skipped_roms[@]} -gt 0 ]]; then
+                    record_rom_skipped "$display_key" "${skipped_roms[@]}"
+                    GROUP_TOTAL["$display_key"]=$(( ${GROUP_TOTAL["$display_key"]:-0} + ${#skipped_roms[@]} ))
+                    GROUP_SKIPPED["$display_key"]=$(( ${GROUP_SKIPPED["$display_key"]:-0} + ${#skipped_roms[@]} ))
+                fi
             fi
 
             if [[ $VERBOSE -eq 1 ]]; then
@@ -431,6 +582,11 @@ run_framework() {
                 print_group_summary "$display_key"
             fi
         done
+
+        if [[ $VERBOSE -ne 1 ]]; then
+            print_collected_summaries
+            COLLECTED_RESULTS=()
+        fi
 
         unset group_roms
     done
