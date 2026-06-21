@@ -12,6 +12,8 @@ pub struct MBC1 {
     ram_bank: usize,
     ram_enable: bool,
     banking_mode: u8,
+    has_extended_rom: bool,
+    has_ram_banking: bool,
 
     has_save: bool,
     save_fname: PathBuf,
@@ -34,6 +36,8 @@ impl MBC1 {
             ram_bank: 0,
             ram_enable: false,
             banking_mode: 0,
+            has_extended_rom: rom_banks_code >= 5,
+            has_ram_banking: ram_banks_code >= 3,
             sram: Self::load_sram(&rom_fname, has_save, ram_banks_code),
             has_save,
             save_fname: rom_fname,
@@ -44,14 +48,19 @@ impl MBC1 {
 impl MemoryBankController for MBC1 {
     fn read(&self, addr: u16) -> u8 {
         match addr {
-            0x0..=0x3fff => self.rom[addr as usize],
+            0x0..=0x3fff => {
+                if self.banking_mode == 1 && self.has_extended_rom {
+                    return self.rom[((self.ram_bank << 5) * 0x4000) | (addr as usize & 0x3fff)];
+                }
+                self.rom[addr as usize]
+            }
             0x4000..=0x7fff => {
-                let offset = if self.banking_mode == 1 {
+                let offset = if self.banking_mode == 1 && self.has_extended_rom {
                     ((self.ram_bank << 5) | self.rom_bank) * 0x4000
                 } else {
                     self.rom_bank * 0x4000
                 };
-                self.rom[offset + (addr as usize - 0x4000)]
+                self.rom[offset + (addr as usize & 0x3fff)]
             }
             0xa000..=0xbfff => {
                 if !self.ram_enable {
@@ -70,7 +79,11 @@ impl MemoryBankController for MBC1 {
         match addr {
             0x0..=0x1fff => self.ram_enable = value & 0xf == 0xa,
             0x2000..=0x3fff => self.rom_bank = (value as usize & 0x1f).max(1) & self.rom_bank_mask,
-            0x4000..=0x5fff => self.ram_bank = value as usize & 0x3,
+            0x4000..=0x5fff => {
+                if self.has_extended_rom || self.has_ram_banking {
+                    self.ram_bank = value as usize & 0x3;
+                }
+            }
             0x6000..=0x7fff => self.banking_mode = value & 0x1,
             0xa000..=0xbfff => {
                 if self.ram_enable {
