@@ -70,7 +70,7 @@ impl Bus {
             0xc000..=0xdfff => self.ram.read(addr),
             0xe000..=0xfdff => self.ram.read(addr - 0x2000),
             0xfe00..=0xfe9f => self.io.read(addr),
-            0xff0f => INTERRUPT_FLAGS.get(),
+            0xff0f => INTERRUPT_FLAGS.get() | 0xe0,
             0xff46 => {
                 warn!("Invalid DMA read at 0x{addr:04X}");
                 0xff
@@ -81,7 +81,7 @@ impl Bus {
             0xff70 => self.ram.read(addr),
             0xff00..=0xff7f => self.io.read(addr),
             0xff80..=0xfffe => self.ram.read(addr),
-            0xffff => INTERRUPT_ENABLE.get(),
+            0xffff => INTERRUPT_ENABLE.get() | 0xe0,
             _ => {
                 warn!("bus.read: unhandled address 0x{addr:04X}");
                 0xff

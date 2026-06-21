@@ -263,7 +263,18 @@ impl LR35902CPU {
     fn handle_ints(&mut self) {
         let mut handle_int = |int: u8, addr: u16| -> bool {
             if flag_set!(INTERRUPT_FLAGS.get(), int) && flag_set!(INTERRUPT_ENABLE.get(), int) {
+                // Push high byte of PC
                 _push(self, (self.registers.pc >> 8) as u8);
+
+                // If the interrupt's bit was cleared from IE, cancel the dispatch
+                if !flag_set!(INTERRUPT_ENABLE.get(), int) {
+                    self.halt = false;
+                    self.int_master = false;
+                    self.registers.pc = 0x0000;
+                    return false;
+                }
+
+                // Push low byte of PC
                 _push(self, (self.registers.pc & 0xff) as u8);
                 INTERRUPT_FLAGS.set(INTERRUPT_FLAGS.get() ^ int);
                 self.halt = false;
