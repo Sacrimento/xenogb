@@ -35,7 +35,7 @@ pub struct Bus {
 
     pub speed_mode: u8,
     pub booting: bool,
-    boot_rom: &'static [u8; 0x100],
+    boot_rom: (&'static [u8; 0x100], Option<&'static [u8; 0x700]>),
 }
 
 impl Bus {
@@ -59,8 +59,16 @@ impl Bus {
     }
 
     pub fn read(&self, addr: u16) -> u8 {
-        if self.booting && addr < 0x100 {
-            return self.boot_rom[addr as usize];
+        if self.booting {
+            if addr < 0x100 {
+                return self.boot_rom.0[addr as usize];
+            } else if self.boot_rom.1.is_some() {
+                match addr {
+                    0x100..=0x150 => return self.cartridge.read(addr),
+                    0x200..=0x8ff => return self.boot_rom.1.unwrap()[addr as usize - 0x200],
+                    _ => (),
+                }
+            }
         }
 
         match addr {
