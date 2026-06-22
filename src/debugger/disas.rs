@@ -160,7 +160,7 @@ fn disas_at(cpu: &LR35902CPU, addr: u16) -> (u16, GbAsm) {
         opcode = (1 << 8) | cpu.bus.read(addr + 1) as usize;
     }
 
-    if INSTRUCTIONS[opcode] != Instruction::default() {
+    if INSTRUCTIONS[opcode] == Instruction::default() {
         return (
             1,
             GbAsm {
