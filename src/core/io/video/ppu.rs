@@ -3,8 +3,8 @@ use crate::core::cpu::interrupts::{request_interrupt, InterruptFlags};
 use crate::core::cpu::CPUSpeed;
 use crate::debugger::{ppu_metrics, PpuMetricFields};
 use crate::flag_set;
-
 use crossbeam_channel::Sender;
+use log::warn;
 
 const LINES_PER_FRAME: u8 = 154;
 const TICKS_PER_LINE: u16 = 456;
@@ -109,11 +109,11 @@ pub struct PPU {
     draw_sprites: bool,
 
     priority_style: PriorityStyle,
-    is_cgb: bool,
+    compat_mode: bool,
 }
 
 impl PPU {
-    pub fn new(video_channel_sd: Sender<Vbuf>, is_cgb: bool) -> Self {
+    pub fn new(video_channel_sd: Sender<Vbuf>) -> Self {
         let mut lcd = LCD::default();
         lcd.set_ppu_mode(PPUMode::OAMScan);
 
@@ -136,12 +136,8 @@ impl PPU {
             draw_background: true,
             draw_window: true,
             draw_sprites: true,
-            priority_style: if is_cgb {
-                PriorityStyle::CGB
-            } else {
-                PriorityStyle::DMG
-            },
-            is_cgb,
+            priority_style: PriorityStyle::CGB,
+            compat_mode: true,
         }
     }
 
@@ -149,6 +145,10 @@ impl PPU {
         match addr {
             0x8000..=0x9fff => self.vram_write(addr, value),
             0xfe00..=0xfe9f => self.oam_write(addr, value),
+            0xff4c => {
+                self.compat_mode = flag_set!(value, 4);
+                warn!("Compatibility mode set: {}", self.compat_mode);
+            }
             0xff4f => self.vram_bank = value & 0x1,
             0xff6c => self.priority_style = value.into(),
             _ => unreachable!(),
@@ -277,11 +277,12 @@ impl PPU {
 
         Some((
             color & 0b11,
-            if self.is_cgb {
-                self.lcd.get_cgb_bg_pixel(attributes, color as usize)
-            } else {
-                self.lcd.get_dmg_bg_pixel(attributes, color as usize)
-            },
+            // if self.is_cgb {
+            //     self.lcd.get_cgb_bg_pixel(attributes, color as usize)
+            // } else {
+            //     self.lcd.get_dmg_bg_pixel(attributes, color as usize)
+            // },
+            self.lcd.get_cgb_bg_pixel(attributes, color as usize),
         ))
     }
 
@@ -343,11 +344,12 @@ impl PPU {
             return None;
         }
 
-        Some(if self.is_cgb {
-            self.lcd.get_cgb_obj_pixel(sprite.flags, color as usize)
-        } else {
-            self.lcd.get_dmg_obj_pixel(sprite.flags, color as usize)
-        })
+        // Some(if self.is_cgb {
+        //     self.lcd.get_cgb_obj_pixel(sprite.flags, color as usize)
+        // } else {
+        //     self.lcd.get_dmg_obj_pixel(sprite.flags, color as usize)
+        // })
+        Some(self.lcd.get_cgb_obj_pixel(sprite.flags, color as usize))
     }
 
     fn render_sprite(&self, x: usize, y: usize) -> Option<Pixel> {
@@ -468,7 +470,8 @@ impl PPU {
         match s_pixel {
             None => bg_pixel,
             Some(s_pixel) => {
-                if !flag_set!(self.lcd.lcdc, LCDC_FLAGS::WINDOW_BG_PRIORITY)
+                if !self.compat_mode
+                    || !flag_set!(self.lcd.lcdc, LCDC_FLAGS::WINDOW_BG_PRIORITY)
                     || (!bg_pixel.priority && !s_pixel.priority)
                     || bg_color_idx == 0
                 {

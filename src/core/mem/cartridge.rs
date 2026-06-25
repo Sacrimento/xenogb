@@ -33,11 +33,6 @@ pub struct CartridgeHeader {
 }
 
 impl CartridgeHeader {
-    // CGB flag: 0x80 = CGB only, 0xC0 = CGB+DMG, 0x00 = DMG only
-    pub fn is_cgb(&self) -> bool {
-        self.cgb_flag & 0xC0 != 0
-    }
-
     pub fn new(header: &[u8]) -> Self {
         Self {
             title: std::str::from_utf8(&header[0..11])
@@ -92,9 +87,5 @@ impl Cartridge {
 
     pub fn write(&mut self, addr: u16, value: u8) {
         self.mbc.write(addr, value);
-    }
-
-    pub fn is_cgb(&self) -> bool {
-        self.header.is_cgb()
     }
 }

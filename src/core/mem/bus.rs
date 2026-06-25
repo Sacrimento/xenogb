@@ -45,11 +45,10 @@ impl Bus {
         video_channel_sd: Sender<Vbuf>,
         audio_channel_sd: Sender<[f32; 2]>,
     ) -> Self {
-        let is_cgb = cartridge.is_cgb();
         Self {
             cartridge,
             ram: RAM::new(),
-            io: IOMMU::new(video_channel_sd, audio_channel_sd, is_cgb),
+            io: IOMMU::new(video_channel_sd, audio_channel_sd),
             oam_dma: OamDMA::default(),
             vram_dma: VramDMA::default(),
             speed_mode: 0,
@@ -113,6 +112,7 @@ impl Bus {
             0xfe00..=0xfe9f => self.io.write(addr, value),
             0xff0f => INTERRUPT_FLAGS.set(value),
             0xff46 => self.oam_dma.init(value),
+            0xff4c => self.io.ppu.write(addr, value),
             0xff4d => self.speed_mode = ((self.speed_mode >> 1) << 1) | value & 1,
             0xff50 => self.booting = false,
             0xff51..=0xff55 => self.vram_dma.write(addr, value),
